@@ -1,0 +1,18 @@
+#Extensions
+*.pyc
+*.swp
+
+#Sphinx doc build
+docs/_build
+docs/generated
+
+#Temporary files
+*~
+
+#Build products
+*.egg-info/
+dist/
+build/
+
+#IDE
+.vscode
