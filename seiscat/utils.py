@@ -47,6 +47,7 @@ def write_sample_config(configspec, progname):
     c.defaults = []
     c.initial_comment = configspec.initial_comment
     c.comments = configspec.comments
+    c.final_comment = configspec.final_comment
     configfile = progname + '.conf'
     if write_ok(configfile):
         with open(configfile, 'wb') as fp:
@@ -67,6 +68,9 @@ def read_config(config_file, configspec=None):
     except Exception as err:
         msg = 'Unable to read "{}": {}'.format(config_file, err)
         err_exit(msg)
+    for k, v in config_obj.items():
+        if v == 'None':
+            config_obj[k] = None
     return config_obj
 
 
