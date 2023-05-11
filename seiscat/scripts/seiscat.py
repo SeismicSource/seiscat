@@ -5,7 +5,7 @@
 Main script for seiscat.
 
 :copyright:
-    2022 Claudio Satriano <satriano@ipgp.fr>
+    2022-2023 Claudio Satriano <satriano@ipgp.fr>
 :license:
     GNU General Public License v3.0 or later
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
@@ -20,21 +20,29 @@ from ..utils import (
 
 def parse_arguments():
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(
-        description='Run seiscat.')
+    parser = argparse.ArgumentParser(description='Run seiscat.')
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
-        '-c', '--configfile', type=str,
-        help='config file for data sources and processing params')
+        '-c',
+        '--configfile',
+        type=str,
+        help='config file for data sources and processing params'
+    )
     group.add_argument(
-        '-s', '--sampleconfig', default=False, action='store_true',
+        '-s',
+        '--sampleconfig',
+        default=False,
+        action='store_true',
         required=False,
-        help='write sample config file to current directory and exit')
+        help='write sample config file to current directory and exit'
+    )
     parser.add_argument(
-        '-v', '--version', action='version',
-        version='%(prog)s {}'.format(get_versions()['version']))
-    args = parser.parse_args()
-    return args
+        '-v',
+        '--version',
+        action='version',
+        version=f"%(prog)s {get_versions()['version']}",
+    )
+    return parser.parse_args()
 
 
 def main():
