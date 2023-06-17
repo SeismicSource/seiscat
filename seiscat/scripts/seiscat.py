@@ -14,7 +14,7 @@ import sys
 import argparse
 from .._version import get_versions
 from ..fdsnws import open_fdsn_connection, select_events
-from ..db import write_catalog_to_db
+from ..db import check_db_exists, write_catalog_to_db
 from ..utils import (
     parse_configspec, read_config, validate_config, write_sample_config,
 )
@@ -57,6 +57,7 @@ def main():
     validate_config(config)
     client = open_fdsn_connection(config)
     if args.action == 'initdb':
+        check_db_exists(config)
         cat = select_events(client, config, first_query=True)
         write_catalog_to_db(cat, config, replace=True)
     elif args.action == 'updatedb':

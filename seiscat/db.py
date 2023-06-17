@@ -9,7 +9,31 @@ Database functions for seiscat.
     GNU General Public License v3.0 or later
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
+import os
 import sqlite3
+from .utils import err_exit
+
+
+def check_db_exists(config):
+    """
+    Check if database file exists.
+
+    :param config: config object
+    """
+    if not os.path.exists(config['db_file']):
+        return
+    ans = input(
+        f'"{config["db_file"]}" already exists. '
+        'Do you want to overwrite it? [y/N] '
+    )
+    if ans not in ['y', 'Y']:
+        err_exit('Database file already exists. Exiting.')
+    else:
+        os.rename(
+            config['db_file'], f'{config["db_file"]}.bak')
+        print(
+            f'Backup of "{config["db_file"]}" saved to '
+            f'"{config["db_file"]}.bak"')
 
 
 def write_catalog_to_db(cat, config, replace=False):
