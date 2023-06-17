@@ -47,7 +47,7 @@ def parse_arguments():
     return args
 
 
-def main():
+def run():
     args = parse_arguments()
     configspec = parse_configspec()
     if args.action == 'sampleconfig':
@@ -63,3 +63,10 @@ def main():
     elif args.action == 'updatedb':
         cat = select_events(client, config, first_query=False)
         write_catalog_to_db(cat, config, replace=False)
+
+
+def main():
+    try:
+        run()
+    except KeyboardInterrupt:
+        sys.exit(1)
