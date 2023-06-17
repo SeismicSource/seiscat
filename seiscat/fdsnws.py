@@ -11,6 +11,7 @@ FDNS webservices functions for seiscat.
 """
 from datetime import timedelta
 from obspy import UTCDateTime
+from obspy import Catalog
 from obspy.clients.fdsn import Client
 from .utils import err_exit
 
@@ -74,7 +75,8 @@ def select_events(client, config, first_query=True):
         'lat_min', 'lat_max', 'lon_min', 'lon_max',
         'lat0', 'lon0', 'radius_min', 'radius_max',
         'depth_min', 'depth_max',
-        'mag_min', 'mag_max'
+        'mag_min', 'mag_max',
+        'event_type', 'event_type_exclude'
     ]
     if all(config[k] is None for k in query_keys):
         err_exit('All query parameters are None. Please set at least one.')
@@ -92,10 +94,21 @@ def select_events(client, config, first_query=True):
         mindepth=config['depth_min'], maxdepth=config['depth_max'],
         minmagnitude=config['mag_min'], maxmagnitude=config['mag_max'],
     )
+    # filter in included event types
+    if config['event_type']:
+        cat = Catalog([
+            ev for ev in cat
+            if ev.event_type in config['event_type']])
+    # filter out excluded event types
+    if config['event_type_exclude']:
+        cat = Catalog([
+            ev for ev in cat
+            if ev.event_type not in config['event_type_exclude']])
     # see if there are additional queries to be done
     n = 1
     while True:
         _query_keys = [f'{k}_{n}' for k in query_keys]
         if all(k not in config for k in _query_keys):
             break
+        # TODO: do the actual query
     return cat
