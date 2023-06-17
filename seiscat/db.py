@@ -63,6 +63,7 @@ def write_catalog_to_db(cat, config, replace=False):
         in zip(extra_field_names, extra_field_types))
     # create table if it doesn't exist
     c.execute(f'CREATE TABLE IF NOT EXISTS events ({", ".join(fields)})')
+    events_written = 0
     for ev in cat:
         evid = str(ev.resource_id.id).split('/')[-1]
         orig = ev.preferred_origin() or ev.origins[0]
@@ -87,5 +88,7 @@ def write_catalog_to_db(cat, config, replace=False):
             c.execute(
                 'INSERT OR IGNORE INTO events VALUES '
                 f'({", ".join("?" * len(values))})', values)
+        events_written += c.rowcount
     # close database connection
     conn.commit()
+    print(f'Wrote {events_written} events to database "{config["db_file"]}"')
