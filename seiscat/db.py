@@ -12,7 +12,7 @@ Database functions for seiscat.
 import sqlite3
 
 
-def write_catalog_to_db(cat, config):
+def write_catalog_to_db(cat, config, replace=False):
     """
     Write catalog to database.
 
@@ -53,9 +53,15 @@ def write_catalog_to_db(cat, config):
         # add extra fields
         extra_field_defaults = config['extra_field_defaults'] or []
         values += extra_field_defaults
-        # add events to table, replace events that already exist
-        c.execute(
-            'INSERT OR REPLACE INTO events VALUES '
-            f'({", ".join("?" * len(values))})', values)
+        if replace:
+            # add events to table, replace events that already exist
+            c.execute(
+                'INSERT OR REPLACE INTO events VALUES '
+                f'({", ".join("?" * len(values))})', values)
+        else:
+            # add events to table, ignore events that already exist
+            c.execute(
+                'INSERT OR IGNORE INTO events VALUES '
+                f'({", ".join("?" * len(values))})', values)
     # close database connection
     conn.commit()

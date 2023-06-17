@@ -23,20 +23,16 @@ from ..utils import (
 def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description='Run seiscat.')
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument(
+    subparser = parser.add_subparsers(dest='action')
+    subparser.add_parser('initdb', help='initialize database')
+    subparser.add_parser('updatedb', help='update database')
+    subparser.add_parser('sampleconfig', help='write sample config file')
+    parser.add_argument(
         '-c',
         '--configfile',
         type=str,
+        default='seiscat.conf',
         help='config file for data sources and processing params'
-    )
-    group.add_argument(
-        '-s',
-        '--sampleconfig',
-        default=False,
-        action='store_true',
-        required=False,
-        help='write sample config file to current directory and exit'
     )
     parser.add_argument(
         '-v',
@@ -44,18 +40,25 @@ def parse_arguments():
         action='version',
         version=f"%(prog)s {get_versions()['version']}",
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.action is None:
+        parser.print_help()
+        sys.exit(0)
+    return args
 
 
 def main():
     args = parse_arguments()
     configspec = parse_configspec()
-    if args.sampleconfig:
+    if args.action == 'sampleconfig':
         write_sample_config(configspec, 'seiscat')
         sys.exit(0)
     config = read_config(args.configfile, configspec)
     validate_config(config)
     client = open_fdsn_connection(config)
-    cat = select_events(client, config)
-    print(cat)
-    write_catalog_to_db(cat, config)
+    if args.action == 'initdb':
+        cat = select_events(client, config, first_query=True)
+        write_catalog_to_db(cat, config, replace=True)
+    elif args.action == 'updatedb':
+        cat = select_events(client, config, first_query=False)
+        write_catalog_to_db(cat, config, replace=False)

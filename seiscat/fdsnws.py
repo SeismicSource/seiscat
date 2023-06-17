@@ -97,6 +97,5 @@ def select_events(client, config, first_query=True):
     while True:
         _query_keys = [f'{k}_{n}' for k in query_keys]
         if all(k not in config for k in _query_keys):
-            print('No more queries to be done.')
             break
     return cat
