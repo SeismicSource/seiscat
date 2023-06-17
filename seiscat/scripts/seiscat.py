@@ -13,8 +13,10 @@ Main script for seiscat.
 import sys
 import argparse
 from .._version import get_versions
+from ..fdsnws import open_fdsn_connection, select_events
+from ..db import write_catalog_to_db
 from ..utils import (
-    parse_configspec, read_config, validate_config, write_sample_config
+    parse_configspec, read_config, validate_config, write_sample_config,
 )
 
 
@@ -53,4 +55,7 @@ def main():
         sys.exit(0)
     config = read_config(args.configfile, configspec)
     validate_config(config)
-    print(config)
+    client = open_fdsn_connection(config)
+    cat = select_events(client, config)
+    print(cat)
+    write_catalog_to_db(cat, config)
