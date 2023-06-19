@@ -62,12 +62,14 @@ def _parse_time_interval(time_interval):
         raise ValueError(f'Invalid time unit: {unit}')
 
 
-def select_events(client, config, first_query=True):
+def _query_box_or_circle(client, config, suffix=None, first_query=True):
     """
-    Select events from FDSN client based on criteria in config.
+    Query events from FDSN client based on box or circle criteria in config.
 
     :param client: FDSN client object
     :param config: config object
+    :param suffix: suffix to be added to the config keys
+    :param first_query: True if this is the first query
     :returns: obspy Catalog object
     """
     query_keys = [
@@ -78,37 +80,78 @@ def select_events(client, config, first_query=True):
         'mag_min', 'mag_max',
         'event_type', 'event_type_exclude'
     ]
+    suffix = '' if suffix is None else suffix
+    if suffix:
+        query_keys = [k + suffix for k in query_keys]
+        try:
+            if all(config[k] is None for k in query_keys):
+                return Catalog()
+        except KeyError:
+            return Catalog()
     if all(config[k] is None for k in query_keys):
         err_exit('All query parameters are None. Please set at least one.')
-    start_time = _to_utc_datetime(config['start_time'])
-    end_time = _to_utc_datetime(config['end_time'])
-    recheck_period = _parse_time_interval(config['recheck_period'])
+    start_time = _to_utc_datetime(config[f'start_time{suffix}'])
+    end_time = _to_utc_datetime(config[f'end_time{suffix}'])
+    recheck_period = _parse_time_interval(config[f'recheck_period{suffix}'])
     if not first_query and end_time is None and recheck_period:
         start_time = max(start_time, UTCDateTime() - recheck_period)
+    minlatitude = config[f'lat_min{suffix}']
+    maxlatitude = config[f'lat_max{suffix}']
+    minlongitude = config[f'lon_min{suffix}']
+    maxlongitude = config[f'lon_max{suffix}']
+    latitude = config[f'lat0{suffix}']
+    longitude = config[f'lon0{suffix}']
+    minradius = config[f'radius_min{suffix}']
+    maxradius = config[f'radius_max{suffix}']
+    mindepth = config[f'depth_min{suffix}']
+    maxdepth = config[f'depth_max{suffix}']
+    minmagnitude = config[f'mag_min{suffix}']
+    maxmagnitude = config[f'mag_max{suffix}']
     cat = client.get_events(
         starttime=start_time, endtime=end_time,
-        minlatitude=config['lat_min'], maxlatitude=config['lat_max'],
-        minlongitude=config['lon_min'], maxlongitude=config['lon_max'],
-        latitude=config['lat0'], longitude=config['lon0'],
-        minradius=config['radius_min'], maxradius=config['radius_max'],
-        mindepth=config['depth_min'], maxdepth=config['depth_max'],
-        minmagnitude=config['mag_min'], maxmagnitude=config['mag_max'],
+        minlatitude=minlatitude, maxlatitude=maxlatitude,
+        minlongitude=minlongitude, maxlongitude=maxlongitude,
+        latitude=latitude, longitude=longitude,
+        minradius=minradius, maxradius=maxradius,
+        mindepth=mindepth, maxdepth=maxdepth,
+        minmagnitude=minmagnitude, maxmagnitude=maxmagnitude,
     )
     # filter in included event types
-    if config['event_type']:
+    event_type = config[f'event_type{suffix}']
+    if event_type:
         cat = Catalog([
             ev for ev in cat
-            if ev.event_type in config['event_type']])
+            if ev.event_type in event_type
+        ])
     # filter out excluded event types
-    if config['event_type_exclude']:
+    event_type_exclude = config[f'event_type_exclude{suffix}']
+    if event_type_exclude:
         cat = Catalog([
             ev for ev in cat
-            if ev.event_type not in config['event_type_exclude']])
+            if ev.event_type not in event_type_exclude
+        ])
+    return cat
+
+
+def query_events(client, config, first_query=True):
+    """
+    Query events from FDSN client based on criteria in config.
+
+    :param client: FDSN client object
+    :param config: config object
+    :param first_query: True if this is the first query
+    :returns: obspy Catalog object
+    """
+    print('Querying events from FDSN server...')
+    cat = _query_box_or_circle(client, config, first_query=first_query)
     # see if there are additional queries to be done
     n = 1
     while True:
-        _query_keys = [f'{k}_{n}' for k in query_keys]
-        if all(k not in config for k in _query_keys):
+        _cat = _query_box_or_circle(
+            client, config, suffix=f'_{n}', first_query=first_query)
+        if not _cat:
             break
-        # TODO: do the actual query
+        cat += _cat
+        n += 1
+    print(f'Found {len(cat)} events.')
     return cat

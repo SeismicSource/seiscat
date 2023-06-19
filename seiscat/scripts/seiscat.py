@@ -13,7 +13,7 @@ Main script for seiscat.
 import sys
 import argparse
 from .._version import get_versions
-from ..fdsnws import open_fdsn_connection, select_events
+from ..fdsnws import open_fdsn_connection, query_events
 from ..db import check_db_exists, write_catalog_to_db
 from ..utils import parse_configspec, read_config,  write_sample_config
 
@@ -54,7 +54,7 @@ def download_and_store(client, config, initdb):
     :param initdb: if True, create new database file
     """
     check_db_exists(config, initdb)
-    cat = select_events(client, config, first_query=initdb)
+    cat = query_events(client, config, first_query=initdb)
     write_catalog_to_db(cat, config, initdb)
 
 

@@ -96,7 +96,6 @@ def read_config(config_file, configspec=None):
     for k, v in config_obj.items():
         if v == 'None':
             config_obj[k] = None
-    config_obj.configspec = configspec
     if configspec is not None:
         _validate_config(config_obj)
     return config_obj
@@ -108,6 +107,19 @@ def _validate_config(config_obj):
 
     :param config_obj: config object
     """
+    configspec = config_obj.configspec
+    config_obj_keys = list(config_obj.keys())
+    configspec_keys = list(configspec.keys())
+    # extend configspec with keys ending with _n, if present in config_obj
+    n = 1
+    while True:
+        matching_keys = [k for k in config_obj_keys if k.endswith(f'_{n}')]
+        if not matching_keys:
+            break
+        for k in configspec_keys:
+            configspec[f'{k}_{n}'] = configspec[k]
+        n += 1
+    config_obj.configspec = configspec
     val = Validator()
     test = config_obj.validate(val)
     if isinstance(test, dict):
