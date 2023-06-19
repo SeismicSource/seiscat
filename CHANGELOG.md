@@ -4,6 +4,11 @@ Keep a local seismic catalog.
 
 (c) 2022-2023 Claudio Satriano <satriano@ipgp.fr>
 
+## v0.2 - 2023-06-19
+
+- Fix for plotting the whole world when no limits are given
+- New way of computing zoom level for map tiles
+
 ## v0.1 - 2023-06-19
 
 This is the initial release of SeisCat.

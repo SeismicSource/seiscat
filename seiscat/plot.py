@@ -51,7 +51,14 @@ def _get_map_extent(config):
     :param config: config object
     :returns: lon_min, lon_max, lat_min, lat_max
     """
-    lon_min, lon_max, lat_min, lat_max = _get_map_extent_for_suffix(config)
+    ret = _get_map_extent_for_suffix(config)
+    if ret is None:
+        lon_min = -179
+        lon_max = 180
+        lat_min = -75
+        lat_max = 80
+    else:
+        lon_min, lon_max, lat_min, lat_max = ret
     # see if there are additional limits in the config file
     n = 1
     while True:
@@ -67,20 +74,24 @@ def _get_map_extent(config):
     return lon_min, lon_max, lat_min, lat_max
 
 
-def _get_tile_zoom_level(ax):
+def _get_tile_scale(extent):
     """
-    Empirical formula to get the zoom level for a tile.
+    Get the tile scale for a given extent.
 
     :param extent: tuple (lon_min, lon_max, lat_min, lat_max)
-    :returns: zoom level
+    :returns: tile scale
     """
-    extent = ax.get_extent()
-    area = (extent[1] - extent[0]) * (extent[3] - extent[2])
-    levels = [1e14, 1e13, 1e12, 1e11, 1e9, 1e8, 1e7, 1e6, 1e5]
-    zoom_level = np.argmin(np.abs(np.array(levels) - area)) + 6
-    # uncomment to debug
-    # print(f'area: {area:.1e}, zoom_level: {zoom_level:d}')
-    return int(zoom_level)
+    from cartopy.feature import AdaptiveScaler
+    tile_autoscaler = AdaptiveScaler(
+        default_scale=4,
+        limits=(
+            (4, 180), (5, 90), (6, 45), (7, 25), (8, 15), (9, 5),
+            (10, 2), (11, 1),
+        )
+    )
+    tile_scale = tile_autoscaler.scale_from_extent(extent)
+    # print(f'tile_scale: {tile_scale}')
+    return int(tile_scale)
 
 
 def _read_event_db(config):
@@ -143,6 +154,7 @@ def _plot_events(events, ax):
     )
     annot.set_visible(False)
     fig = ax.get_figure()
+
     def hover(event):
         vis = annot.get_visible()
         if vis:
@@ -163,7 +175,6 @@ def _plot_events(events, ax):
                 marker.set_linewidth(1)
         fig.canvas.draw_idle()
     fig.canvas.mpl_connect('motion_notify_event', hover)
-
 
 
 def plot_catalog_map(config):
@@ -187,11 +198,14 @@ def plot_catalog_map(config):
     ax = fig.add_subplot(1, 1, 1, projection=stamen_terrain.crs)
     extent = _get_map_extent(config)
     ax.set_extent(extent)
-    ax.add_image(stamen_terrain, _get_tile_zoom_level(ax))
+    tile_scale = _get_tile_scale(extent)
+    ax.add_image(stamen_terrain, tile_scale)
     ax.coastlines(resolution='10m', edgecolor='black', linewidth=1)
-    ax.add_feature(ccrs.cartopy.feature.BORDERS, edgecolor='black', linewidth=1)
+    ax.add_feature(
+        ccrs.cartopy.feature.BORDERS, edgecolor='black', linewidth=1)
     g_kwargs = dict(draw_labels=True, dms=True, x_inline=False, y_inline=False)
     ax.gridlines(**g_kwargs)
+
     def redraw_gridlines(ax):
         ax.gridlines(**g_kwargs)
     ax.callbacks.connect('xlim_changed', lambda ax: redraw_gridlines(ax))
