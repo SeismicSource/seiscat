@@ -4,4 +4,4 @@ include LICENSE.txt
 include CONTRIBUTORS.txt
 include versioneer.py
 include seiscat/_version.py
-include seiscat/configspec.conf
+include seiscat/conf/configspec.conf
