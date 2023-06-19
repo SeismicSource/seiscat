@@ -47,7 +47,21 @@ def parse_arguments():
     return args
 
 
+def download_and_store(client, config, initdb):
+    """
+    Download events and store them in the database.
+
+    :param client: FDSN client
+    :param config: config object
+    :param initdb: if True, create new database file
+    """
+    check_db_exists(config, initdb)
+    cat = select_events(client, config, first_query=initdb)
+    write_catalog_to_db(cat, config, initdb)
+
+
 def run():
+    """Run seiscat."""
     args = parse_arguments()
     configspec = parse_configspec()
     if args.action == 'sampleconfig':
@@ -57,15 +71,13 @@ def run():
     validate_config(config)
     client = open_fdsn_connection(config)
     if args.action == 'initdb':
-        check_db_exists(config)
-        cat = select_events(client, config, first_query=True)
-        write_catalog_to_db(cat, config, replace=True)
+        download_and_store(client, config, initdb=True)
     elif args.action == 'updatedb':
-        cat = select_events(client, config, first_query=False)
-        write_catalog_to_db(cat, config, replace=False)
+        download_and_store(client, config, initdb=False)
 
 
 def main():
+    """Main function. Catch KeyboardInterrupt."""
     try:
         run()
     except KeyboardInterrupt:
