@@ -67,10 +67,13 @@ def read_config(config_file, configspec=None):
     for k, v in config_obj.items():
         if v == 'None':
             config_obj[k] = None
+    config_obj.configspec = configspec
+    if configspec is not None:
+        _validate_config(config_obj)
     return config_obj
 
 
-def validate_config(config_obj):
+def _validate_config(config_obj):
     val = Validator()
     test = config_obj.validate(val)
     if isinstance(test, dict):

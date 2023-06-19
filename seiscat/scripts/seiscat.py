@@ -15,9 +15,7 @@ import argparse
 from .._version import get_versions
 from ..fdsnws import open_fdsn_connection, select_events
 from ..db import check_db_exists, write_catalog_to_db
-from ..utils import (
-    parse_configspec, read_config, validate_config, write_sample_config,
-)
+from ..utils import parse_configspec, read_config,  write_sample_config
 
 
 def parse_arguments():
@@ -68,7 +66,6 @@ def run():
         write_sample_config(configspec, 'seiscat')
         sys.exit(0)
     config = read_config(args.configfile, configspec)
-    validate_config(config)
     client = open_fdsn_connection(config)
     if args.action == 'initdb':
         download_and_store(client, config, initdb=True)
