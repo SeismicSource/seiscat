@@ -25,7 +25,7 @@ setup(
     license='GNU General Public License v3 or later (GPLv3+)',
     platforms='OS Independent',
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 3 - Alpha',
         'Environment :: Console',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: '
