@@ -16,18 +16,34 @@ from .configobj.validate import Validator
 
 
 def err_exit(msg):
+    """
+    Print an error message and exit.
+
+    :param msg: error message
+    """
     msg = str(msg)
     sys.stderr.write(msg + '\n')
     sys.exit(1)
 
 
 def parse_configspec():
+    """
+    Parse the configspec file.
+
+    :returns: configspec object
+    """
     curdir = os.path.dirname(__file__)
     configspec_file = os.path.join(curdir, 'conf', 'configspec.conf')
     return read_config(configspec_file)
 
 
 def write_ok(filepath):
+    """
+    Check if it is ok to write to a file.
+
+    :param filepath: path to the file
+    :returns: True if it is ok to write to the file, False otherwise
+    """
     if os.path.exists(filepath):
         ans = input(
             f'"{filepath}" already exists. Do you want to overwrite it? [y/N] '
@@ -37,6 +53,12 @@ def write_ok(filepath):
 
 
 def write_sample_config(configspec, progname):
+    """
+    Write a sample config file.
+
+    :param configspec: configspec object
+    :param progname: program name
+    """
     c = ConfigObj(configspec=configspec, default_encoding='utf8')
     val = Validator()
     c.validate(val)
@@ -52,6 +74,13 @@ def write_sample_config(configspec, progname):
 
 
 def read_config(config_file, configspec=None):
+    """
+    Read a config file.
+
+    :param config_file: path to the config file
+    :param configspec: configspec object
+    :returns: config object
+    """
     kwargs = dict(
         configspec=configspec, file_error=True, default_encoding='utf8')
     if configspec is None:
@@ -74,6 +103,11 @@ def read_config(config_file, configspec=None):
 
 
 def _validate_config(config_obj):
+    """
+    Validate the config object.
+
+    :param config_obj: config object
+    """
     val = Validator()
     test = config_obj.validate(val)
     if isinstance(test, dict):
