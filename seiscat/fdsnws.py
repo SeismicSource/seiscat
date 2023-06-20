@@ -13,6 +13,7 @@ from datetime import timedelta
 from obspy import UTCDateTime
 from obspy import Catalog
 from obspy.clients.fdsn import Client
+from obspy.clients.fdsn.header import FDSNNoDataException
 from .utils import err_exit
 
 
@@ -85,9 +86,9 @@ def _query_box_or_circle(client, config, suffix=None, first_query=True):
         query_keys = [k + suffix for k in query_keys]
         try:
             if all(config[k] is None for k in query_keys):
-                return Catalog()
+                return None
         except KeyError:
-            return Catalog()
+            return None
     if all(config[k] is None for k in query_keys):
         err_exit('All query parameters are None. Please set at least one.')
     start_time = _to_utc_datetime(config[f'start_time{suffix}'])
@@ -107,15 +108,18 @@ def _query_box_or_circle(client, config, suffix=None, first_query=True):
     maxdepth = config[f'depth_max{suffix}']
     minmagnitude = config[f'mag_min{suffix}']
     maxmagnitude = config[f'mag_max{suffix}']
-    cat = client.get_events(
-        starttime=start_time, endtime=end_time,
-        minlatitude=minlatitude, maxlatitude=maxlatitude,
-        minlongitude=minlongitude, maxlongitude=maxlongitude,
-        latitude=latitude, longitude=longitude,
-        minradius=minradius, maxradius=maxradius,
-        mindepth=mindepth, maxdepth=maxdepth,
-        minmagnitude=minmagnitude, maxmagnitude=maxmagnitude,
-    )
+    try:
+        cat = client.get_events(
+            starttime=start_time, endtime=end_time,
+            minlatitude=minlatitude, maxlatitude=maxlatitude,
+            minlongitude=minlongitude, maxlongitude=maxlongitude,
+            latitude=latitude, longitude=longitude,
+            minradius=minradius, maxradius=maxradius,
+            mindepth=mindepth, maxdepth=maxdepth,
+            minmagnitude=minmagnitude, maxmagnitude=maxmagnitude,
+        )
+    except FDSNNoDataException:
+        cat = Catalog()
     # filter in included event types
     event_type = config[f'event_type{suffix}']
     if event_type:
@@ -149,7 +153,7 @@ def query_events(client, config, first_query=True):
     while True:
         _cat = _query_box_or_circle(
             client, config, suffix=f'_{n}', first_query=first_query)
-        if not _cat:
+        if _cat is None:
             break
         cat += _cat
         n += 1
