@@ -4,6 +4,10 @@ Keep a local seismic catalog.
 
 (c) 2022-2023 Claudio Satriano <satriano@ipgp.fr>
 
+## Unreleased
+
+- New command to print catalog to screen: `seiscat print`
+
 ## v0.2 - 2023-06-19
 
 - Fix for plotting the whole world when no limits are given

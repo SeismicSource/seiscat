@@ -15,6 +15,7 @@ import argparse
 from .._version import get_versions
 from ..fdsnws import open_fdsn_connection, query_events
 from ..db import check_db_exists, write_catalog_to_db
+from ..print import print_catalog
 from ..plot import plot_catalog_map
 from ..utils import parse_configspec, read_config,  write_sample_config
 
@@ -25,6 +26,7 @@ def parse_arguments():
     subparser = parser.add_subparsers(dest='action')
     subparser.add_parser('initdb', help='initialize database')
     subparser.add_parser('updatedb', help='update database')
+    subparser.add_parser('print', help='print catalog')
     subparser.add_parser('plot', help='plot catalog map')
     subparser.add_parser('sampleconfig', help='write sample config file')
     parser.add_argument(
@@ -73,6 +75,8 @@ def run():
         download_and_store(client, config, initdb=True)
     elif args.action == 'updatedb':
         download_and_store(client, config, initdb=False)
+    elif args.action == 'print':
+        print_catalog(config)
     elif args.action == 'plot':
         plot_catalog_map(config)
 
