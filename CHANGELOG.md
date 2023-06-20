@@ -7,6 +7,7 @@ Copyright (c) 2022-2023 Claudio Satriano <satriano@ipgp.fr>
 ## Unreleased
 
 - Command line autocompletion, thanks to argcomplete
+- Correctly parse evids from USGS and ISC
 - Exit gracefully if database file is missing
 - Fix printing of `None` values
 

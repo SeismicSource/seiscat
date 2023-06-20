@@ -76,6 +76,25 @@ def check_db_exists(config, initdb):
         )
 
 
+def _get_evid(resource_id):
+    """
+    Get evid from resource_id.
+
+    :param resource_id: resource_id string
+    :returns: evid string
+    """
+    evid = resource_id
+    if '/' in evid:
+        evid = resource_id.split('/')[-1]
+    if '?' in evid:
+        evid = resource_id.split('?')[-1]
+    if '&' in evid:
+        evid = evid.split('&')[0]
+    if '=' in evid:
+        evid = evid.split('=')[-1]
+    return evid
+
+
 def write_catalog_to_db(cat, config, initdb):
     """
     Write catalog to database.
@@ -111,7 +130,7 @@ def write_catalog_to_db(cat, config, initdb):
     c.execute(f'CREATE TABLE IF NOT EXISTS events ({", ".join(fields)})')
     events_written = 0
     for ev in cat:
-        evid = str(ev.resource_id.id).split('/')[-1]
+        evid = _get_evid(str(ev.resource_id.id))
         orig = ev.preferred_origin() or ev.origins[0]
         time = str(orig.time)
         lat = orig.latitude
