@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: utf8 -*-
 # SPDX-License-Identifier: GPL-3.0-or-later
 """
 Utility functions for seiscat.
