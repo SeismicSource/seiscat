@@ -6,6 +6,11 @@ import versioneer
 with open('README.md', 'rb') as f:
     long_descr = f.read().decode('utf-8')
 
+project_urls = {
+    'Homepage': 'https://seiscat.seismicsource.org',
+    'Source': 'https://github.com/SeismicSource/seiscat',
+    'Documentation': 'https://seiscat.readthedocs.io'
+}
 
 setup(
     name='seiscat',
@@ -13,7 +18,7 @@ setup(
     include_package_data=True,
     entry_points={
         'console_scripts': ['seiscat = seiscat.scripts.seiscat:main']
-        },
+    },
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     description='Keep a local seismic catalog',
@@ -21,7 +26,8 @@ setup(
     long_description_content_type='text/markdown',
     author='Claudio Satriano',
     author_email='satriano@ipgp.fr',
-    url='https://github.com/SeismicSource/SeisCat',
+    url=project_urls['Homepage'],
+    project_urls=project_urls,
     license='GNU General Public License v3 or later (GPLv3+)',
     platforms='OS Independent',
     classifiers=[
