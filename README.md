@@ -4,6 +4,7 @@ Keep a local seismic catalog.
 
 [![PyPI-badge]][PyPI-link]
 [![license-badge]][license-link]
+[![docs-badge]][docs-link]
 
 (c) 2022-2023 Claudio Satriano <satriano@ipgp.fr>
 
@@ -16,6 +17,11 @@ The seismic catalog is built and updated by querying a FDSNWS event webservice.
 More ways of feeding the catalog will be added in the future.
 
 The local catalog is stored in a SQLite database (single file database).
+
+👇  See below on how to [install](#installation) and
+[get started](#getting-started).
+
+📖 Check out the official documentation [here](https://seiscat.rtfd.io).
 
 ## Getting Started
 
@@ -118,8 +124,27 @@ You can keep your local SeisCat repository updated by running `git pull`
 from times to times. Thanks to `pip`'s "editable mode", you don't need to
 reinstall SeisCat after each update.
 
+## Getting Help / Reporting Bugs
+
+### 🙏 I need help
+
+Please open an [Issue][Issues].
+
+### 🐞 I found a bug
+
+Please open an [Issue][Issues].
+
+## Contributing
+
+I'm very open to contributions: if you have new ideas, please open an
+[Issue][Issues].
+Don't hesitate sending me pull requests with new features and/or bugfixes!
+
 <!-- Badges and project links -->
 [PyPI-badge]: http://img.shields.io/pypi/v/seiscat.svg
 [PyPI-link]: https://pypi.python.org/pypi/seiscat
 [license-badge]: https://img.shields.io/badge/license-GPLv3-green
 [license-link]: https://www.gnu.org/licenses/gpl-3.0.html
+[docs-badge]: https://readthedocs.org/projects/seiscat/badge/?version=latest
+[docs-link]: https://seiscat.readthedocs.io/en/latest/?badge=latest
+[Issues]: https://github.com/SeismicSource/seiscat/issues
