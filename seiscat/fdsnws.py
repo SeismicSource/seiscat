@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 # SPDX-License-Identifier: GPL-3.0-or-later
 """
-FDNS webservices functions for seiscat.
+FDSN webservices functions for seiscat.
 
 :copyright:
     2022-2023 Claudio Satriano <satriano@ipgp.fr>
