@@ -63,6 +63,76 @@ def _parse_time_interval(time_interval):
         raise ValueError(f'Invalid time unit: {unit}')
 
 
+class InvalidQuery(Exception):
+    """Invalid query exception."""
+    pass
+
+
+class QueryArgs(object):
+    """Build query arguments for FDSN client."""
+    def __init__(self, config, suffix, first_query):
+        """
+        Initialize query arguments.
+
+        :param config: config object
+        :param suffix: suffix to be added to the config keys
+        :param first_query: True if this is the first query
+        """
+        query_keys = [
+            'start_time', 'end_time', 'recheck_period',
+            'lat_min', 'lat_max', 'lon_min', 'lon_max',
+            'lat0', 'lon0', 'radius_min', 'radius_max',
+            'depth_min', 'depth_max',
+            'mag_min', 'mag_max',
+            'event_type', 'event_type_exclude'
+        ]
+        if suffix:
+            query_keys = [k + suffix for k in query_keys]
+        try:
+            if all(config[k] is None for k in query_keys):
+                raise InvalidQuery(
+                    'All query parameters are None. Please set at least one.')
+        except KeyError as e:
+            raise InvalidQuery('Not all query parameters are set.') from e
+        self.starttime = _to_utc_datetime(config[f'start_time{suffix}'])
+        self.endtime = _to_utc_datetime(config[f'end_time{suffix}'])
+        recheck_period = _parse_time_interval(
+            config[f'recheck_period{suffix}'])
+        if not first_query and self.endtime is None and recheck_period:
+            self.starttime = max(
+                self.starttime, UTCDateTime() - recheck_period)
+        self.minlatitude = config[f'lat_min{suffix}']
+        self.maxlatitude = config[f'lat_max{suffix}']
+        self.minlongitude = config[f'lon_min{suffix}']
+        self.maxlongitude = config[f'lon_max{suffix}']
+        self.latitude = config[f'lat0{suffix}']
+        self.longitude = config[f'lon0{suffix}']
+        self.minradius = config[f'radius_min{suffix}']
+        self.maxradius = config[f'radius_max{suffix}']
+        self.mindepth = config[f'depth_min{suffix}']
+        self.maxdepth = config[f'depth_max{suffix}']
+        self.minmagnitude = config[f'mag_min{suffix}']
+        self.maxmagnitude = config[f'mag_max{suffix}']
+
+    def get_query(self):
+        """
+        Return query arguments as a dictionary.
+
+        :returns: dictionary of query arguments
+        """
+        return {
+            'starttime': self.starttime, 'endtime': self.endtime,
+            'minlatitude': self.minlatitude, 'maxlatitude': self.maxlatitude,
+            'minlongitude': self.minlongitude,
+            'maxlongitude': self.maxlongitude,
+            'latitude': self.latitude, 'longitude': self.longitude,
+            'minradius': self.minradius, 'maxradius': self.maxradius,
+            'mindepth': self.mindepth, 'maxdepth': self.maxdepth,
+            'minmagnitude': self.minmagnitude,
+            'maxmagnitude': self.maxmagnitude,
+        }
+
+
 def _query_box_or_circle(client, config, suffix=None, first_query=True):
     """
     Query events from FDSN client based on box or circle criteria in config.
@@ -73,51 +143,11 @@ def _query_box_or_circle(client, config, suffix=None, first_query=True):
     :param first_query: True if this is the first query
     :returns: obspy Catalog object
     """
-    query_keys = [
-        'start_time', 'end_time', 'recheck_period',
-        'lat_min', 'lat_max', 'lon_min', 'lon_max',
-        'lat0', 'lon0', 'radius_min', 'radius_max',
-        'depth_min', 'depth_max',
-        'mag_min', 'mag_max',
-        'event_type', 'event_type_exclude'
-    ]
     suffix = '' if suffix is None else suffix
-    if suffix:
-        query_keys = [k + suffix for k in query_keys]
-        try:
-            if all(config[k] is None for k in query_keys):
-                return None
-        except KeyError:
-            return None
-    if all(config[k] is None for k in query_keys):
-        err_exit('All query parameters are None. Please set at least one.')
-    start_time = _to_utc_datetime(config[f'start_time{suffix}'])
-    end_time = _to_utc_datetime(config[f'end_time{suffix}'])
-    recheck_period = _parse_time_interval(config[f'recheck_period{suffix}'])
-    if not first_query and end_time is None and recheck_period:
-        start_time = max(start_time, UTCDateTime() - recheck_period)
-    minlatitude = config[f'lat_min{suffix}']
-    maxlatitude = config[f'lat_max{suffix}']
-    minlongitude = config[f'lon_min{suffix}']
-    maxlongitude = config[f'lon_max{suffix}']
-    latitude = config[f'lat0{suffix}']
-    longitude = config[f'lon0{suffix}']
-    minradius = config[f'radius_min{suffix}']
-    maxradius = config[f'radius_max{suffix}']
-    mindepth = config[f'depth_min{suffix}']
-    maxdepth = config[f'depth_max{suffix}']
-    minmagnitude = config[f'mag_min{suffix}']
-    maxmagnitude = config[f'mag_max{suffix}']
+    query_args = QueryArgs(config, suffix, first_query)
+    kwargs = query_args.get_query()
     try:
-        cat = client.get_events(
-            starttime=start_time, endtime=end_time,
-            minlatitude=minlatitude, maxlatitude=maxlatitude,
-            minlongitude=minlongitude, maxlongitude=maxlongitude,
-            latitude=latitude, longitude=longitude,
-            minradius=minradius, maxradius=maxradius,
-            mindepth=mindepth, maxdepth=maxdepth,
-            minmagnitude=minmagnitude, maxmagnitude=maxmagnitude,
-        )
+        cat = client.get_events(**kwargs)
     except FDSNNoDataException:
         cat = Catalog()
     # filter in included event types
@@ -147,14 +177,20 @@ def query_events(client, config, first_query=True):
     :returns: obspy Catalog object
     """
     print('Querying events from FDSN server...')
-    cat = _query_box_or_circle(client, config, first_query=first_query)
+    try:
+        cat = _query_box_or_circle(client, config, first_query=first_query)
+    except Exception as e:
+        err_exit(e)
     # see if there are additional queries to be done
     n = 1
     while True:
-        _cat = _query_box_or_circle(
-            client, config, suffix=f'_{n}', first_query=first_query)
-        if _cat is None:
+        try:
+            _cat = _query_box_or_circle(
+                client, config, suffix=f'_{n}', first_query=first_query)
+        except InvalidQuery:
             break
+        except Exception as e:
+            err_exit(e)
         cat += _cat
         n += 1
     print(f'Found {len(cat)} events.')
