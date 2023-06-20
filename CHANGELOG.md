@@ -7,6 +7,7 @@ Copyright (c) 2022-2023 Claudio Satriano <satriano@ipgp.fr>
 ## Unreleased
 
 - Command line autocompletion, thanks to argcomplete
+- Exit gracefully if database file is missing
 
 ## v0.3 - 2023-06-20
 

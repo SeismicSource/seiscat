@@ -101,7 +101,14 @@ def _read_event_db(config):
     :param config: config object
     :returns: list of events, each event is a dictionary
     """
-    conn = sqlite3.connect(config['db_file'])
+    db_file = config.get('db_file', None)
+    if db_file is None:
+        err_exit('db_file not set in config file')
+    try:
+        open(db_file, 'r')
+    except FileNotFoundError:
+        err_exit(f'Database file "{db_file}" not found.')
+    conn = sqlite3.connect(db_file)
     c = conn.cursor()
     # read field names
     c.execute('PRAGMA table_info(events)')

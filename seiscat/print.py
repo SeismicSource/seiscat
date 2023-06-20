@@ -22,6 +22,10 @@ def print_catalog(config):
     db_file = config.get('db_file', None)
     if db_file is None:
         err_exit('db_file not set in config file')
+    try:
+        open(db_file, 'r')
+    except FileNotFoundError:
+        err_exit(f'Database file "{db_file}" not found.')
     conn = sqlite3.connect(db_file)
     c = conn.cursor()
     # get fields

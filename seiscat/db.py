@@ -53,22 +53,25 @@ def check_db_exists(config, initdb):
     :param config: config object
     :param initdb: if True, create new database file
     """
-    if initdb and os.path.exists(config['db_file']):
+    db_file = config.get('db_file', None)
+    if db_file is None:
+        err_exit('db_file not set in config file')
+    if initdb and os.path.exists(db_file):
         ans = input(
-            f'"{config["db_file"]}" already exists. '
+            f'"{db_file}" already exists. '
             'Do you want to overwrite it? [y/N] '
         )
         if ans not in ['y', 'Y']:
             err_exit('Database file already exists. Exiting.')
         else:
             os.rename(
-                config['db_file'], f'{config["db_file"]}.bak')
+                db_file, f'{db_file}.bak')
             print(
-                f'Backup of "{config["db_file"]}" saved to '
-                f'"{config["db_file"]}.bak"')
-    if not initdb and not os.path.exists(config['db_file']):
+                f'Backup of "{db_file}" saved to '
+                f'"{db_file}.bak"')
+    if not initdb and not os.path.exists(db_file):
         err_exit(
-            f'Database file "{config["db_file"]}" does not exist.\n'
+            f'Database file "{db_file}" does not exist.\n'
             'Run "seiscat initdb" first.'
         )
 
