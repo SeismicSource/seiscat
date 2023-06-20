@@ -30,7 +30,6 @@ release = __version__
 version = release.split('-')[0]
 
 
-
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -47,7 +46,8 @@ autodoc_mock_imports = [
     'numpy',
     'obspy',
     'cartopy',
-    'six'
+    'six',
+    'argcomplete',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
