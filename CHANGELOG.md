@@ -8,6 +8,7 @@ Copyright (c) 2022-2023 Claudio Satriano <satriano@ipgp.fr>
 
 - Command line autocompletion, thanks to argcomplete
 - Exit gracefully if database file is missing
+- Fix printing of `None` values
 
 ## v0.3 - 2023-06-20
 

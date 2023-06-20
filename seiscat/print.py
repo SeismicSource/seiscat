@@ -48,6 +48,7 @@ def print_catalog(config):
     # print rows
     for row in rows:
         for i, val in enumerate(row):
+            val = 'None' if val is None else val
             print(f'{val:{max_len[i]}}', end=' ')
         print()
     conn.close()
