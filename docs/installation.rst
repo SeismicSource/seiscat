@@ -50,7 +50,7 @@ Installing a developer snapshot
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you need a recent feature that is not in the latest release (see the
-``unreleased`` section in `CHANGELOG <CHANGELOG.md>`_\ ), you want to use the
+``unreleased`` section in :ref:`changelog`), you want to use the
 more recent development snapshot from the
 `SeisCat GitHub repository <https://github.com/SeismicSource/seiscat>`_.
 
