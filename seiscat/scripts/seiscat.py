@@ -22,7 +22,8 @@ from ..utils import parse_configspec, read_config,  write_sample_config
 
 def parse_arguments():
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description='Run seiscat.')
+    parser = argparse.ArgumentParser(
+        description='Keep a local seismic catalog.')
     subparser = parser.add_subparsers(dest='action')
     subparser.add_parser('initdb', help='initialize database')
     subparser.add_parser('updatedb', help='update database')
