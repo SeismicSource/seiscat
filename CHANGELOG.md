@@ -8,6 +8,7 @@ Copyright (c) 2022-2023 Claudio Satriano <satriano@ipgp.fr>
 
 - Command line autocompletion, thanks to argcomplete
 - Show event depth in plot annotation
+- `--scale` option for `seiscat plot`
 - Correctly parse evids from USGS and ISC
 - Exit gracefully if database file is missing
 - Fix printing of `None` values

@@ -52,6 +52,11 @@ Or plot it:
 
     seiscat plot
 
+Each of the above commands can have its own options.
+As an example, to discover the options for the `plot` command, try:
+
+    seiscat plot -h
+
 SeisCat supports command line tab completion for arguments, thanks to
 [argcomplete](https://kislyuk.github.io/argcomplete/).
 To enable command line tab completion, add the following line to your `.bashrc`

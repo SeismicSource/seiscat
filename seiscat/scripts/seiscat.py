@@ -25,7 +25,14 @@ def parse_arguments():
     subparser.add_parser('initdb', help='initialize database')
     subparser.add_parser('updatedb', help='update database')
     subparser.add_parser('print', help='print catalog')
-    subparser.add_parser('plot', help='plot catalog map')
+    plot_parser = subparser.add_parser('plot', help='plot catalog map')
+    plot_parser.add_argument(
+        '-s',
+        '--scale',
+        type=float,
+        default=10,
+        help='scale factor for marker size (default: %(default)s)'
+    )
     subparser.add_parser('sampleconfig', help='write sample config file')
     parser.add_argument(
         '-c',
@@ -72,6 +79,7 @@ def run():
         write_sample_config(configspec, 'seiscat')
         sys.exit(0)
     config = read_config(args.configfile, configspec)
+    config['args'] = args
     if args.action == 'initdb':
         download_and_store(config, initdb=True)
     elif args.action == 'updatedb':

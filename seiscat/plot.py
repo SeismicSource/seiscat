@@ -126,17 +126,19 @@ def _read_event_db(config):
     return events_list
 
 
-def _plot_events(events, ax):
+def _plot_events(events, scale, ax):
     """
     Plot events on a map.
 
     :param events: list of events, each event is a dictionary
+    :param scale: scale for event markers
     :param ax: matplotlib axes object
     """
     import cartopy.crs as ccrs
+    marker_scale = scale / 10. * 2
     ev_attributes = [
         (e['evid'], e['time'], e['lon'], e['lat'], e['dep'],
-         e['mag'], np.exp(e['mag']) * 2)
+         e['mag'], np.exp(e['mag']) * marker_scale)
         for e in events
     ]
     markers = []
@@ -218,7 +220,7 @@ def plot_catalog_map(config):
         ax.gridlines(**g_kwargs)
     ax.callbacks.connect('xlim_changed', lambda ax: redraw_gridlines(ax))
     events = _read_event_db(config)
-    _plot_events(events, ax)
+    _plot_events(events, config['args'].scale, ax)
     nevents = len(events)
     tmin = min(event['time'] for event in events)
     tmax = max(event['time'] for event in events)
