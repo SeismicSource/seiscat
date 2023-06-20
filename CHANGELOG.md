@@ -4,6 +4,10 @@ Keep a local seismic catalog.
 
 Copyright (c) 2022-2023 Claudio Satriano <satriano@ipgp.fr>
 
+## Unreleased
+
+- Command line autocompletion, thanks to argcomplete
+
 ## v0.3 - 2023-06-20
 
 - New command to print catalog to screen: `seiscat print`

@@ -44,3 +44,13 @@ Or plot it:
 .. code-block::
 
    seiscat plot
+
+
+SeisCat supports command line tab completion for arguments, thanks to
+`argcomplete <https://kislyuk.github.io/argcomplete/>`__. To enable
+command line tab completion, add the following line to your ``.bashrc``
+or ``.zshrc``:
+
+.. code-block::
+
+   eval "$(register-python-argcomplete seiscat)"

@@ -12,12 +12,9 @@ Main script for seiscat.
 """
 import sys
 import argparse
+import argcomplete
 from .._version import get_versions
-from ..fdsnws import open_fdsn_connection, query_events
-from ..db import check_db_exists, write_catalog_to_db
-from ..print import print_catalog
-from ..plot import plot_catalog_map
-from ..utils import parse_configspec, read_config,  write_sample_config
+# NOTE: most modules are lazy-imported to speed up startup time
 
 
 def parse_arguments():
@@ -43,6 +40,7 @@ def parse_arguments():
         action='version',
         version=f"%(prog)s {get_versions()['version']}",
     )
+    argcomplete.autocomplete(parser)
     args = parser.parse_args()
     if args.action is None:
         parser.print_help()
@@ -50,15 +48,17 @@ def parse_arguments():
     return args
 
 
-def download_and_store(client, config, initdb):
+def download_and_store(config, initdb):
     """
     Download events and store them in the database.
 
-    :param client: FDSN client
     :param config: config object
     :param initdb: if True, create new database file
     """
+    from ..db import check_db_exists, write_catalog_to_db
+    from ..fdsnws import open_fdsn_connection, query_events
     check_db_exists(config, initdb)
+    client = open_fdsn_connection(config)
     cat = query_events(client, config, first_query=initdb)
     write_catalog_to_db(cat, config, initdb)
 
@@ -66,19 +66,21 @@ def download_and_store(client, config, initdb):
 def run():
     """Run seiscat."""
     args = parse_arguments()
+    from ..utils import parse_configspec, read_config,  write_sample_config
     configspec = parse_configspec()
     if args.action == 'sampleconfig':
         write_sample_config(configspec, 'seiscat')
         sys.exit(0)
     config = read_config(args.configfile, configspec)
-    client = open_fdsn_connection(config)
     if args.action == 'initdb':
-        download_and_store(client, config, initdb=True)
+        download_and_store(config, initdb=True)
     elif args.action == 'updatedb':
-        download_and_store(client, config, initdb=False)
+        download_and_store(config, initdb=False)
     elif args.action == 'print':
+        from ..print import print_catalog
         print_catalog(config)
     elif args.action == 'plot':
+        from ..plot import plot_catalog_map
         plot_catalog_map(config)
 
 
