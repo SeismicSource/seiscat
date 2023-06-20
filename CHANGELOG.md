@@ -4,7 +4,7 @@ Keep a local seismic catalog.
 
 Copyright (c) 2022-2023 Claudio Satriano <satriano@ipgp.fr>
 
-## Unreleased
+## v0.4 - 2023-06-20
 
 - Command line autocompletion, thanks to argcomplete
 - Show event depth in plot annotation
