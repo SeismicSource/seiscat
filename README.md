@@ -23,6 +23,29 @@ To get help:
 
     seiscat -h
 
+First thing to do is to generate a sample configuration file:
+
+    seiscat sampleconfig
+
+Then, edit the configuration file and init the database:
+
+    seiscat initdb
+
+To keep the database updated, run on a regular basis:
+
+    seiscat updatedb
+
+(This will use the configuration parameter `recheck_period` to recheck the
+last *n* days or hours).
+
+You can print the catalog to screen:
+
+    seiscat print
+
+Or plot it:
+
+    seiscat plot
+
 ## Installation
 
 ### Installing the latest release
