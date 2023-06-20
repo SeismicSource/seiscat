@@ -34,10 +34,10 @@ def _get_map_extent_for_suffix(config, suffix=None):
     lon0 = config.get(f'lon0{suffix}', None)
     radius_max = config.get(f'radius_max{suffix}', None)
     if None not in (lat0, lon0, radius_max):
-        lat_min = lat0 - radius_max*np.sqrt(2)
-        lat_max = lat0 + radius_max*np.sqrt(2)
-        lon_min = lon0 - radius_max*np.sqrt(2)
-        lon_max = lon0 + radius_max*np.sqrt(2)
+        lat_min = lat0 - radius_max * np.sqrt(2)
+        lat_max = lat0 + radius_max * np.sqrt(2)
+        lon_min = lon0 - radius_max * np.sqrt(2)
+        lon_max = lon0 + radius_max * np.sqrt(2)
         return lon_min, lon_max, lat_min, lat_max
     if None not in (lat_min, lat_max, lon_min, lon_max):
         return lon_min, lon_max, lat_min, lat_max

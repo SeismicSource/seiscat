@@ -46,7 +46,6 @@ def _set_db_version(cursor):
     cursor.execute('PRAGMA user_version = {v:d}'.format(v=DB_VERSION))
 
 
-
 def check_db_exists(config, initdb):
     """
     Check if database file exists.
