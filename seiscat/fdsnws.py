@@ -176,7 +176,7 @@ def query_events(client, config, first_query=True):
     :param first_query: True if this is the first query
     :returns: obspy Catalog object
     """
-    print('Querying events from FDSN server...')
+    print(f'Querying events from FDSN server "{config["fdsn_event_url"]}"...')
     try:
         cat = _query_box_or_circle(client, config, first_query=first_query)
     except Exception as e:
