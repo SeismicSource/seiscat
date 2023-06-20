@@ -1,12 +1,13 @@
-# SeisCat
+# SeisCat Changelog
 
 Keep a local seismic catalog.
 
-(c) 2022-2023 Claudio Satriano <satriano@ipgp.fr>
+Copyright (c) 2022-2023 Claudio Satriano <satriano@ipgp.fr>
 
 ## Unreleased
 
 - New command to print catalog to screen: `seiscat print`
+- Documentation!
 
 ## v0.2 - 2023-06-19
 
