@@ -6,7 +6,10 @@ Copyright (c) 2022-2023 Claudio Satriano <satriano@ipgp.fr>
 
 ## unreleased
 
-- New configuration option: `overwrite_updated_events`
+- New configuration option: `overwrite_updated_events`. Default is `False`
+  and updated events get an incremented version number
+- `--allversions` option for `seiscat print` and `seiscat plot` to print/show
+  all the versions for events with more than one version
 - `--format` option for `seiscat print`: current possibilities are `table`
   (default) and `stats`
 - `--reverse` option for `seiscat print`: if set, latest events will be printed

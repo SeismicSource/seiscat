@@ -24,7 +24,16 @@ def parse_arguments():
     subparser = parser.add_subparsers(dest='action')
     subparser.add_parser('initdb', help='initialize database')
     subparser.add_parser('updatedb', help='update database')
-    print_parser = subparser.add_parser('print', help='print catalog')
+    versions_parser = argparse.ArgumentParser(add_help=False)
+    versions_parser.add_argument(
+        '-a',
+        '--allversions',
+        action='store_true',
+        default=False,
+        help='show all versions of each event (default: %(default)s)'
+    )
+    print_parser = subparser.add_parser(
+        'print', parents=[versions_parser], help='print catalog')
     print_parser.add_argument(
         '-f',
         '--format',
@@ -40,7 +49,8 @@ def parse_arguments():
         default=False,
         help='print catalog in reverse order (default: %(default)s)'
     )
-    plot_parser = subparser.add_parser('plot', help='plot catalog map')
+    plot_parser = subparser.add_parser(
+        'plot', parents=[versions_parser], help='plot catalog map')
     plot_parser.add_argument(
         '-s',
         '--scale',

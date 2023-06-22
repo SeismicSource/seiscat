@@ -224,38 +224,6 @@ def write_catalog_to_db(cat, config, initdb):
     print(f'Wrote {events_written} events to database "{config["db_file"]}"')
 
 
-def read_events_from_db(config):
-    """
-    Read events from database. Return a list of events.
-
-    :param config: config object
-    :returns: list of events, each event is a dictionary
-    """
-    db_file = config.get('db_file', None)
-    if db_file is None:
-        err_exit('db_file not set in config file')
-    try:
-        open(db_file, 'r')
-    except FileNotFoundError:
-        err_exit(f'Database file "{db_file}" not found.')
-    conn = sqlite3.connect(db_file)
-    c = conn.cursor()
-    # read field names
-    c.execute('PRAGMA table_info(events)')
-    fields = c.fetchall()
-    # read events
-    c.execute('SELECT * FROM events')
-    events = c.fetchall()
-    conn.close()
-    # create a list of dictionaries
-    events_list = []
-    for event in events:
-        event_dict = {field[1]: event[i] for i, field in enumerate(fields)}
-        event_dict['time'] = UTCDateTime(event_dict['time'])
-        events_list.append(event_dict)
-    return events_list
-
-
 def read_fields_and_rows_from_db(config):
     """
     Read fields and rows from database. Return a list of fields and a list of
@@ -279,8 +247,36 @@ def read_fields_and_rows_from_db(config):
     # read events
     c.execute('SELECT * FROM events')
     rows = c.fetchall()
+    allversions = config['args'].allversions
+    if not allversions:
+        # keep only the latest version of each event
+        evids = set()
+        rows_to_keep = []
+        for row in sorted(rows, key=lambda r: r[:2], reverse=True):
+            evid = row[0]
+            if evid not in evids:
+                rows_to_keep.append(row)
+                evids.add(evid)
+        rows = rows_to_keep
     conn.close()
     return fields, rows
+
+
+def read_events_from_db(config):
+    """
+    Read events from database. Return a list of events.
+
+    :param config: config object
+    :returns: list of events, each event is a dictionary
+    """
+    fields, rows = read_fields_and_rows_from_db(config)
+    # create a list of dictionaries
+    events_list = []
+    for event in rows:
+        event_dict = {field[1]: event[i] for i, field in enumerate(fields)}
+        event_dict['time'] = UTCDateTime(event_dict['time'])
+        events_list.append(event_dict)
+    return events_list
 
 
 def get_catalog_stats(config):
