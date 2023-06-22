@@ -11,6 +11,7 @@ Database functions for seiscat.
 """
 import os
 import sqlite3
+import numpy as np
 from obspy import UTCDateTime
 from .utils import err_exit
 
@@ -78,6 +79,26 @@ def check_db_exists(config, initdb):
         )
 
 
+def _same_values(event1, event2):
+    """
+    Check if two events have the same values.
+
+    :param event1: first event
+    :param event2: second event
+    :returns: True if events have the same values, False otherwise
+    """
+    for idx in range(2, len(event1)):
+        try:
+            # Use np.isclose() for numbers
+            match = np.isclose(event1[idx], event2[idx])
+        except TypeError:
+            # Use == for strings
+            match = event1[idx] == event2[idx]
+        if not match:
+            return False
+    return True
+
+
 def _get_evid(resource_id):
     """
     Get evid from resource_id.
@@ -97,6 +118,59 @@ def _get_evid(resource_id):
     return evid
 
 
+def _get_db_fields(config):
+    """
+    Get a list of database fields.
+
+    :param config: config object
+    :returns: list of fields
+    """
+    fields = [
+        'evid TEXT',
+        'ver INTEGER',
+        'time TEXT',
+        'lat REAL',
+        'lon REAL',
+        'depth REAL',
+        'mag REAL',
+        'mag_type TEXT',
+        'event_type TEXT',
+    ]
+    extra_field_names = config['extra_field_names'] or []
+    extra_field_types = config['extra_field_types'] or []
+    fields.extend(
+        f'{name} {dbtype}' for name, dbtype
+        in zip(extra_field_names, extra_field_types))
+    return fields
+
+
+def _get_db_values_from_event(ev, config):
+    """
+    Get a list of values from an obspy event object.
+
+    :param ev: obspy event object
+    :param config: config object
+    :returns: list of values
+    """
+    evid = _get_evid(str(ev.resource_id.id))
+    version = 1
+    orig = ev.preferred_origin() or ev.origins[0]
+    time = str(orig.time)
+    lat = orig.latitude
+    lon = orig.longitude
+    depth = orig.depth / 1e3  # km
+    magntiude = ev.preferred_magnitude() or ev.magnitudes[0]
+    mag = magntiude.mag
+    mag_type = magntiude.magnitude_type
+    event_type = ev.event_type
+    values = [
+        evid, version, time, lat, lon, depth, mag, mag_type, event_type]
+    # add extra fields
+    extra_field_defaults = config['extra_field_defaults'] or []
+    values += extra_field_defaults
+    return values
+
+
 def write_catalog_to_db(cat, config, initdb):
     """
     Write catalog to database.
@@ -112,47 +186,35 @@ def write_catalog_to_db(cat, config, initdb):
         _set_db_version(c)
     else:
         _check_db_version(c, config)
-    # table fields: name TYPE
-    fields = [
-        'evid TEXT PRIMARY KEY',
-        'time TEXT',
-        'lat REAL',
-        'lon REAL',
-        'depth REAL',
-        'mag REAL',
-        'mag_type TEXT',
-        'event_type TEXT',
-    ]
-    extra_field_names = config['extra_field_names'] or []
-    extra_field_types = config['extra_field_types'] or []
-    fields.extend(
-        f'{name} {dbtype}' for name, dbtype
-        in zip(extra_field_names, extra_field_types))
-    # create table if it doesn't exist
-    c.execute(f'CREATE TABLE IF NOT EXISTS events ({", ".join(fields)})')
+    fields = _get_db_fields(config)
+    # create table if it doesn't exist, use evid and ver as primary key
+    c.execute(
+        'CREATE TABLE IF NOT EXISTS events '
+        f'({", ".join(fields)}, PRIMARY KEY (evid, ver))')
     events_written = 0
     for ev in cat:
-        evid = _get_evid(str(ev.resource_id.id))
-        orig = ev.preferred_origin() or ev.origins[0]
-        time = str(orig.time)
-        lat = orig.latitude
-        lon = orig.longitude
-        depth = orig.depth / 1e3  # km
-        magntiude = ev.preferred_magnitude() or ev.magnitudes[0]
-        mag = magntiude.mag
-        mag_type = magntiude.magnitude_type
-        event_type = ev.event_type
-        values = [evid, time, lat, lon, depth, mag, mag_type, event_type]
-        # add extra fields
-        extra_field_defaults = config['extra_field_defaults'] or []
-        values += extra_field_defaults
-        if initdb:
+        values = _get_db_values_from_event(ev, config)
+        if initdb or config['overwrite_updated_events']:
             # add events to table, replace events that already exist
             c.execute(
                 'INSERT OR REPLACE INTO events VALUES '
                 f'({", ".join("?" * len(values))})', values)
         else:
-            # add events to table, ignore events that already exist
+            # check if an event with the same values already exists
+            evid = values[0]
+            c.execute(
+                'SELECT * FROM events WHERE evid = ?', (evid,))
+            rows = c.fetchall()
+            rows_with_different_values = [
+                row for row in rows if not _same_values(values, row)]
+            try:
+                max_version = max(row[1] for row in rows_with_different_values)
+            except ValueError:
+                # rows_with_different_values is empty
+                max_version = 0
+            values[1] = max_version + 1
+            # add events to table, ignore events that have same evid and vers
+            # (i.e., the same primary keys)
             c.execute(
                 'INSERT OR IGNORE INTO events VALUES '
                 f'({", ".join("?" * len(values))})', values)
