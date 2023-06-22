@@ -9,10 +9,9 @@ Plotting functions for seiscat.
     GNU General Public License v3.0 or later
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
-import sqlite3
 import numpy as np
 import matplotlib.pyplot as plt
-from obspy import UTCDateTime
+from .db import read_events_from_db
 from .utils import err_exit
 
 
@@ -91,38 +90,6 @@ def _get_tile_scale(extent):
     tile_scale = tile_autoscaler.scale_from_extent(extent)
     # print(f'tile_scale: {tile_scale}')
     return int(tile_scale)
-
-
-def _read_event_db(config):
-    """
-    Read event database. Return a list of events.
-
-    :param config: config object
-    :returns: list of events, each event is a dictionary
-    """
-    db_file = config.get('db_file', None)
-    if db_file is None:
-        err_exit('db_file not set in config file')
-    try:
-        open(db_file, 'r')
-    except FileNotFoundError:
-        err_exit(f'Database file "{db_file}" not found.')
-    conn = sqlite3.connect(db_file)
-    c = conn.cursor()
-    # read field names
-    c.execute('PRAGMA table_info(events)')
-    fields = c.fetchall()
-    # read events
-    c.execute('SELECT * FROM events')
-    events = c.fetchall()
-    conn.close()
-    # create a list of dictionaries
-    events_list = []
-    for event in events:
-        event_dict = {field[1]: event[i] for i, field in enumerate(fields)}
-        event_dict['time'] = UTCDateTime(event_dict['time'])
-        events_list.append(event_dict)
-    return events_list
 
 
 def _plot_events(events, scale, ax):
@@ -218,7 +185,7 @@ def plot_catalog_map(config):
     def redraw_gridlines(ax):
         ax.gridlines(**g_kwargs)
     ax.callbacks.connect('xlim_changed', lambda ax: redraw_gridlines(ax))
-    events = _read_event_db(config)
+    events = read_events_from_db(config)
     _plot_events(events, config['args'].scale, ax)
     nevents = len(events)
     tmin = min(event['time'] for event in events)
