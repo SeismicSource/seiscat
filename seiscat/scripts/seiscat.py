@@ -72,8 +72,12 @@ def download_and_store(config, initdb):
     """
     from ..db import check_db_exists, write_catalog_to_db
     from ..fdsnws import open_fdsn_connection, query_events
+    from ..utils import err_exit
     check_db_exists(config, initdb)
-    client = open_fdsn_connection(config)
+    try:
+        client = open_fdsn_connection(config)
+    except Exception as e:
+        err_exit(e)
     cat = query_events(client, config, first_query=initdb)
     write_catalog_to_db(cat, config, initdb)
 
