@@ -79,15 +79,17 @@ def check_db_exists(config, initdb):
         )
 
 
-def _same_values(event1, event2):
+def _same_values(event1, event2, skip_begin=0, skip_end=0):
     """
     Check if two events have the same values.
 
     :param event1: first event
     :param event2: second event
+    :param skip_begin: number of fields to skip at the beginning
+    :param skip_end: number of fields to skip at the end
     :returns: True if events have the same values, False otherwise
     """
-    for idx in range(2, len(event1)):
+    for idx in range(skip_begin, len(event1)-skip_end):
         try:
             # Use np.isclose() for numbers
             match = np.isclose(event1[idx], event2[idx])
@@ -123,9 +125,9 @@ def _get_db_field_definitions(config):
     Get a list of database fields.
 
     :param config: config object
-    :returns: list of fields
+    :returns: list of field definitions, number of extra fields
     """
-    fields = [
+    field_definitions = [
         'evid TEXT',
         'ver INTEGER',
         'time TEXT',
@@ -138,10 +140,11 @@ def _get_db_field_definitions(config):
     ]
     extra_field_names = config['extra_field_names'] or []
     extra_field_types = config['extra_field_types'] or []
-    fields.extend(
+    n_extra_fields = len(extra_field_names)
+    field_definitions.extend(
         f'{name} {dbtype}' for name, dbtype
         in zip(extra_field_names, extra_field_types))
-    return fields
+    return field_definitions, n_extra_fields
 
 
 def _get_db_values_from_event(ev, config):
@@ -186,7 +189,7 @@ def write_catalog_to_db(cat, config, initdb):
         _set_db_version(c)
     else:
         _check_db_version(c, config)
-    field_definitions = _get_db_field_definitions(config)
+    field_definitions, n_extra_fields = _get_db_field_definitions(config)
     # create table if it doesn't exist, use evid and ver as primary key
     c.execute(
         'CREATE TABLE IF NOT EXISTS events '
@@ -205,16 +208,19 @@ def write_catalog_to_db(cat, config, initdb):
             c.execute(
                 'SELECT * FROM events WHERE evid = ?', (evid,))
             rows = c.fetchall()
+            # check for different values, ignore evid and ver and extra fields
             rows_with_different_values = [
-                row for row in rows if not _same_values(values, row)]
+                row for row in rows
+                if not _same_values(
+                    values, row, skip_begin=2, skip_end=n_extra_fields)]
             try:
                 max_version = max(row[1] for row in rows_with_different_values)
             except ValueError:
                 # rows_with_different_values is empty
                 max_version = 0
             values[1] = max_version + 1
-            # add events to table, ignore events that have same evid and vers
-            # (i.e., the same primary keys)
+            # add events to table, ignore events that have the same primary
+            # keys (i.e., the same evid and ver)
             c.execute(
                 'INSERT OR IGNORE INTO events VALUES '
                 f'({", ".join("?" * len(values))})', values)

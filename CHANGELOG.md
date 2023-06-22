@@ -4,6 +4,11 @@ Keep a local seismic catalog.
 
 Copyright (c) 2022-2023 Claudio Satriano <satriano@ipgp.fr>
 
+## unreleased
+
+- Fix bug where an event was updated when extra fields were set to a different
+  value than the default
+
 ## v0.5 - 2023-06-22
 
 - New configuration option: `overwrite_updated_events`. Default is `False`
