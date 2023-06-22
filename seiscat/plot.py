@@ -11,7 +11,7 @@ Plotting functions for seiscat.
 """
 import numpy as np
 import matplotlib.pyplot as plt
-from .db import read_events_from_db
+from .db import read_events_from_db, get_catalog_stats
 from .utils import err_exit
 
 
@@ -187,15 +187,5 @@ def plot_catalog_map(config):
     ax.callbacks.connect('xlim_changed', lambda ax: redraw_gridlines(ax))
     events = read_events_from_db(config)
     _plot_events(events, config['args'].scale, ax)
-    nevents = len(events)
-    tmin = min(event['time'] for event in events)
-    tmax = max(event['time'] for event in events)
-    tmin = tmin.strftime('%Y-%m-%dT%H:%M:%S')
-    tmax = tmax.strftime('%Y-%m-%dT%H:%M:%S')
-    mag_min = min(event['mag'] for event in events)
-    mag_max = max(event['mag'] for event in events)
-    ax.set_title(
-        f'{nevents} events from {tmin} to {tmax}\n'
-        f'Magnitude range: {mag_min:.1f} - {mag_max:.1f}'
-    )
+    ax.set_title(get_catalog_stats(config))
     plt.show()

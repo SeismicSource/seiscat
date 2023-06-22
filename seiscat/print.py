@@ -9,30 +9,26 @@ Printing functions for seiscat.
     GNU General Public License v3.0 or later
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
-import sqlite3
+from .db import read_fields_and_rows_from_db, get_catalog_stats
 from .utils import err_exit
 
 
-def print_catalog(config):
+def print_catalog_stats(config):
+    """
+    Print catalog statistics.
+
+    :param config: config object
+    """
+    print(get_catalog_stats(config))
+
+
+def print_catalog_table(config):
     """
     Pretty-print the catalog as a table.
 
     :param config: config object
     """
-    db_file = config.get('db_file', None)
-    if db_file is None:
-        err_exit('db_file not set in config file')
-    try:
-        open(db_file, 'r')
-    except FileNotFoundError:
-        err_exit(f'Database file "{db_file}" not found.')
-    conn = sqlite3.connect(db_file)
-    c = conn.cursor()
-    # get fields
-    c.execute('PRAGMA table_info(events)')
-    fields = c.fetchall()
-    c.execute('SELECT * FROM events')
-    rows = c.fetchall()
+    fields, rows = read_fields_and_rows_from_db(config)
     if len(rows) == 0:
         print('No events in catalog')
         return
@@ -51,4 +47,17 @@ def print_catalog(config):
             val = 'None' if val is None else val
             print(f'{val:{max_len[i]}}', end=' ')
         print()
-    conn.close()
+
+
+def print_catalog(config):
+    """
+    Print catalog.
+
+    :param config: config object
+    """
+    if config['args'].format == 'stats':
+        print_catalog_stats(config)
+    elif config['args'].format == 'table':
+        print_catalog_table(config)
+    else:
+        err_exit(f'Unknown format "{config["args"].format}"')

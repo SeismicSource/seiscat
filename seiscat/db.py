@@ -191,3 +191,51 @@ def read_events_from_db(config):
         event_dict['time'] = UTCDateTime(event_dict['time'])
         events_list.append(event_dict)
     return events_list
+
+
+def read_fields_and_rows_from_db(config):
+    """
+    Read fields and rows from database. Return a list of fields and a list of
+    rows.
+
+    :param config: config object
+    :returns: list of fields, list of rows
+    """
+    db_file = config.get('db_file', None)
+    if db_file is None:
+        err_exit('db_file not set in config file')
+    try:
+        open(db_file, 'r')
+    except FileNotFoundError:
+        err_exit(f'Database file "{db_file}" not found.')
+    conn = sqlite3.connect(db_file)
+    c = conn.cursor()
+    # read field names
+    c.execute('PRAGMA table_info(events)')
+    fields = c.fetchall()
+    # read events
+    c.execute('SELECT * FROM events')
+    rows = c.fetchall()
+    conn.close()
+    return fields, rows
+
+
+def get_catalog_stats(config):
+    """
+    Get a string with catalog statistics.
+
+    :param config: config object
+    :returns: string with catalog statistics
+    """
+    events = read_events_from_db(config)
+    nevents = len(events)
+    tmin = min(event['time'] for event in events)
+    tmax = max(event['time'] for event in events)
+    tmin = tmin.strftime('%Y-%m-%dT%H:%M:%S')
+    tmax = tmax.strftime('%Y-%m-%dT%H:%M:%S')
+    mag_min = min(event['mag'] for event in events)
+    mag_max = max(event['mag'] for event in events)
+    return (
+        f'{nevents} events from {tmin} to {tmax}\n'
+        f'Magnitude range: {mag_min:.1f} - {mag_max:.1f}'
+    )

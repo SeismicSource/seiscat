@@ -24,7 +24,15 @@ def parse_arguments():
     subparser = parser.add_subparsers(dest='action')
     subparser.add_parser('initdb', help='initialize database')
     subparser.add_parser('updatedb', help='update database')
-    subparser.add_parser('print', help='print catalog')
+    print_parser = subparser.add_parser('print', help='print catalog')
+    print_parser.add_argument(
+        '-f',
+        '--format',
+        type=str,
+        default='table',
+        choices=['table', 'stats'],
+        help='output format (default: %(default)s)'
+    )
     plot_parser = subparser.add_parser('plot', help='plot catalog map')
     plot_parser.add_argument(
         '-s',
