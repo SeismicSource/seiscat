@@ -92,7 +92,7 @@ def _get_tile_scale(extent):
     return int(tile_scale)
 
 
-def _plot_events(events, scale, ax):
+def _plot_events(ax, events, scale, plot_version_number=False):
     """
     Plot events on a map.
 
@@ -103,14 +103,15 @@ def _plot_events(events, scale, ax):
     import cartopy.crs as ccrs
     marker_scale = scale / 10. * 2
     ev_attributes = [
-        (e['evid'], e['time'], e['lon'], e['lat'], e['depth'],
+        (e['evid'], e['ver'], e['time'], e['lon'], e['lat'], e['depth'],
          e['mag'], np.exp(e['mag']) * marker_scale)
         for e in events
     ]
     markers = []
-    for evid, time, lon, lat, depth, mag, size in ev_attributes:
+    for evid, ver, time, lon, lat, depth, mag, size in ev_attributes:
+        _evid = f'{evid} v{ver}' if plot_version_number else evid
         marker_label = (
-            f'{evid} M{mag:.1f} {depth:.1f} km\n'
+            f'{_evid} M{mag:.1f} {depth:.1f} km\n'
             f'{time.strftime("%Y-%m-%d %H:%M:%S")}')
         marker = ax.scatter(
             lon, lat,
@@ -186,6 +187,8 @@ def plot_catalog_map(config):
         ax.gridlines(**g_kwargs)
     ax.callbacks.connect('xlim_changed', lambda ax: redraw_gridlines(ax))
     events = read_events_from_db(config)
-    _plot_events(events, config['args'].scale, ax)
+    scale = config['args'].scale
+    plot_version_number = config['args'].allversions
+    _plot_events(ax, events, scale, plot_version_number)
     ax.set_title(get_catalog_stats(config))
     plt.show()
