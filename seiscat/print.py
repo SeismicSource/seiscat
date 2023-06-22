@@ -33,18 +33,20 @@ def print_catalog_table(config):
         print('No events in catalog')
         return
     # get max length of each field
-    max_len = [len(f[1]) for f in fields]
+    max_len = [len(f) for f in fields]
     for row in rows:
         for i, val in enumerate(row):
             max_len[i] = max(max_len[i], len(str(val)))
     # print header
     for i, f in enumerate(fields):
-        print(f'{f[1]:{max_len[i]}}', end=' ')
+        print(f'{f:{max_len[i]}}', end=' ')
     print()
-    # print rows
+    # print rows sorted by time and version
+    time_idx = fields.index('time')
+    ver_idx = fields.index('ver')
     reverse = config['args'].reverse
-    # sort by time (field 2) and version (field 1)
-    for row in sorted(rows, key=lambda r: (r[2], r[1]), reverse=reverse):
+    for row in sorted(
+            rows, key=lambda r: (r[time_idx], r[ver_idx]), reverse=reverse):
         for i, val in enumerate(row):
             val = 'None' if val is None else val
             print(f'{val:{max_len[i]}}', end=' ')

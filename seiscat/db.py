@@ -118,7 +118,7 @@ def _get_evid(resource_id):
     return evid
 
 
-def _get_db_fields(config):
+def _get_db_field_definitions(config):
     """
     Get a list of database fields.
 
@@ -186,11 +186,11 @@ def write_catalog_to_db(cat, config, initdb):
         _set_db_version(c)
     else:
         _check_db_version(c, config)
-    fields = _get_db_fields(config)
+    field_definitions = _get_db_field_definitions(config)
     # create table if it doesn't exist, use evid and ver as primary key
     c.execute(
         'CREATE TABLE IF NOT EXISTS events '
-        f'({", ".join(fields)}, PRIMARY KEY (evid, ver))')
+        f'({", ".join(field_definitions)}, PRIMARY KEY (evid, ver))')
     events_written = 0
     for ev in cat:
         values = _get_db_values_from_event(ev, config)
@@ -243,7 +243,8 @@ def read_fields_and_rows_from_db(config):
     c = conn.cursor()
     # read field names
     c.execute('PRAGMA table_info(events)')
-    fields = c.fetchall()
+    # we just need the field names, which are in the second column
+    fields = [f[1] for f in c.fetchall()]
     # read events
     c.execute('SELECT * FROM events')
     rows = c.fetchall()
@@ -273,7 +274,7 @@ def read_events_from_db(config):
     # create a list of dictionaries
     events_list = []
     for event in rows:
-        event_dict = {field[1]: event[i] for i, field in enumerate(fields)}
+        event_dict = dict(zip(fields, event))
         event_dict['time'] = UTCDateTime(event_dict['time'])
         events_list.append(event_dict)
     return events_list
