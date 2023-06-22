@@ -41,9 +41,10 @@ def print_catalog_table(config):
     for i, f in enumerate(fields):
         print(f'{f[1]:{max_len[i]}}', end=' ')
     print()
-    # print rows ordered by evid and version
+    # print rows
     reverse = config['args'].reverse
-    for row in sorted(rows, key=lambda r: r[:2], reverse=reverse):
+    # sort by time (field 2) and version (field 1)
+    for row in sorted(rows, key=lambda r: (r[2], r[1]), reverse=reverse):
         for i, val in enumerate(row):
             val = 'None' if val is None else val
             print(f'{val:{max_len[i]}}', end=' ')
