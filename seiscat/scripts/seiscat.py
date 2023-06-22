@@ -33,6 +33,13 @@ def parse_arguments():
         choices=['table', 'stats'],
         help='output format (default: %(default)s)'
     )
+    print_parser.add_argument(
+        '-r',
+        '--reverse',
+        action='store_true',
+        default=False,
+        help='print catalog in reverse order (default: %(default)s)'
+    )
     plot_parser = subparser.add_parser('plot', help='plot catalog map')
     plot_parser.add_argument(
         '-s',

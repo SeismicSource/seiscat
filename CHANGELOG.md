@@ -9,6 +9,8 @@ Copyright (c) 2022-2023 Claudio Satriano <satriano@ipgp.fr>
 - New configuration option: `overwrite_updated_events`
 - `--format` option for `seiscat print`: current possibilities are `table`
   (default) and `stats`
+- `--reverse` option for `seiscat print`: if set, latest events will be printed
+  on top
 - Rename database column `dep` to `depth`
 
 ## v0.4 - 2023-06-20
