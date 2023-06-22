@@ -60,10 +60,11 @@ def check_db_exists(config, initdb):
     if initdb and os.path.exists(db_file):
         ans = input(
             f'"{db_file}" already exists. '
-            'Do you want to overwrite it? [y/N] '
+            'Do you want to overwrite it?\n'
+            f'(Current database will be saved as "{db_file}.bak") [y/N] '
         )
         if ans not in ['y', 'Y']:
-            err_exit('Database file already exists. Exiting.')
+            err_exit('No database file created. Exiting.')
         else:
             os.rename(
                 db_file, f'{db_file}.bak')
