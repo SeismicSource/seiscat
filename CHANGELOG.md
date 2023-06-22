@@ -4,7 +4,7 @@ Keep a local seismic catalog.
 
 Copyright (c) 2022-2023 Claudio Satriano <satriano@ipgp.fr>
 
-## unreleased
+## v0.5 - 2023-06-22
 
 - New configuration option: `overwrite_updated_events`. Default is `False`
   and updated events get an incremented version number
