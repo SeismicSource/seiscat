@@ -118,7 +118,7 @@ def write_catalog_to_db(cat, config, initdb):
         'time TEXT',
         'lat REAL',
         'lon REAL',
-        'dep REAL',
+        'depth REAL',
         'mag REAL',
         'mag_type TEXT',
         'event_type TEXT',
@@ -137,12 +137,12 @@ def write_catalog_to_db(cat, config, initdb):
         time = str(orig.time)
         lat = orig.latitude
         lon = orig.longitude
-        dep = orig.depth / 1e3  # km
+        depth = orig.depth / 1e3  # km
         magntiude = ev.preferred_magnitude() or ev.magnitudes[0]
         mag = magntiude.mag
         mag_type = magntiude.magnitude_type
         event_type = ev.event_type
-        values = [evid, time, lat, lon, dep, mag, mag_type, event_type]
+        values = [evid, time, lat, lon, depth, mag, mag_type, event_type]
         # add extra fields
         extra_field_defaults = config['extra_field_defaults'] or []
         values += extra_field_defaults

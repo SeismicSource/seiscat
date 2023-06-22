@@ -8,6 +8,7 @@ Copyright (c) 2022-2023 Claudio Satriano <satriano@ipgp.fr>
 
 - `--format` option for `seiscat print`: current possibilities are `table`
   (default) and `stats`
+- Rename database column `dep` to `depth`
 
 ## v0.4 - 2023-06-20
 

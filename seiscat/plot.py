@@ -103,14 +103,14 @@ def _plot_events(events, scale, ax):
     import cartopy.crs as ccrs
     marker_scale = scale / 10. * 2
     ev_attributes = [
-        (e['evid'], e['time'], e['lon'], e['lat'], e['dep'],
+        (e['evid'], e['time'], e['lon'], e['lat'], e['depth'],
          e['mag'], np.exp(e['mag']) * marker_scale)
         for e in events
     ]
     markers = []
-    for evid, time, lon, lat, dep, mag, size in ev_attributes:
+    for evid, time, lon, lat, depth, mag, size in ev_attributes:
         marker_label = (
-            f'{evid} M{mag:.1f} {dep:.1f} km\n'
+            f'{evid} M{mag:.1f} {depth:.1f} km\n'
             f'{time.strftime("%Y-%m-%d %H:%M:%S")}')
         marker = ax.scatter(
             lon, lat,
