@@ -107,6 +107,8 @@ def _plot_events(ax, events, scale, plot_version_number=False):
          e['mag'], np.exp(e['mag']) * marker_scale)
         for e in events
     ]
+    # Sort events by time, so that the latest event is plotted on top
+    ev_attributes.sort(key=lambda x: x[2])
     markers = []
     for evid, ver, time, lon, lat, depth, mag, size in ev_attributes:
         _evid = f'{evid} v{ver}' if plot_version_number else evid
