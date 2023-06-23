@@ -32,6 +32,13 @@ To keep the database updated, run on a regular basis:
 (This will use the configuration parameter ``recheck_period`` to recheck the
 last *n* days or hours).
 
+You can edit the attributes of specific events in the database using:
+
+.. code-block::
+
+    seiscat editdb
+
+
 You can print the catalog to screen:
 
 .. code-block::

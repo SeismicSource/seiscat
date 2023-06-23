@@ -24,6 +24,46 @@ def parse_arguments():
     subparser = parser.add_subparsers(dest='action')
     subparser.add_parser('initdb', help='initialize database')
     subparser.add_parser('updatedb', help='update database')
+    editdb_parser = subparser.add_parser('editdb', help='edit database')
+    editdb_parser.add_argument(
+        'eventid', nargs=1, help='event ID to edit')
+    editdb_parser.add_argument(
+        '-v',
+        '--version',
+        type=int,
+        default=None,
+        help='event version to edit, required if more than one version'
+    )
+    editdb_parser.add_argument(
+        '-s',
+        '--set',
+        type=str,
+        metavar='KEY=VALUE',
+        nargs='+',
+        help='set event attributes. Multiple KEY=VALUE pairs can be given '
+             '(e.g., time=2022-01-01T00:00:00.0Z lat=12.0 lon=-3.0 depth=20.0)'
+    )
+    editdb_parser.add_argument(
+        '-r',
+        '--replicate',
+        action='store_true',
+        default=False,
+        help='replicate event (will be assigned a new version number)'
+    )
+    editdb_parser.add_argument(
+        '-d',
+        '--delete',
+        action='store_true',
+        default=False,
+        help='delete event'
+    )
+    editdb_parser.add_argument(
+        '-f',
+        '--force',
+        action='store_true',
+        default=False,
+        help='force edit (skip confirmation)'
+    )
     versions_parser = argparse.ArgumentParser(add_help=False)
     versions_parser.add_argument(
         '-a',
@@ -116,6 +156,9 @@ def run():
         download_and_store(config, initdb=True)
     elif args.action == 'updatedb':
         download_and_store(config, initdb=False)
+    elif args.action == 'editdb':
+        from ..editdb import editdb
+        editdb(config)
     elif args.action == 'print':
         from ..print import print_catalog
         print_catalog(config)

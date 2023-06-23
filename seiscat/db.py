@@ -302,6 +302,90 @@ def read_fields_and_rows_from_db(config, eventid=None, version=None):
     return fields, rows
 
 
+def replicate_event_in_db(config, eventid, version=1):
+    """
+    Replicate an event in the database. The new event will have the same
+    evid as the original event, but a different version.
+
+    :param config: config object
+    :param eventid: event id of the original event
+    :param version: version of the original event
+    """
+    fields, rows = read_fields_and_rows_from_db(
+        config, eventid=eventid, version=version)
+    if not rows:
+        err_exit(f'Event {eventid} version {version} not found in database')
+    row = list(rows[0])
+    # increment version
+    ver_index = fields.index('ver')
+    row[ver_index] += 1
+    conn = _get_db_connection(config)
+    c = conn.cursor()
+    while True:
+        try:
+            c.execute(
+                'INSERT INTO events VALUES '
+                f'({", ".join("?" * len(row))})', row)
+            break
+        except sqlite3.IntegrityError:
+            # version already exists, increment version and try again
+            row[ver_index] += 1
+    # close database connection
+    conn.commit()
+    print(f'Added event {eventid} version {row[ver_index]} to database')
+
+
+def delete_event_from_db(config, eventid, version=None):
+    """
+    Delete an event from the database.
+
+    :param config: config object
+    :param eventid: event id of the event to delete
+    :param version: version of the event to delete
+                    (if None, delete all versions of the event)
+    """
+    conn = _get_db_connection(config)
+    c = conn.cursor()
+    if version is not None:
+        c.execute(
+            'DELETE FROM events WHERE evid = ? AND ver = ?',
+            (eventid, version))
+    else:
+        c.execute('DELETE FROM events WHERE evid = ?', (eventid,))
+    # close database connection
+    conn.commit()
+    if version is None:
+        msg = f'Event {eventid} deleted from database'
+    else:
+        msg = f'Event {eventid} version {version} deleted from database'
+    print(msg)
+
+
+def update_event_in_db(config, eventid, version, field, value):
+    """
+    Update an event in the database.
+
+    :param config: config object
+    :param eventid: event id of the event to update
+    :param version: version of the event to update
+    :param field: field to update
+    :param value: new value
+    """
+    conn = _get_db_connection(config)
+    c = conn.cursor()
+    try:
+        c.execute(
+            f'UPDATE events SET {field} = ? WHERE evid = ? AND ver = ?',
+            (value, eventid, version))
+    except sqlite3.OperationalError:
+        err_exit(f'Field "{field}" not found in database')
+    # close database connection
+    conn.commit()
+    print(
+        f'Updated field "{field}={value}" '
+        f'for event {eventid} version {version}')
+
+
 def read_events_from_db(config):
     """
     Read events from database. Return a list of events.
