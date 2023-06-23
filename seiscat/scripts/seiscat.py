@@ -35,6 +35,9 @@ def parse_arguments():
     print_parser = subparser.add_parser(
         'print', parents=[versions_parser], help='print catalog')
     print_parser.add_argument(
+        'eventid', nargs='?',
+        help='event ID to print (only used for table format)')
+    print_parser.add_argument(
         '-f',
         '--format',
         type=str,

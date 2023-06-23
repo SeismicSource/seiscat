@@ -22,13 +22,13 @@ def print_catalog_stats(config):
     print(get_catalog_stats(config))
 
 
-def print_catalog_table(config):
+def print_catalog_table(config, eventid=None, version=None):
     """
     Pretty-print the catalog as a table.
 
     :param config: config object
     """
-    fields, rows = read_fields_and_rows_from_db(config)
+    fields, rows = read_fields_and_rows_from_db(config, eventid, version)
     if len(rows) == 0:
         print('No events in catalog')
         return
@@ -59,9 +59,10 @@ def print_catalog(config):
 
     :param config: config object
     """
-    if config['args'].format == 'stats':
+    args = config['args']
+    if args.format == 'stats':
         print_catalog_stats(config)
-    elif config['args'].format == 'table':
-        print_catalog_table(config)
+    elif args.format == 'table':
+        print_catalog_table(config, eventid=args.eventid)
     else:
-        err_exit(f'Unknown format "{config["args"].format}"')
+        err_exit(f'Unknown format "{args.format}"')

@@ -230,12 +230,15 @@ def write_catalog_to_db(cat, config, initdb):
     print(f'Wrote {events_written} events to database "{config["db_file"]}"')
 
 
-def read_fields_and_rows_from_db(config):
+def read_fields_and_rows_from_db(config, eventid=None, version=None):
     """
     Read fields and rows from database. Return a list of fields and a list of
     rows.
 
     :param config: config object
+    :param eventid: limit to events with this evid
+    :param version: limit to events with this version
+                    (ignored if eventid is None)
     :returns: list of fields, list of rows
     """
     db_file = config.get('db_file', None)
@@ -252,9 +255,19 @@ def read_fields_and_rows_from_db(config):
     # we just need the field names, which are in the second column
     fields = [f[1] for f in c.fetchall()]
     # read events
-    c.execute('SELECT * FROM events')
+    if eventid is not None and version is not None:
+        c.execute(
+            'SELECT * FROM events WHERE evid = ? AND ver = ?',
+            (eventid, version))
+    elif eventid is not None:
+        c.execute('SELECT * FROM events WHERE evid = ?', (eventid,))
+    else:
+        c.execute('SELECT * FROM events')
+    try:
+        allversions = config['args'].allversions
+    except AttributeError:
+        allversions = True
     rows = c.fetchall()
-    allversions = config['args'].allversions
     if not allversions:
         # keep only the latest version of each event
         evids = set()
