@@ -20,6 +20,24 @@ from .utils import err_exit
 DB_VERSION = 1
 
 
+def _get_db_connection(config, initdb=False):
+    """
+    Get database connection.
+
+    :param config: config object
+    :return: database connection
+    """
+    db_file = config.get('db_file', None)
+    if db_file is None:
+        err_exit('db_file not set in config file')
+    if not initdb:
+        try:
+            open(db_file, 'r')
+        except FileNotFoundError:
+            err_exit(f'Database file "{db_file}" not found.')
+    return sqlite3.connect(db_file)
+
+
 def _check_db_version(cursor, config):
     """
     Check if database version is compatible with current version.
@@ -182,8 +200,7 @@ def write_catalog_to_db(cat, config, initdb):
     :param config: config object
     :param initdb: if True, create new database file
     """
-    # open database connection
-    conn = sqlite3.connect(config['db_file'])
+    conn = _get_db_connection(config, initdb)
     c = conn.cursor()
     if initdb:
         _set_db_version(c)
@@ -241,14 +258,7 @@ def read_fields_and_rows_from_db(config, eventid=None, version=None):
                     (ignored if eventid is None)
     :returns: list of fields, list of rows
     """
-    db_file = config.get('db_file', None)
-    if db_file is None:
-        err_exit('db_file not set in config file')
-    try:
-        open(db_file, 'r')
-    except FileNotFoundError:
-        err_exit(f'Database file "{db_file}" not found.')
-    conn = sqlite3.connect(db_file)
+    conn = _get_db_connection(config)
     c = conn.cursor()
     # read field names
     c.execute('PRAGMA table_info(events)')
