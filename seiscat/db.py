@@ -97,26 +97,46 @@ def check_db_exists(config, initdb):
         )
 
 
-def _same_values(event1, event2, skip_begin=0, skip_end=0):
+def _same_values(values1, values2, skip_begin=0, skip_end=0):
     """
-    Check if two events have the same values.
+    Check if two lists of values have the same values.
 
     :param event1: first event
     :param event2: second event
-    :param skip_begin: number of fields to skip at the beginning
-    :param skip_end: number of fields to skip at the end
-    :returns: True if events have the same values, False otherwise
+    :param skip_begin: number of fields to skip at the beginning of values
+    :param skip_end: number of fields to skip at the end of values
+    :returns: True if the two lists have the same values, False otherwise
     """
-    for idx in range(skip_begin, len(event1)-skip_end):
+    for idx in range(skip_begin, len(values1)-skip_end):
         try:
             # Use np.isclose() for numbers
-            match = np.isclose(event1[idx], event2[idx])
+            match = np.isclose(values1[idx], values2[idx])
         except TypeError:
             # Use == for strings
-            match = event1[idx] == event2[idx]
+            match = values1[idx] == values2[idx]
         if not match:
             return False
     return True
+
+
+def _event_exists(cursor, values, skip_begin=0, skip_end=0):
+    """
+    Check if an event exists in the database, based on values.
+
+    :param cursor: database cursor
+    :param values: list of values
+    :param skip_begin: number of fields to skip at the beginning of values
+    :param skip_end: number of fields to skip at the end of values
+    :returns: True if event exists, False otherwise
+    """
+    evid = values[0]
+    cursor.execute('SELECT * FROM events WHERE evid = ?', (evid,))
+    rows = cursor.fetchall()
+    rows_with_same_values = [
+        row for row in rows
+        if _same_values(values, row, skip_begin, skip_end)
+    ]
+    return len(rows_with_same_values) > 0
 
 
 def _get_evid(resource_id):
@@ -219,29 +239,19 @@ def write_catalog_to_db(cat, config, initdb):
             c.execute(
                 'INSERT OR REPLACE INTO events VALUES '
                 f'({", ".join("?" * len(values))})', values)
-        else:
-            # check if an event with the same values already exists
-            evid = values[0]
-            c.execute(
-                'SELECT * FROM events WHERE evid = ?', (evid,))
-            rows = c.fetchall()
-            # check for different values, ignore evid and ver and extra fields
-            rows_with_different_values = [
-                row for row in rows
-                if not _same_values(
-                    values, row, skip_begin=2, skip_end=n_extra_fields)]
-            try:
-                max_version = max(row[1] for row in rows_with_different_values)
-            except ValueError:
-                # rows_with_different_values is empty
-                max_version = 0
-            values[1] = max_version + 1
-            # add events to table, ignore events that have the same primary
-            # keys (i.e., the same evid and ver)
-            c.execute(
-                'INSERT OR IGNORE INTO events VALUES '
-                f'({", ".join("?" * len(values))})', values)
-        events_written += c.rowcount
+            events_written += c.rowcount
+        elif not _event_exists(
+                c, values, skip_begin=2, skip_end=n_extra_fields):
+            while True:
+                try:
+                    c.execute(
+                        'INSERT INTO events VALUES '
+                        f'({", ".join("?" * len(values))})', values)
+                    events_written += c.rowcount
+                    break
+                except sqlite3.IntegrityError:
+                    # evid and ver already exist, increment ver
+                    values[1] += 1
     # close database connection
     conn.commit()
     print(f'Wrote {events_written} events to database "{config["db_file"]}"')

@@ -9,6 +9,8 @@ Copyright (c) 2022-2023 Claudio Satriano <satriano@ipgp.fr>
 - `eventid` argument for `seiscat print`, to print a specific event
 - Fix bug where an event was updated when extra fields were set to a different
   value than the default
+- Fix bug where an event was updated to new version even if the same event
+  already existed in the database
 
 ## v0.5 - 2023-06-22
 
