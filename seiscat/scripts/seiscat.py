@@ -12,30 +12,11 @@ Main script for seiscat.
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
 import sys
-from ..parse_arguments import parse_arguments
-# NOTE: most modules are lazy-imported to speed up startup time
-
-
-def download_and_store(config, initdb):
-    """
-    Download events and store them in the database.
-
-    :param config: config object
-    :param initdb: if True, create new database file
-    """
-    from ..db import check_db_exists, write_catalog_to_db
-    from ..fdsnws import open_fdsn_connection, query_events
-    from ..utils import err_exit
-    check_db_exists(config, initdb)
-    try:
-        client = open_fdsn_connection(config)
-    except Exception as e:
-        err_exit(e)
-    cat = query_events(client, config, first_query=initdb)
-    write_catalog_to_db(cat, config, initdb)
+# NOTE: other modules are lazy-imported to speed up startup time
 
 
 def run():
+    from ..parse_arguments import parse_arguments
     """Run seiscat."""
     args = parse_arguments()
     from ..utils import parse_configspec, read_config,  write_sample_config
@@ -46,8 +27,10 @@ def run():
     config = read_config(args.configfile, configspec)
     config['args'] = args
     if args.action == 'initdb':
+        from ..download_and_store import download_and_store
         download_and_store(config, initdb=True)
     elif args.action == 'updatedb':
+        from ..download_and_store import download_and_store
         download_and_store(config, initdb=False)
     elif args.action == 'editdb':
         from ..editdb import editdb
