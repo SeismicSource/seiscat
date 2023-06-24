@@ -63,8 +63,13 @@ As an example, to discover the options for the `plot` command, try:
 
 SeisCat supports command line tab completion for arguments, thanks to
 [argcomplete](https://kislyuk.github.io/argcomplete/).
-To enable command line tab completion, add the following line to your `.bashrc`
-or `.zshrc`:
+To enable command line tab completion run:
+
+    activate-global-python-argcomplete
+
+(This is a one-time command that needs to be run only once).
+
+Or, alternatively, add the following line to your `.bashrc` or `.zshrc`:
 
     eval "$(register-python-argcomplete seiscat)"
 
