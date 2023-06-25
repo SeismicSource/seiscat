@@ -13,7 +13,53 @@ import sys
 import argparse
 import argcomplete
 from ._version import get_versions
-# NOTE: most modules are lazy-imported to speed up startup time
+_db_cursor = None
+
+
+def _get_db_cursor(configfile):
+    """
+    Get a cursor to the database.
+
+    :param configfile: path to config file
+    :return: cursor to the database
+    """
+    try:
+        fp = open(configfile, 'r')
+    except FileNotFoundError:
+        return None
+    try:
+        db_file = [
+            line.split('=')[1].strip() for line in fp
+            if line.startswith('db_file')][0]
+    except IndexError:
+        db_file = 'seiscat.sqlite'
+    try:
+        open(db_file, 'r')
+    except FileNotFoundError:
+        return None
+    import sqlite3  # lazy import to speed up startup time
+    conn = sqlite3.connect(db_file)
+    return conn.cursor()
+
+
+def _evid_completer(prefix, parsed_args, **kwargs):
+    """
+    Completer for event IDs.
+
+    :param prefix: prefix to complete
+    :param parsed_args: parsed arguments
+    :param kwargs: keyword arguments
+    :return: list of event IDs
+    """
+    global _db_cursor
+    if _db_cursor is None:
+        _db_cursor = _get_db_cursor(parsed_args.configfile)
+    if _db_cursor is None:
+        return []
+    _db_cursor.execute(
+        'SELECT evid FROM events WHERE evid LIKE ?', (f'{prefix}%',)
+    )
+    return [row[0] for row in _db_cursor.fetchall()]
 
 
 def parse_arguments():
@@ -25,7 +71,8 @@ def parse_arguments():
     subparser.add_parser('updatedb', help='update database')
     editdb_parser = subparser.add_parser('editdb', help='edit database')
     editdb_parser.add_argument(
-        'eventid', nargs=1, help='event ID to edit')
+        'eventid', nargs=1, help='event ID to edit'
+    ).completer = _evid_completer
     editdb_parser.add_argument(
         '-v',
         '--version',
@@ -75,7 +122,8 @@ def parse_arguments():
         'print', parents=[versions_parser], help='print catalog')
     print_parser.add_argument(
         'eventid', nargs='?',
-        help='event ID to print (only used for table format)')
+        help='event ID to print (only used for table format)'
+    ).completer = _evid_completer
     print_parser.add_argument(
         '-f',
         '--format',
