@@ -11,13 +11,6 @@ seiscat
     :undoc-members:
     :show-inheritance:
 
-fdsnws
-======
-.. automodule:: seiscat.fdsnws
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 db
 ==
 .. automodule:: seiscat.db
@@ -25,9 +18,30 @@ db
     :undoc-members:
     :show-inheritance:
 
-print
-=====
-.. automodule:: seiscat.print
+download_and_store
+==================
+.. automodule:: seiscat.download_and_store
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+editdb
+======
+.. automodule:: seiscat.editdb
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+fdsnws
+======
+.. automodule:: seiscat.fdsnws
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+parse_arguments
+===============
+.. automodule:: seiscat.parse_arguments
     :members:
     :undoc-members:
     :show-inheritance:
@@ -35,6 +49,13 @@ print
 plot
 ====
 .. automodule:: seiscat.plot
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+print
+=====
+.. automodule:: seiscat.print
     :members:
     :undoc-members:
     :show-inheritance:
