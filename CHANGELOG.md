@@ -4,7 +4,7 @@ Keep a local seismic catalog.
 
 Copyright (c) 2022-2023 Claudio Satriano <satriano@ipgp.fr>
 
-## unreleased
+## v0.6 - 2023-06-26
 
 - New command to edit the event database: `seiscat editdb`
 - `eventid` argument for `seiscat print`, to print a specific event
