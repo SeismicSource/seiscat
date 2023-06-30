@@ -129,7 +129,7 @@ def parse_arguments():
         '--format',
         type=str,
         default='table',
-        choices=['table', 'stats'],
+        choices=['table', 'csv', 'stats'],
         help='output format (default: %(default)s)'
     )
     print_parser.add_argument(

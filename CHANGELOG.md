@@ -4,6 +4,10 @@ Keep a local seismic catalog.
 
 Copyright (c) 2022-2023 Claudio Satriano <satriano@ipgp.fr>
 
+## unreleased
+
+- CSV output for `seiscat print`, using `--format=csv` (or `-f csv`)
+
 ## v0.6 - 2023-06-26
 
 - New command to edit the event database: `seiscat editdb`

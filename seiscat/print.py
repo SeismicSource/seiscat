@@ -13,7 +13,7 @@ from .db import read_fields_and_rows_from_db, get_catalog_stats
 from .utils import err_exit
 
 
-def print_catalog_stats(config):
+def _print_catalog_stats(config):
     """
     Print catalog statistics.
 
@@ -22,7 +22,7 @@ def print_catalog_stats(config):
     print(get_catalog_stats(config))
 
 
-def print_catalog_table(config, eventid=None, version=None):
+def _print_catalog_table(config, eventid=None, version=None):
     """
     Pretty-print the catalog as a table.
 
@@ -53,6 +53,27 @@ def print_catalog_table(config, eventid=None, version=None):
         print()
 
 
+def _print_catalog_csv(config, eventid=None, version=None):
+    """
+    Print catalog as CSV.
+
+    :param config: config object
+    """
+    fields, rows = read_fields_and_rows_from_db(config, eventid, version)
+    if len(rows) == 0:
+        print('No events in catalog')
+        return
+    # print header
+    print(','.join(fields))
+    # print rows sorted by time and version
+    time_idx = fields.index('time')
+    ver_idx = fields.index('ver')
+    reverse = config['args'].reverse
+    for row in sorted(
+            rows, key=lambda r: (r[time_idx], r[ver_idx]), reverse=reverse):
+        print(','.join([str(val) for val in row]))
+
+
 def print_catalog(config):
     """
     Print catalog.
@@ -61,8 +82,10 @@ def print_catalog(config):
     """
     args = config['args']
     if args.format == 'stats':
-        print_catalog_stats(config)
+        _print_catalog_stats(config)
     elif args.format == 'table':
-        print_catalog_table(config, eventid=args.eventid)
+        _print_catalog_table(config, eventid=args.eventid)
+    elif args.format == 'csv':
+        _print_catalog_csv(config, eventid=args.eventid)
     else:
         err_exit(f'Unknown format "{args.format}"')
