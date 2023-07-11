@@ -107,7 +107,7 @@ def _same_values(values1, values2, skip_begin=0, skip_end=0):
     :param skip_end: number of fields to skip at the end of values
     :returns: True if the two lists have the same values, False otherwise
     """
-    for idx in range(skip_begin, len(values1)-skip_end):
+    for idx in range(skip_begin, len(values1) - skip_end):
         try:
             # Use np.isclose() for numbers
             match = np.isclose(values1[idx], values2[idx])
