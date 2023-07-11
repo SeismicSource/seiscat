@@ -71,7 +71,7 @@ def parse_arguments():
     subparser.add_parser('updatedb', help='update database')
     editdb_parser = subparser.add_parser('editdb', help='edit database')
     editdb_parser.add_argument(
-        'eventid', nargs=1, help='event ID to edit'
+        'eventid', nargs=1, help='event ID to edit. Use ALL to edit all events'
     ).completer = _evid_completer
     editdb_parser.add_argument(
         '-v',

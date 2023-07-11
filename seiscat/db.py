@@ -265,7 +265,6 @@ def read_fields_and_rows_from_db(config, eventid=None, version=None):
     :param config: config object
     :param eventid: limit to events with this evid
     :param version: limit to events with this version
-                    (ignored if eventid is None)
     :returns: list of fields, list of rows
     """
     conn = _get_db_connection(config)
@@ -281,6 +280,8 @@ def read_fields_and_rows_from_db(config, eventid=None, version=None):
             (eventid, version))
     elif eventid is not None:
         c.execute('SELECT * FROM events WHERE evid = ?', (eventid,))
+    elif version is not None:
+        c.execute('SELECT * FROM events WHERE ver = ?', (version,))
     else:
         c.execute('SELECT * FROM events')
     try:
@@ -341,23 +342,28 @@ def delete_event_from_db(config, eventid, version=None):
 
     :param config: config object
     :param eventid: event id of the event to delete
+                    (if None, delete all events for the given version)
     :param version: version of the event to delete
                     (if None, delete all versions of the event)
     """
     conn = _get_db_connection(config)
     c = conn.cursor()
-    if version is not None:
+    if eventid is None and version is None:
+        c.execute('DELETE FROM events')
+        msg = 'All events deleted from database'
+    elif eventid is None:
+        c.execute('DELETE FROM events WHERE ver = ?', (version,))
+        msg = f'All events of version {version} deleted from database'
+    if eventid is not None and version is not None:
         c.execute(
             'DELETE FROM events WHERE evid = ? AND ver = ?',
             (eventid, version))
-    else:
+        msg = f'Event {eventid} deleted from database'
+    elif eventid is not None:
         c.execute('DELETE FROM events WHERE evid = ?', (eventid,))
+        msg = f'Event {eventid} version {version} deleted from database'
     # close database connection
     conn.commit()
-    if version is None:
-        msg = f'Event {eventid} deleted from database'
-    else:
-        msg = f'Event {eventid} version {version} deleted from database'
     print(msg)
 
 

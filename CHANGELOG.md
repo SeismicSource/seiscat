@@ -7,6 +7,9 @@ Copyright (c) 2022-2023 Claudio Satriano <satriano@ipgp.fr>
 ## unreleased
 
 - CSV output for `seiscat print`, using `--format=csv` (or `-f csv`)
+- Special argument `ALL` for `seiscat editdb` to edit all the events
+  (or all the events of a given version when used together with the
+  `--version` argument)
 
 ## v0.6 - 2023-06-26
 
