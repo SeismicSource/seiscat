@@ -45,6 +45,9 @@ def run():
 
 def main():
     """Main function. Catch KeyboardInterrupt."""
+    # Avoid broken pipe errors, e.g., when piping output to head
+    from signal import signal, SIGPIPE, SIG_DFL
+    signal(SIGPIPE, SIG_DFL)
     try:
         run()
     except KeyboardInterrupt:
