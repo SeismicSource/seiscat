@@ -16,8 +16,8 @@ import sys
 
 
 def run():
-    from ..parse_arguments import parse_arguments
     """Run seiscat."""
+    from ..parse_arguments import parse_arguments
     args = parse_arguments()
     from ..utils import parse_configspec, read_config,  write_sample_config
     configspec = parse_configspec()
