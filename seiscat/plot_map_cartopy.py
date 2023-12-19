@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 # SPDX-License-Identifier: GPL-3.0-or-later
 """
-Plotting functions for seiscat.
+Plot events on a map using cartopy.
 
 :copyright:
     2022-2023 Claudio Satriano <satriano@ipgp.fr>
@@ -165,9 +165,9 @@ def _plot_events(ax, events, scale, plot_version_number=False):
     fig.canvas.mpl_connect('motion_notify_event', hover)
 
 
-def plot_catalog_map(config):
+def plot_catalog_map_with_cartopy(config):
     """
-    Plot the catalog map.
+    Plot the catalog map using cartopy.
 
     :param config: config object
     """

@@ -39,7 +39,7 @@ def run():
         from ..print import print_catalog
         print_catalog(config)
     elif args.action == 'plot':
-        from ..plot import plot_catalog_map
+        from ..plot_map import plot_catalog_map
         plot_catalog_map(config)
 
 
