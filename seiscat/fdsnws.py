@@ -34,7 +34,21 @@ def _to_utc_datetime(time):
     :param time: time in string format
     :returns: UTCDateTime object or None
     """
-    return None if time is None else UTCDateTime(time)
+    if time is None:
+        return None
+    try:
+        return UTCDateTime(time)
+    except TypeError:
+        try:
+            time_interval = _parse_time_interval(time)
+            return UTCDateTime() + time_interval
+        except ValueError as e:
+            raise ValueError(
+                f'Invalid time format: {time}.\n'
+                'Please use YYYY-MM-DDTHH:MM:SS or '
+                'a time interval (typically in the past),\n'
+                'e.g., -1 day, -2 hours, -5 minutes, -10 seconds.'
+            ) from e
 
 
 def _parse_time_interval(time_interval):
@@ -50,25 +64,24 @@ def _parse_time_interval(time_interval):
     value = int(parts[0])
     unit = parts[1]
     if unit.endswith('s'):
+        # remvove plural form
         unit = unit[:-1]
     if unit == 'day':
         return timedelta(days=value)
-    elif unit == 'hour':
+    if unit == 'hour':
         return timedelta(hours=value)
-    elif unit == 'minute':
+    if unit == 'minute':
         return timedelta(minutes=value)
-    elif unit == 'second':
+    if unit == 'second':
         return timedelta(seconds=value)
-    else:
-        raise ValueError(f'Invalid time unit: {unit}')
+    raise ValueError(f'Invalid time unit: {unit}')
 
 
 class InvalidQuery(Exception):
     """Invalid query exception."""
-    pass
 
 
-class QueryArgs(object):
+class QueryArgs():
     """Build query arguments for FDSN client."""
     def __init__(self, config, suffix, first_query):
         """
