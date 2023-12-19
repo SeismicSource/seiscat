@@ -102,6 +102,8 @@ def _plot_events(ax, events, scale, plot_version_number=False):
     """
     import cartopy.crs as ccrs
     marker_scale = scale / 10. * 2
+    # remove events with no magnitude
+    events = [e for e in events if e['mag'] is not None]
     ev_attributes = [
         (e['evid'], e['ver'], e['time'], e['lon'], e['lat'], e['depth'],
          e['mag'], np.exp(e['mag']) * marker_scale)

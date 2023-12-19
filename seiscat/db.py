@@ -200,9 +200,13 @@ def _get_db_values_from_event(ev, config):
     lat = orig.latitude
     lon = orig.longitude
     depth = orig.depth / 1e3  # km
-    magntiude = ev.preferred_magnitude() or ev.magnitudes[0]
-    mag = magntiude.mag
-    mag_type = magntiude.magnitude_type
+    try:
+        magnitude = ev.preferred_magnitude() or ev.magnitudes[0]
+        mag = magnitude.mag
+        mag_type = magnitude.magnitude_type
+    except IndexError:
+        mag = None
+        mag_type = None
     event_type = ev.event_type
     values = [
         evid, version, time, lat, lon, depth, mag, mag_type, event_type]
@@ -422,9 +426,9 @@ def get_catalog_stats(config):
     tmax = max(event['time'] for event in events)
     tmin = tmin.strftime('%Y-%m-%dT%H:%M:%S')
     tmax = tmax.strftime('%Y-%m-%dT%H:%M:%S')
-    mag_min = min(event['mag'] for event in events)
-    mag_max = max(event['mag'] for event in events)
+    mag_min = min(event['mag'] for event in events if event['mag'] is not None)
+    mag_max = max(event['mag'] for event in events if event['mag'] is not None)
     return (
         f'{nevents} events from {tmin} to {tmax}\n'
-        f'Magnitude range: {mag_min:.1f} - {mag_max:.1f}'
+        f'Magnitude range: {mag_min:.1f} -- {mag_max:.1f}'
     )
