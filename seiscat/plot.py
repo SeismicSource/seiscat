@@ -13,6 +13,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 from .db import read_events_from_db, get_catalog_stats
 from .utils import err_exit
+try:
+    import cartopy.crs as ccrs
+    from cartopy.feature import AdaptiveScaler
+except ImportError:
+    err_exit(
+        'Cartopy is not installed. '
+        'Please install it to plot the catalog map.\n'
+        'See https://scitools.org.uk/cartopy/docs/latest/installing.html'
+    )
 
 
 def _get_map_extent_for_suffix(config, suffix=None):
@@ -79,7 +88,6 @@ def _get_tile_scale(extent):
     :param extent: tuple (lon_min, lon_max, lat_min, lat_max)
     :returns: tile scale
     """
-    from cartopy.feature import AdaptiveScaler
     tile_autoscaler = AdaptiveScaler(
         default_scale=4,
         limits=(
@@ -100,7 +108,6 @@ def _plot_events(ax, events, scale, plot_version_number=False):
     :param scale: scale for event markers
     :param ax: matplotlib axes object
     """
-    import cartopy.crs as ccrs
     marker_scale = scale / 10. * 2
     # remove events with no magnitude
     events = [e for e in events if e['mag'] is not None]
@@ -165,22 +172,11 @@ def plot_catalog_map(config):
     :param config: config object
     """
     # lazy import cartopy, since it's not an install requirement
-    try:
-        import cartopy.crs as ccrs
-        import cartopy.io.img_tiles as cimgt
-    except ImportError:
-        err_exit(
-            'Cartopy is not installed. '
-            'Please install it to plot the catalog map.\n'
-            'See https://scitools.org.uk/cartopy/docs/latest/installing.html'
-        )
     fig = plt.figure(figsize=(10, 10))
-    stamen_terrain = cimgt.Stamen('terrain-background')
-    ax = fig.add_subplot(1, 1, 1, projection=stamen_terrain.crs)
+    ax = fig.add_subplot(1, 1, 1, projection=ccrs.Mercator())
+    ax.stock_img()
     extent = _get_map_extent(config)
     ax.set_extent(extent)
-    tile_scale = _get_tile_scale(extent)
-    ax.add_image(stamen_terrain, tile_scale)
     ax.coastlines(resolution='10m', edgecolor='black', linewidth=1)
     ax.add_feature(
         ccrs.cartopy.feature.BORDERS, edgecolor='black', linewidth=1)
@@ -189,7 +185,7 @@ def plot_catalog_map(config):
 
     def redraw_gridlines(ax):
         ax.gridlines(**g_kwargs)
-    ax.callbacks.connect('xlim_changed', lambda ax: redraw_gridlines(ax))
+    ax.callbacks.connect('xlim_changed', redraw_gridlines)
     events = read_events_from_db(config)
     scale = config['args'].scale
     plot_version_number = config['args'].allversions
