@@ -36,6 +36,8 @@ def _to_utc_datetime(time):
     """
     if time is None:
         return None
+    if time.strip() == '':
+        raise ValueError('Empty time string.')
     try:
         return UTCDateTime(time)
     except TypeError:
@@ -61,6 +63,8 @@ def _parse_time_interval(time_interval):
     if time_interval is None:
         return None
     parts = time_interval.split()
+    if len(parts) != 2:
+        raise ValueError(f'Invalid time interval: {time_interval}.')
     value = int(parts[0])
     unit = parts[1]
     if unit.endswith('s'):
