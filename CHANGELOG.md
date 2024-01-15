@@ -2,7 +2,7 @@
 
 Keep a local seismic catalog.
 
-Copyright (c) 2022-2023 Claudio Satriano <satriano@ipgp.fr>
+Copyright (c) 2022-2024 Claudio Satriano <satriano@ipgp.fr>
 
 ## unreleased
 

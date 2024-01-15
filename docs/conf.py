@@ -21,7 +21,7 @@ __version__ = get_versions()['version']
 # -- Project information -----------------------------------------------------
 
 project = 'SeisCat'
-copyright = '2022-2023, Claudio Satriano'
+copyright = '2022-2024, Claudio Satriano'
 author = 'Claudio Satriano'
 
 # The full version, including alpha/beta/rc tags.

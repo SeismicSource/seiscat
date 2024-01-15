@@ -3,7 +3,7 @@ SeisCat
 
 Keep a local seismic catalog.
 
-:Copyright: 2011-2023 Claudio Satriano satriano@ipgp.fr
+:Copyright: 2011-2024 Claudio Satriano satriano@ipgp.fr
 :Release: |release|
 :Date:    |today|
 
