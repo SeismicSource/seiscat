@@ -87,7 +87,18 @@ def parse_arguments():
         metavar='KEY=VALUE',
         nargs='+',
         help='set event attributes. Multiple KEY=VALUE pairs can be given '
-             '(e.g., time=2022-01-01T00:00:00.0Z lat=12.0 lon=-3.0 depth=20.0)'
+             '(e.g., -s time=2022-01-01T00:00:00.0Z lat=12.0 lon=-3.0 '
+             'depth=20.0)'
+    )
+    editdb_parser.add_argument(
+        '-i',
+        '--increment',
+        type=str,
+        metavar='KEY=INCREMENT',
+        nargs='+',
+        help='increment a numeric event attribute by a specified amount '
+             '(e.g., -i depth=3.0). Use a negative INCREMENT to decrement '
+             '(e.g., -i depth=-5.0)'
     )
     editdb_parser.add_argument(
         '-r',

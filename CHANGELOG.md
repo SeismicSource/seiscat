@@ -10,6 +10,8 @@ Copyright (c) 2022-2023 Claudio Satriano <satriano@ipgp.fr>
 - Special argument `ALL` for `seiscat editdb` to edit all the events
   (or all the events of a given version when used together with the
   `--version` argument)
+- New option for `seiscat editdb`: `--increment` to increment (or decrement)
+  a numeric field by a given, positive or negative, amount
 
 ## v0.6 - 2023-06-26
 

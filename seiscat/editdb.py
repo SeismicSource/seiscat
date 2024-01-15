@@ -12,7 +12,7 @@ Edit functions for seiscat.
 from .utils import err_exit
 from .db import (
     read_fields_and_rows_from_db, replicate_event_in_db,
-    delete_event_from_db, update_event_in_db)
+    delete_event_from_db, update_event_in_db, increment_event_in_db)
 
 
 def _are_you_sure(msg):
@@ -106,6 +106,32 @@ def _set(config, fields, rows, key_values, args):
             update_event_in_db(config, eventid, version, key, val)
 
 
+def _increment(config, fields, rows, key_values, args):
+    """
+    Increment key-value pairs in database.
+
+    :param config: config object
+    :param fields: list of fields
+    :param rows: list of rows
+    :param key_values: list of key-value pairs
+    :param args: parsed arguments
+    """
+    if len(rows) == 1 and not args.force:
+        eventid = rows[0][fields.index('evid')]
+        version = rows[0][fields.index('ver')]
+        _are_you_sure(
+            f'Update event {eventid} version {version} in database?')
+    elif not args.force:
+        _are_you_sure(
+            f'Update {len(rows)} events in database?')
+    for row in rows:
+        eventid = row[fields.index('evid')]
+        version = row[fields.index('ver')]
+        key_values = [_parse_set_arg(arg) for arg in args.increment]
+        for key, val in key_values:
+            increment_event_in_db(config, eventid, version, key, val)
+
+
 def editdb(config):
     """
     Edit database.
@@ -136,5 +162,7 @@ def editdb(config):
         _delete(config, fields, rows, eventid, version, args)
     elif args.set:
         _set(config, fields, rows, args.set, args)
+    elif args.increment:
+        _increment(config, fields, rows, args.increment, args)
     else:
         err_exit('No action specified. See "seiscat editdb -h" for help')

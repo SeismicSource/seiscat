@@ -396,6 +396,55 @@ def update_event_in_db(config, eventid, version, field, value):
         f'for event {eventid} version {version}')
 
 
+def increment_event_in_db(config, eventid, version, field, value):
+    """
+    Increment an event in the database.
+
+    :param config: config object
+    :param eventid: event id of the event to update
+    :param version: version of the event to update
+    :param field: field to update
+    :param value: value to increment, must be a number
+    """
+    conn = _get_db_connection(config)
+    c = conn.cursor()
+    # check if value is numeric
+    try:
+        value = float(value)
+    except ValueError:
+        err_exit(f'Value "{value}" is not a number')
+    # if value is an integer, convert it to int
+    if value == int(value):
+        value = int(value)
+    # read old value from database and check if it is numeric
+    try:
+        c.execute(
+            f'SELECT {field} FROM events WHERE evid = ? AND ver = ?',
+            (eventid, version))
+        old_value = c.fetchone()[0]
+        try:
+            new_value = float(old_value) + value
+            if new_value == int(new_value):
+                new_value = int(new_value)
+        except ValueError:
+            err_exit(f'Field "{field}" is not a number')
+    except sqlite3.OperationalError:
+        err_exit(f'Field "{field}" not found in database')
+    # update database
+    try:
+        c.execute(
+            f'UPDATE events SET {field} = ? '
+            'WHERE evid = ? AND ver = ?',
+            (new_value, eventid, version))
+    except sqlite3.OperationalError:
+        err_exit(f'Field "{field}" not found in database')
+    # close database connection
+    conn.commit()
+    print(
+        f'Field "{field}" incremented by "{value}" '
+        f'for event {eventid} version {version}')
+
+
 def read_events_from_db(config):
     """
     Read events from database. Return a list of events.
