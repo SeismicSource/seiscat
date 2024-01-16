@@ -11,6 +11,7 @@ Utility functions for seiscat.
 """
 import os
 import sys
+import contextlib
 from .configobj import ConfigObj
 from .configobj.validate import Validator
 
@@ -24,6 +25,28 @@ def err_exit(msg):
     msg = str(msg)
     sys.stderr.write(msg + '\n')
     sys.exit(1)
+
+
+class ExceptionExit(contextlib.AbstractContextManager):
+    """
+    Context manager to exit when an exception is raised.
+    """
+
+    def __init__(self, additional_msg=None):
+        """
+        Initialize the context manager.
+
+        :param additional_msg: additional message to print
+        """
+        self.additional_msg = additional_msg
+
+    def __exit__(self, exc_type, exc_value, _traceback):
+        if exc_type:
+            if self.additional_msg is not None:
+                msg = f'{self.additional_msg}: {exc_value}'
+            else:
+                msg = exc_value
+            err_exit(msg)
 
 
 def parse_configspec():
@@ -86,13 +109,8 @@ def read_config(config_file, configspec=None):
     if configspec is None:
         kwargs.update(
             dict(interpolation=False, list_values=False, _inspec=True))
-    try:
+    with ExceptionExit(additional_msg=f'Unable to read "{config_file}"'):
         config_obj = ConfigObj(config_file, **kwargs)
-    except IOError as err:
-        err_exit(err)
-    except Exception as err:
-        msg = f'Unable to read "{config_file}": {err}'
-        err_exit(msg)
     for k, v in config_obj.items():
         if v == 'None':
             config_obj[k] = None

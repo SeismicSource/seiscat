@@ -13,7 +13,6 @@ import sys
 import argparse
 import argcomplete
 from ._version import get_versions
-_db_cursor = None
 
 
 def _get_db_cursor(configfile):
@@ -24,7 +23,7 @@ def _get_db_cursor(configfile):
     :return: cursor to the database
     """
     try:
-        fp = open(configfile, 'r')
+        fp = open(configfile, 'r', encoding='utf-8')
     except FileNotFoundError:
         return None
     try:
@@ -34,15 +33,16 @@ def _get_db_cursor(configfile):
     except IndexError:
         db_file = 'seiscat.sqlite'
     try:
-        open(db_file, 'r')
+        open(db_file, 'r', encoding='utf-8')
     except FileNotFoundError:
         return None
+    # pylint: disable=import-outside-toplevel
     import sqlite3  # lazy import to speed up startup time
     conn = sqlite3.connect(db_file)
     return conn.cursor()
 
 
-def _evid_completer(prefix, parsed_args, **kwargs):
+def _evid_completer(prefix, parsed_args, **_kwargs):
     """
     Completer for event IDs.
 
@@ -51,15 +51,15 @@ def _evid_completer(prefix, parsed_args, **kwargs):
     :param kwargs: keyword arguments
     :return: list of event IDs
     """
-    global _db_cursor
-    if _db_cursor is None:
-        _db_cursor = _get_db_cursor(parsed_args.configfile)
-    if _db_cursor is None:
+    if _evid_completer.db_cursor is None:
+        _evid_completer.db_cursor = _get_db_cursor(parsed_args.configfile)
+    if _evid_completer.db_cursor is None:
         return []
-    _db_cursor.execute(
+    _evid_completer.db_cursor.execute(
         'SELECT evid FROM events WHERE evid LIKE ?', (f'{prefix}%',)
     )
-    return [row[0] for row in _db_cursor.fetchall()]
+    return [row[0] for row in _evid_completer.db_cursor.fetchall()]
+_evid_completer.db_cursor = None  # noqa: E305
 
 
 def parse_arguments():

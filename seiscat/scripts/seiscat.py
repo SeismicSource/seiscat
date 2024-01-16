@@ -13,6 +13,7 @@ Main script for seiscat.
 """
 import sys
 # NOTE: other modules are lazy-imported to speed up startup time
+# pylint: disable=import-outside-toplevel, relative-beyond-top-level
 
 
 def run():

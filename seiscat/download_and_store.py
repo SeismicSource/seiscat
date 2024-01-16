@@ -11,7 +11,7 @@ Download and store events.
 """
 from .db import check_db_exists, write_catalog_to_db
 from .fdsnws import open_fdsn_connection, query_events
-from .utils import err_exit
+from .utils import ExceptionExit
 
 
 def download_and_store(config, initdb):
@@ -21,10 +21,11 @@ def download_and_store(config, initdb):
     :param config: config object
     :param initdb: if True, create new database file
     """
-    check_db_exists(config, initdb)
-    try:
+    with ExceptionExit():
+        check_db_exists(config, initdb)
+    with ExceptionExit(additional_msg='Error connecting to FDSN server'):
         client = open_fdsn_connection(config)
-    except Exception as e:
-        err_exit(e)
-    cat = query_events(client, config, first_query=initdb)
-    write_catalog_to_db(cat, config, initdb)
+    with ExceptionExit(additional_msg='Error querying FDSN server'):
+        cat = query_events(client, config, first_query=initdb)
+    with ExceptionExit(additional_msg='Error writing to database'):
+        write_catalog_to_db(cat, config, initdb)

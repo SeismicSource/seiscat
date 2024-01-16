@@ -13,7 +13,6 @@ import os
 import sqlite3
 import numpy as np
 from obspy import UTCDateTime
-from .utils import err_exit
 
 # Current supported DB version
 # Increment this number when changing the DB schema
@@ -26,15 +25,19 @@ def _get_db_connection(config, initdb=False):
 
     :param config: config object
     :return: database connection
+
+    :raises ValueError: if db_file is not set in config file
+    :raises FileNotFoundError: if database file does not exist
     """
     db_file = config.get('db_file', None)
     if db_file is None:
-        err_exit('db_file not set in config file')
+        raise ValueError('db_file not set in config file')
     if not initdb:
         try:
-            open(db_file, 'r')
-        except FileNotFoundError:
-            err_exit(f'Database file "{db_file}" not found.')
+            open(db_file, 'r', encoding='utf8')
+        except FileNotFoundError as e:
+            raise FileNotFoundError(
+                f'Database file "{db_file}" not found.') from e
     return sqlite3.connect(db_file)
 
 
@@ -44,6 +47,8 @@ def _check_db_version(cursor, config):
 
     :param cursor: database cursor
     :param config: config object
+
+    :raises ValueError: if db_file version is not supported
     """
     db_version = cursor.execute('PRAGMA user_version').fetchone()[0]
     db_file = config['db_file']
@@ -54,7 +59,7 @@ def _check_db_version(cursor, config):
             'Remove or rename your old database file, '
             'so that a new one can be created.'
         )
-        err_exit(msg)
+        raise ValueError(msg)
 
 
 def _set_db_version(cursor):
@@ -63,7 +68,7 @@ def _set_db_version(cursor):
 
     :param cursor: database cursor
     """
-    cursor.execute('PRAGMA user_version = {v:d}'.format(v=DB_VERSION))
+    cursor.execute(f'PRAGMA user_version = {DB_VERSION:d}')
 
 
 def check_db_exists(config, initdb):
@@ -72,10 +77,14 @@ def check_db_exists(config, initdb):
 
     :param config: config object
     :param initdb: if True, create new database file
+
+    :raises ValueError: if db_file is not set in config file
+    :raises RuntimeError: if user does not want to overwrite existing database
+    :raises FileNotFoundError: if database file does not exist
     """
     db_file = config.get('db_file', None)
     if db_file is None:
-        err_exit('db_file not set in config file')
+        raise ValueError('db_file not set in config file')
     if initdb and os.path.exists(db_file):
         ans = input(
             f'"{db_file}" already exists. '
@@ -83,15 +92,15 @@ def check_db_exists(config, initdb):
             f'(Current database will be saved as "{db_file}.bak") [y/N] '
         )
         if ans not in ['y', 'Y']:
-            err_exit('No database file created. Exiting.')
-        else:
-            os.rename(
-                db_file, f'{db_file}.bak')
-            print(
-                f'Backup of "{db_file}" saved to '
-                f'"{db_file}.bak"')
+            raise RuntimeError(
+                'Existing database file will not be overwritten. Exiting.')
+        os.rename(
+            db_file, f'{db_file}.bak')
+        print(
+            f'Backup of "{db_file}" saved to '
+            f'"{db_file}.bak"')
     if not initdb and not os.path.exists(db_file):
-        err_exit(
+        raise FileNotFoundError(
             f'Database file "{db_file}" does not exist.\n'
             'Run "seiscat initdb" first.'
         )
@@ -315,11 +324,14 @@ def replicate_event_in_db(config, eventid, version=1):
     :param config: config object
     :param eventid: event id of the original event
     :param version: version of the original event
+
+    :raises ValueError: if eventid/version is not found in database
     """
     fields, rows = read_fields_and_rows_from_db(
         config, eventid=eventid, version=version)
     if not rows:
-        err_exit(f'Event {eventid} version {version} not found in database')
+        raise ValueError(
+            f'Event {eventid} version {version} not found in database')
     row = list(rows[0])
     # increment version
     ver_index = fields.index('ver')
@@ -380,6 +392,8 @@ def update_event_in_db(config, eventid, version, field, value):
     :param version: version of the event to update
     :param field: field to update
     :param value: new value
+
+    :raises ValueError: if field is not found in database
     """
     conn = _get_db_connection(config)
     c = conn.cursor()
@@ -387,8 +401,8 @@ def update_event_in_db(config, eventid, version, field, value):
         c.execute(
             f'UPDATE events SET {field} = ? WHERE evid = ? AND ver = ?',
             (value, eventid, version))
-    except sqlite3.OperationalError:
-        err_exit(f'Field "{field}" not found in database')
+    except sqlite3.OperationalError as e:
+        raise ValueError(f'Field "{field}" not found in database') from e
     # close database connection
     conn.commit()
     print(
@@ -405,14 +419,17 @@ def increment_event_in_db(config, eventid, version, field, value):
     :param version: version of the event to update
     :param field: field to update
     :param value: value to increment, must be a number
+
+    :raises ValueError: if field is not found in database,
+                        or if value is not a number
     """
     conn = _get_db_connection(config)
     c = conn.cursor()
     # check if value is numeric
     try:
         value = float(value)
-    except ValueError:
-        err_exit(f'Value "{value}" is not a number')
+    except ValueError as e:
+        raise ValueError(f'Value "{value}" is not a number') from e
     # if value is an integer, convert it to int
     if value == int(value):
         value = int(value)
@@ -426,18 +443,18 @@ def increment_event_in_db(config, eventid, version, field, value):
             new_value = float(old_value) + value
             if new_value == int(new_value):
                 new_value = int(new_value)
-        except ValueError:
-            err_exit(f'Field "{field}" is not a number')
-    except sqlite3.OperationalError:
-        err_exit(f'Field "{field}" not found in database')
+        except ValueError as e:
+            raise ValueError(f'Field "{field}" is not a number') from e
+    except sqlite3.OperationalError as e:
+        raise ValueError(f'Field "{field}" not found in database') from e
     # update database
     try:
         c.execute(
             f'UPDATE events SET {field} = ? '
             'WHERE evid = ? AND ver = ?',
             (new_value, eventid, version))
-    except sqlite3.OperationalError:
-        err_exit(f'Field "{field}" not found in database')
+    except sqlite3.OperationalError as e:
+        raise ValueError(f'Field "{field}" not found in database') from e
     # close database connection
     conn.commit()
     print(

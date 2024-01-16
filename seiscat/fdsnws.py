@@ -14,7 +14,6 @@ from obspy import UTCDateTime
 from obspy import Catalog
 from obspy.clients.fdsn import Client
 from obspy.clients.fdsn.header import FDSNNoDataException
-from .utils import err_exit
 
 
 def open_fdsn_connection(config):
@@ -194,10 +193,7 @@ def query_events(client, config, first_query=True):
     :returns: obspy Catalog object
     """
     print(f'Querying events from FDSN server "{config["fdsn_event_url"]}"...')
-    try:
-        cat = _query_box_or_circle(client, config, first_query=first_query)
-    except Exception as e:
-        err_exit(e)
+    cat = _query_box_or_circle(client, config, first_query=first_query)
     # see if there are additional queries to be done
     n = 1
     while True:
@@ -206,8 +202,6 @@ def query_events(client, config, first_query=True):
                 client, config, suffix=f'_{n}', first_query=first_query)
         except InvalidQuery:
             break
-        except Exception as e:
-            err_exit(e)
         cat += _cat
         n += 1
     print(f'Found {len(cat)} events.')
