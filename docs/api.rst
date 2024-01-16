@@ -46,9 +46,16 @@ parse_arguments
     :undoc-members:
     :show-inheritance:
 
-plot
-====
-.. automodule:: seiscat.plot
+plot_map
+========
+.. automodule:: seiscat.plot_map
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+plot_map_cartopy
+================
+.. automodule:: seiscat.plot_map_cartopy
     :members:
     :undoc-members:
     :show-inheritance:
