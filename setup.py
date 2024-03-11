@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# SPDX-License-Identifier: GPL-3.0-or-later
 """setup.py: setuptools control."""
 from setuptools import setup
 import versioneer
@@ -31,7 +32,7 @@ setup(
     license='GNU General Public License v3 or later (GPLv3+)',
     platforms='OS Independent',
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Environment :: Console',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: '
