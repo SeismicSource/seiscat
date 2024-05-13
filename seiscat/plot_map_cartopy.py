@@ -186,7 +186,10 @@ def plot_catalog_map_with_cartopy(config):
     def redraw_gridlines(ax):
         ax.gridlines(**g_kwargs)
     ax.callbacks.connect('xlim_changed', redraw_gridlines)
-    events = read_events_from_db(config)
+    try:
+        events = read_events_from_db(config)
+    except (FileNotFoundError, ValueError) as msg:
+        err_exit(msg)
     scale = config['args'].scale
     plot_version_number = config['args'].allversions
     _plot_events(ax, events, scale, plot_version_number)

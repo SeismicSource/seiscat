@@ -143,7 +143,10 @@ def editdb(config):
     version = args.version
     if eventid == 'ALL':
         eventid = None
-    fields, rows = read_fields_and_rows_from_db(config, eventid, version)
+    try:
+        fields, rows = read_fields_and_rows_from_db(config, eventid, version)
+    except (FileNotFoundError, ValueError) as msg:
+        err_exit(msg)
     if not rows:
         if eventid and version:
             msg = f'Event {eventid} version {version} not found in database'

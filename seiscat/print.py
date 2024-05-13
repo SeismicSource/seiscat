@@ -81,11 +81,14 @@ def print_catalog(config):
     :param config: config object
     """
     args = config['args']
-    if args.format == 'stats':
-        _print_catalog_stats(config)
-    elif args.format == 'table':
-        _print_catalog_table(config, eventid=args.eventid)
-    elif args.format == 'csv':
-        _print_catalog_csv(config, eventid=args.eventid)
-    else:
-        err_exit(f'Unknown format "{args.format}"')
+    try:
+        if args.format == 'stats':
+            _print_catalog_stats(config)
+        elif args.format == 'table':
+            _print_catalog_table(config, eventid=args.eventid)
+        elif args.format == 'csv':
+            _print_catalog_csv(config, eventid=args.eventid)
+        else:
+            err_exit(f'Unknown format "{args.format}"')
+    except (FileNotFoundError, ValueError) as msg:
+        err_exit(msg)
