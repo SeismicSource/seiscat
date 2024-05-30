@@ -10,6 +10,7 @@ Argument parsing for seiscat.
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
 import sys
+import textwrap
 import argparse
 import argcomplete
 from ._version import get_versions
@@ -62,6 +63,23 @@ def _evid_completer(prefix, parsed_args, **_kwargs):
 _evid_completer.db_cursor = None  # noqa: E305
 
 
+class NewlineHelpFormatter(argparse.HelpFormatter):
+    """
+    Custom help formatter that preserves newlines in help messages.
+    """
+    def _split_lines(self, text, width):
+        lines = []
+        for line in text.splitlines():  # Split the text by newlines first
+            if len(line) > width:
+                # Use textwrap to wrap lines that are too long
+                wrap_lines = textwrap.wrap(line, width)
+                lines.extend(wrap_lines)
+            else:
+                # For lines that are short enough, just add them as they are
+                lines.append(line)
+        return lines
+
+
 def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
@@ -71,7 +89,8 @@ def parse_arguments():
     subparser.add_parser('updatedb', help='update database')
     editdb_parser = subparser.add_parser('editdb', help='edit database')
     editdb_parser.add_argument(
-        'eventid', nargs=1, help='event ID to edit. Use ALL to edit all events'
+        'eventid', nargs='?',
+        help='event ID to edit. Use ALL to edit all events'
     ).completer = _evid_completer
     editdb_parser.add_argument(
         '-v',
@@ -130,7 +149,10 @@ def parse_arguments():
         help='show all versions of each event (default: %(default)s)'
     )
     print_parser = subparser.add_parser(
-        'print', parents=[versions_parser], help='print catalog')
+        'print', parents=[versions_parser],
+        help='print catalog',
+        formatter_class=NewlineHelpFormatter
+    )
     print_parser.add_argument(
         'eventid', nargs='?',
         help='event ID to print (only used for table format)'
@@ -149,6 +171,23 @@ def parse_arguments():
         action='store_true',
         default=False,
         help='print catalog in reverse order (default: %(default)s)'
+    )
+    print_parser.add_argument(
+        '-w',
+        '--where',
+        type=str,
+        metavar='KEY OP VALUE [AND|OR KEY OP VALUE ...]',
+        help='filter events based on one or more conditions.\n\n'
+             'KEY is the attribute name, OP is the comparison operator \n'
+             '(=, <, >, <=, >=, !=), and VALUE is the value to compare to.\n'
+             'Multiple KEY OP VALUE pairs can be given, separated by the\n'
+             'logical operators AND or OR (uppercase or lowecase).\n'
+             'Examples:\n'
+             '-w "depth < 10.0 AND mag >= 3.0"\n'
+             '-w "depth < 10.0 OR depth > 100.0"\n'
+             '-w "evid = aa1234bb"\n\n'
+             'Note that the comparison operators must be quoted to avoid\n'
+             'interpretation by the shell.\n'
     )
     plot_parser = subparser.add_parser(
         'plot', parents=[versions_parser], help='plot catalog map')

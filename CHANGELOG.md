@@ -4,6 +4,11 @@ Keep a local seismic catalog.
 
 Copyright (c) 2022-2024 Claudio Satriano <satriano@ipgp.fr>
 
+## unreleased
+
+- New option for `seiscat print`: `--where` to filter events based on one or
+  more conditions
+
 ## v0.7 - 2024-03-11
 
 - CSV output for `seiscat print`, using `--format=csv` (or `-f csv`)

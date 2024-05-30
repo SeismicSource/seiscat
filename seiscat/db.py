@@ -10,6 +10,7 @@ Database functions for seiscat.
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
 import os
+import re
 import sqlite3
 import numpy as np
 from obspy import UTCDateTime
@@ -270,6 +271,35 @@ def write_catalog_to_db(cat, config, initdb):
     print(f'Wrote {events_written} events to database "{config["db_file"]}"')
 
 
+def _process_where_option(where):
+    """
+    Process the `where` option.
+
+    :param where: string passed to the `where` option
+    :returns: SQL WHERE filter, list of values
+    """
+    conditions = re.split(r'\b(AND|OR|and|or)\b', where)
+    where_filter = ''
+    values = []
+    for cond in conditions:
+        if cond in ['AND', 'OR', 'and', 'or']:
+            where_filter += f' {cond} '
+            continue
+        parts = re.split(r'\s*(=|<|>|<=|>=|!=)\s*', cond)
+        # if the condition is not in the form "key OP value", raise an error
+        if len(parts) != 3:
+            raise ValueError(f'Invalid condition: "{cond}"')
+        # if any part is an empty string, raise an error
+        if not all(parts):
+            raise ValueError(f'Invalid condition: "{cond}"')
+        column = parts[0].strip()
+        operator = parts[1].strip()
+        value = parts[2].strip()
+        where_filter += f'{column} {operator} ?'
+        values.append(value)
+    return where_filter, values
+
+
 def read_fields_and_rows_from_db(config, eventid=None, version=None):
     """
     Read fields and rows from database. Return a list of fields and a list of
@@ -279,7 +309,18 @@ def read_fields_and_rows_from_db(config, eventid=None, version=None):
     :param eventid: limit to events with this evid
     :param version: limit to events with this version
     :returns: list of fields, list of rows
+
+    :raises ValueError: if field is not found in database
     """
+    args = config['args']
+    if eventid is None:
+        eventid = getattr(args, 'eventid', None)
+        if eventid == 'ALL':
+            eventid = None
+    if version is None:
+        version = getattr(args, 'version', None)
+    allversions = getattr(args, 'allversions', True)
+    where = getattr(args, 'where', None)
     conn = _get_db_connection(config)
     c = conn.cursor()
     # read field names
@@ -287,20 +328,23 @@ def read_fields_and_rows_from_db(config, eventid=None, version=None):
     # we just need the field names, which are in the second column
     fields = [f[1] for f in c.fetchall()]
     # read events
-    if eventid is not None and version is not None:
-        c.execute(
-            'SELECT * FROM events WHERE evid = ? AND ver = ?',
-            (eventid, version))
-    elif eventid is not None:
-        c.execute('SELECT * FROM events WHERE evid = ?', (eventid,))
-    elif version is not None:
-        c.execute('SELECT * FROM events WHERE ver = ?', (version,))
-    else:
-        c.execute('SELECT * FROM events')
+    query = 'SELECT * FROM events'
+    query_values = []
+    if where is not None:
+        where_filter, values = _process_where_option(where)
+        query = f'{query} WHERE {where_filter}'
+        query_values += values
+    if eventid is not None:
+        query += ' AND evid = ?' if 'WHERE' in query else ' WHERE evid = ?'
+        query_values.append(eventid)
+    if version is not None:
+        query += ' AND ver = ?' if 'WHERE' in query else ' WHERE ver = ?'
+        query_values.append(version)
     try:
-        allversions = config['args'].allversions
-    except AttributeError:
-        allversions = True
+        c.execute(query, query_values)
+    except sqlite3.OperationalError as e:
+        field = e.args[0].split()[-1]
+        raise ValueError(f'Field "{field}" not found in database') from e
     rows = c.fetchall()
     if not allversions:
         # keep only the latest version of each event

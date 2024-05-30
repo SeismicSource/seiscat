@@ -139,12 +139,12 @@ def editdb(config):
     :param config: config object
     """
     args = config['args']
-    eventid = args.eventid[0]
-    version = args.version
+    eventid = args.eventid
     if eventid == 'ALL':
         eventid = None
+    version = args.version
     try:
-        fields, rows = read_fields_and_rows_from_db(config, eventid, version)
+        fields, rows = read_fields_and_rows_from_db(config)
     except (FileNotFoundError, ValueError) as msg:
         err_exit(msg)
     if not rows:

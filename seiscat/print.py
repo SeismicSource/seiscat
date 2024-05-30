@@ -22,13 +22,13 @@ def _print_catalog_stats(config):
     print(get_catalog_stats(config))
 
 
-def _print_catalog_table(config, eventid=None, version=None):
+def _print_catalog_table(config):
     """
     Pretty-print the catalog as a table.
 
     :param config: config object
     """
-    fields, rows = read_fields_and_rows_from_db(config, eventid, version)
+    fields, rows = read_fields_and_rows_from_db(config)
     if len(rows) == 0:
         print('No events in catalog')
         return
@@ -53,13 +53,13 @@ def _print_catalog_table(config, eventid=None, version=None):
         print()
 
 
-def _print_catalog_csv(config, eventid=None, version=None):
+def _print_catalog_csv(config):
     """
     Print catalog as CSV.
 
     :param config: config object
     """
-    fields, rows = read_fields_and_rows_from_db(config, eventid, version)
+    fields, rows = read_fields_and_rows_from_db(config)
     if len(rows) == 0:
         print('No events in catalog')
         return
@@ -85,9 +85,9 @@ def print_catalog(config):
         if args.format == 'stats':
             _print_catalog_stats(config)
         elif args.format == 'table':
-            _print_catalog_table(config, eventid=args.eventid)
+            _print_catalog_table(config)
         elif args.format == 'csv':
-            _print_catalog_csv(config, eventid=args.eventid)
+            _print_catalog_csv(config)
         else:
             err_exit(f'Unknown format "{args.format}"')
     except (FileNotFoundError, ValueError) as msg:
