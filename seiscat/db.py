@@ -271,32 +271,25 @@ def write_catalog_to_db(cat, config, initdb):
     print(f'Wrote {events_written} events to database "{config["db_file"]}"')
 
 
-def _process_where_option(where):
+def _process_where_option(where_str):
     """
-    Process the `where` option.
+    Process the `where` option to create a SQL WHERE filter with "?"
+    placeholders and a list of values.
 
-    :param where: string passed to the `where` option
+    :param where_str: string passed to the `where` option
     :returns: SQL WHERE filter, list of values
     """
-    conditions = re.split(r'\b(AND|OR|and|or)\b', where)
-    where_filter = ''
-    values = []
-    for cond in conditions:
-        if cond in ['AND', 'OR', 'and', 'or']:
-            where_filter += f' {cond} '
-            continue
-        parts = re.split(r'\s*(=|<|>|<=|>=|!=)\s*', cond)
-        # if the condition is not in the form "key OP value", raise an error
-        if len(parts) != 3:
-            raise ValueError(f'Invalid condition: "{cond}"')
-        # if any part is an empty string, raise an error
-        if not all(parts):
-            raise ValueError(f'Invalid condition: "{cond}"')
-        column = parts[0].strip()
-        operator = parts[1].strip()
-        value = parts[2].strip()
-        where_filter += f'{column} {operator} ?'
-        values.append(value)
+    # Define a regular expression pattern to match key-value pairs
+    # with optional spaces around operators. Possible operators are
+    # =, <, >, <=, >=, !=
+    pattern = re.compile(r'(\w+)\s*([><!=]+)\s*([\w\d]+)')
+    # Find all the matches in the `where` string
+    matches = pattern.findall(where_str)
+    # Extract values
+    values = [match[2] for match in matches]
+    # Create the where filter by replacing the key-op-value pattern with
+    # key-op-? to create a placeholder for the value.
+    where_filter = pattern.sub(r'\1\2?', where_str)
     return where_filter, values
 
 
