@@ -164,7 +164,7 @@ Don't hesitate sending me pull requests with new features and/or bugfixes!
 
 <!-- Badges and project links -->
 [changelog-badge]: https://img.shields.io/badge/Changelog-136CB6.svg
-[changelog-link]: https://github.com/SeismicSource/seiscat/blob/main/CHANGELOG.md
+[changelog-link]: CHANGELOG.md
 [PyPI-badge]: http://img.shields.io/pypi/v/seiscat.svg
 [PyPI-link]: https://pypi.python.org/pypi/seiscat
 [license-badge]: https://img.shields.io/badge/license-GPLv3-green

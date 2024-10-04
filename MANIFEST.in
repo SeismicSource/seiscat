@@ -2,8 +2,5 @@ include CHANGELOG.md
 include README.md
 include LICENSE.txt
 include CONTRIBUTORS.txt
-include versioneer.py
-include seiscat/_version.py
-include seiscat/conf/configspec.conf
 include docs
 recursive-include docs/_static

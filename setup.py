@@ -1,51 +1,28 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""setup.py: setuptools control."""
+"""
+A minimal setup script for Seiscat
+
+This script ensures compatibility with versioneer
+and dynamically generates a README for correctly resolving paths on GitHub.
+
+All the remaining configuration is in pyproject.toml.
+"""
 from setuptools import setup
 import versioneer
 
+# Dynamically generate the README text for PyPI, replacing local paths
+# with the corresponding URLs on GitHub.
+GITHUB_BASEURL = 'https://github.com/SeismicSource/seiscat/blob/main'
 with open('README.md', 'rb') as f:
-    long_descr = f.read().decode('utf-8')
-
-project_urls = {
-    'Homepage': 'https://seiscat.seismicsource.org',
-    'Source': 'https://github.com/SeismicSource/seiscat',
-    'Documentation': 'https://seiscat.readthedocs.io'
-}
+    long_description = f.read().decode('utf-8').replace(
+        ': CHANGELOG.md',
+        f': {GITHUB_BASEURL}/CHANGELOG.md'
+    )
 
 setup(
-    name='seiscat',
-    packages=['seiscat', 'seiscat.scripts', 'seiscat.configobj'],
-    include_package_data=True,
-    entry_points={
-        'console_scripts': ['seiscat = seiscat.scripts.seiscat:main']
-    },
-    version=versioneer.get_version(),
-    cmdclass=versioneer.get_cmdclass(),
-    description='Keep a local seismic catalog',
-    long_description=long_descr,
+    long_description=long_description,
     long_description_content_type='text/markdown',
-    author='Claudio Satriano',
-    author_email='satriano@ipgp.fr',
-    url=project_urls['Homepage'],
-    project_urls=project_urls,
-    license='GNU General Public License v3 or later (GPLv3+)',
-    platforms='OS Independent',
-    classifiers=[
-        'Development Status :: 4 - Beta',
-        'Environment :: Console',
-        'Intended Audience :: Science/Research',
-        'License :: OSI Approved :: '
-            'GNU General Public License v3 or later (GPLv3+)',
-        'Operating System :: OS Independent',
-        'Programming Language :: Python',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.10',
-        'Topic :: Scientific/Engineering',
-        'Topic :: Scientific/Engineering :: Physics'],
-    install_requires=['obspy>=1.1.0', 'argcomplete'],
-    python_requires='>=3.7'
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass()
 )
