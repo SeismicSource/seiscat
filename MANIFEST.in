@@ -2,5 +2,5 @@ include CHANGELOG.md
 include README.md
 include LICENSE.txt
 include CONTRIBUTORS.txt
-include docs
-recursive-include docs/_static
+include docs/*
+include docs/_static/*
