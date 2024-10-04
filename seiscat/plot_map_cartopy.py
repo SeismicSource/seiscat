@@ -11,7 +11,7 @@ Plot events on a map using cartopy.
 """
 import numpy as np
 import matplotlib.pyplot as plt
-from .db import read_events_from_db, get_catalog_stats
+from .db import get_catalog_stats
 from .utils import err_exit
 from .plot_map_utils import get_map_extent
 try:
@@ -109,7 +109,7 @@ def _plot_events(ax, events, scale, plot_version_number=False):
     fig.canvas.mpl_connect('motion_notify_event', hover)
 
 
-def plot_catalog_map_with_cartopy(config):
+def plot_catalog_map_with_cartopy(events, config):
     """
     Plot the catalog map using cartopy.
 
@@ -130,10 +130,6 @@ def plot_catalog_map_with_cartopy(config):
     def redraw_gridlines(ax):
         ax.gridlines(**g_kwargs)
     ax.callbacks.connect('xlim_changed', redraw_gridlines)
-    try:
-        events = read_events_from_db(config)
-    except (FileNotFoundError, ValueError) as msg:
-        err_exit(msg)
     scale = config['args'].scale
     plot_version_number = config['args'].allversions
     _plot_events(ax, events, scale, plot_version_number)

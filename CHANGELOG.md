@@ -6,8 +6,8 @@ Copyright (c) 2022-2024 Claudio Satriano <satriano@ipgp.fr>
 
 ## unreleased
 
-- New option for `seiscat print`: `--where` to filter events based on one or
-  more conditions
+- New option for `seiscat print` and `seiscat plot`: `--where` to filter events
+  based on one or more conditions
 - New option for `seiscat plot`: `--maptype` to use either `cartopy`
   (Matplotlib) or `folium` (HTML) for plotting maps
 

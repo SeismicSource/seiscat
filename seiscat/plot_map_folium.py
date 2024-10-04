@@ -11,7 +11,7 @@ Plot events on a map using folium.
 """
 import webbrowser
 import tempfile
-from .db import read_events_from_db, get_catalog_stats
+from .db import get_catalog_stats
 from .utils import err_exit
 from .plot_map_utils import get_map_extent
 try:
@@ -25,16 +25,12 @@ except ImportError:
     )
 
 
-def plot_catalog_map_with_folium(config):
+def plot_catalog_map_with_folium(events, config):
     """
     Plot the catalog map with folium.
 
     :param config: config object
     """
-    # Read events from DB
-    events = read_events_from_db(config)
-    if len(events) == 0:
-        err_exit('No events found in the database.')
     # Get map extent
     lon_min, lon_max, lat_min, lat_max = get_map_extent(config)
     if None in (lon_min, lon_max, lat_min, lat_max):

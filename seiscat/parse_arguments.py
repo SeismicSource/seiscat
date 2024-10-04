@@ -148,8 +148,26 @@ def parse_arguments():
         default=False,
         help='show all versions of each event (default: %(default)s)'
     )
+    where_parser = argparse.ArgumentParser(add_help=False)
+    where_parser.add_argument(
+        '-w',
+        '--where',
+        type=str,
+        metavar='KEY OP VALUE [AND|OR KEY OP VALUE ...]',
+        help='filter events based on one or more conditions.\n\n'
+             'KEY is the attribute name, OP is the comparison operator \n'
+             '(=, <, >, <=, >=, !=), and VALUE is the value to compare to.\n'
+             'Multiple KEY OP VALUE pairs can be given, separated by the\n'
+             'logical operators AND or OR (uppercase or lowecase).\n'
+             'Examples:\n'
+             '-w "depth < 10.0 AND mag >= 3.0"\n'
+             '-w "depth < 10.0 OR depth > 100.0"\n'
+             '-w "evid = aa1234bb"\n\n'
+             'Note that the comparison operators must be quoted to avoid\n'
+             'interpretation by the shell.\n'
+    )
     print_parser = subparser.add_parser(
-        'print', parents=[versions_parser],
+        'print', parents=[versions_parser, where_parser],
         help='print catalog',
         formatter_class=NewlineHelpFormatter
     )
@@ -172,25 +190,11 @@ def parse_arguments():
         default=False,
         help='print catalog in reverse order (default: %(default)s)'
     )
-    print_parser.add_argument(
-        '-w',
-        '--where',
-        type=str,
-        metavar='KEY OP VALUE [AND|OR KEY OP VALUE ...]',
-        help='filter events based on one or more conditions.\n\n'
-             'KEY is the attribute name, OP is the comparison operator \n'
-             '(=, <, >, <=, >=, !=), and VALUE is the value to compare to.\n'
-             'Multiple KEY OP VALUE pairs can be given, separated by the\n'
-             'logical operators AND or OR (uppercase or lowecase).\n'
-             'Examples:\n'
-             '-w "depth < 10.0 AND mag >= 3.0"\n'
-             '-w "depth < 10.0 OR depth > 100.0"\n'
-             '-w "evid = aa1234bb"\n\n'
-             'Note that the comparison operators must be quoted to avoid\n'
-             'interpretation by the shell.\n'
-    )
     plot_parser = subparser.add_parser(
-        'plot', parents=[versions_parser], help='plot catalog map')
+        'plot', parents=[versions_parser, where_parser],
+        help='plot catalog map',
+        formatter_class=NewlineHelpFormatter
+    )
     plot_parser.add_argument(
         '-m',
         '--maptype',
