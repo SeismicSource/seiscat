@@ -192,6 +192,14 @@ def parse_arguments():
     plot_parser = subparser.add_parser(
         'plot', parents=[versions_parser], help='plot catalog map')
     plot_parser.add_argument(
+        '-m',
+        '--maptype',
+        type=str,
+        default='cartopy',
+        choices=['cartopy', 'folium'],
+        help='map type (default: %(default)s)'
+    )
+    plot_parser.add_argument(
         '-s',
         '--scale',
         type=float,
