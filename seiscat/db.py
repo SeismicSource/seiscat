@@ -282,7 +282,7 @@ def _process_where_option(where_str):
     # Define a regular expression pattern to match key-value pairs
     # with optional spaces around operators. Possible operators are
     # =, <, >, <=, >=, !=
-    pattern = re.compile(r'(\w+)\s*([><!=]+)\s*([\w\d]+)')
+    pattern = re.compile(r'(\w+)\s*([><!=]+)\s*([\w\d.]+)')
     # Find all the matches in the `where` string
     matches = pattern.findall(where_str)
     # Extract values
