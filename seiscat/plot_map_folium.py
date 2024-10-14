@@ -42,8 +42,34 @@ def plot_catalog_map_with_folium(events, config):
     m = folium.Map(
         location=[(lat_min + lat_max) / 2, (lon_min + lon_max) / 2],
         zoom_start=5,
-        tiles='OpenStreetMap'
+        tiles=None
     )
+    # Add tiles and layer control
+    folium.TileLayer(
+        name='CartoDB Positron',
+        tiles='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+        attr='&copy; <a href="https://www.openstreetmap.org/copyright">'
+             'OpenStreetMap</a> contributors &copy; '
+             '<a href="https://carto.com/attributions">CARTO</a>',
+    ).add_to(m)
+    folium.TileLayer(
+        name='Esri World Imagery',
+        tiles='https://server.arcgisonline.com/ArcGIS/rest/services/'
+              'World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        attr='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, '
+             'AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, '
+             'and the GIS User Community'
+    ).add_to(m)
+    folium.TileLayer(
+        name='Esri World Topo Map',
+        tiles='https://server.arcgisonline.com/ArcGIS/rest/services/'
+              'World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+        attr='Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, '
+             'Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, '
+             'Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), '
+             'and the GIS User Community'
+    ).add_to(m)
+    folium.LayerControl().add_to(m)
     m.fit_bounds([[lat_min, lon_min], [lat_max, lon_max]])
     # Add catalog stats to the map
     catalog_stats = get_catalog_stats(config)
