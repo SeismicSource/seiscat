@@ -10,6 +10,8 @@ Copyright (c) 2022-2024 Claudio Satriano <satriano@ipgp.fr>
   based on one or more conditions
 - New option for `seiscat plot`: `--maptype` to use either `cartopy`
   (Matplotlib) or `folium` (HTML) for plotting maps
+- New command line option `seiscat download` to download full event details
+  and/or waveform data and metadata from FDSNWS services
 
 ## v0.7 - 2024-03-11
 

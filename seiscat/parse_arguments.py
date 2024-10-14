@@ -166,6 +166,47 @@ def parse_arguments():
              'Note that the comparison operators must be quoted to avoid\n'
              'interpretation by the shell.\n'
     )
+    download_parser = subparser.add_parser(
+        'download', parents=[versions_parser, where_parser],
+        help='download full event details and/or waveform data and metadata',
+        formatter_class=NewlineHelpFormatter
+    )
+    download_parser.add_argument(
+        'eventid', nargs='?',
+        help='event ID to download (default: all events)'
+    ).completer = _evid_completer
+    group = download_parser.add_mutually_exclusive_group(required=True)
+    group.add_argument(
+        '-e',
+        '--event',
+        action='store_true',
+        default=False,
+        help='download full event details to a QuakeML file '
+             '(default: %(default)s)'
+    )
+    group.add_argument(
+        '-d',
+        '--data',
+        action='store_true',
+        default=False,
+        help='download waveform data and metadata to miniSEED and StationXML '
+             'files'
+    )
+    group.add_argument(
+        '-b',
+        '--both',
+        action='store_true',
+        default=False,
+        help='download both event details and waveform data and metadata'
+    )
+    download_parser.add_argument(
+        '-o',
+        '--overwrite_existing',
+        action='store_true',
+        default=False,
+        help='overwrite existing QuakeML files (default: %(default)s). '
+             'Only used when downloading event details'
+    )
     print_parser = subparser.add_parser(
         'print', parents=[versions_parser, where_parser],
         help='print catalog',
