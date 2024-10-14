@@ -28,11 +28,11 @@ def run():
     config = read_config(args.configfile, configspec)
     config['args'] = args
     if args.action == 'initdb':
-        from ..download_and_store import download_and_store
-        download_and_store(config, initdb=True)
+        from ..feeddb import feeddb
+        feeddb(config, initdb=True)
     elif args.action == 'updatedb':
-        from ..download_and_store import download_and_store
-        download_and_store(config, initdb=False)
+        from ..feeddb import feeddb
+        feeddb(config, initdb=False)
     elif args.action == 'editdb':
         from ..editdb import editdb
         editdb(config)

@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 # SPDX-License-Identifier: GPL-3.0-or-later
 """
-Download and store events.
+Feed the database with events from FDSN web services.
 
 :copyright:
     2022-2024 Claudio Satriano <satriano@ipgp.fr>
@@ -14,9 +14,9 @@ from .fdsnws import open_fdsn_connection, query_events
 from .utils import ExceptionExit
 
 
-def download_and_store(config, initdb):
+def feeddb(config, initdb):
     """
-    Download events and store them in the database.
+    Feed the database with events from FDSN web services.
 
     :param config: config object
     :param initdb: if True, create new database file
