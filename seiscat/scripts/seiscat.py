@@ -55,9 +55,12 @@ def run():
 
 def main():
     """Main function. Catch KeyboardInterrupt."""
-    # Avoid broken pipe errors, e.g., when piping output to head
-    from signal import signal, SIGPIPE, SIG_DFL
-    signal(SIGPIPE, SIG_DFL)
+    try:
+        # Avoid broken pipe errors, e.g., when piping output to head
+        from signal import signal, SIGPIPE, SIG_DFL
+        signal(SIGPIPE, SIG_DFL)
+    except ImportError:  # If SIGPIPE is not available (win32),
+        pass
     try:
         run()
     except KeyboardInterrupt:
