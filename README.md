@@ -109,7 +109,7 @@ You don't need to uncompress the release files yourself.
 ### Installing a developer snapshot
 
 If you need a recent feature that is not in the latest release (see the
-`unreleased` section in [CHANGELOG](CHANGELOG.md)), you want to use the more
+`unreleased` section in [CHANGELOG][changelog-link]), you want to use the more
 recent development snapshot from the
 [SeisCat GitHub repository](https://github.com/SeismicSource/seiscat).
 
