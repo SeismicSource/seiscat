@@ -1,8 +1,5 @@
-# Configuration file for the Sphinx documentation builder.
-#
-# This file only contains a selection of the most common options. For a full
-# list see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
+"""Sphinx configuration file."""
+# pylint: disable=wrong-import-position,invalid-name
 
 # -- Path setup --------------------------------------------------------------
 
@@ -12,22 +9,29 @@
 #
 import os
 import sys
+from datetime import datetime
 sys.path.insert(0, os.path.abspath('..'))
 sys.path.insert(0, os.path.join(os.path.abspath('..'), 'seiscat'))
-from seiscat._version import get_versions #NOQA
+from seiscat._version import get_versions  # NOQA
 __version__ = get_versions()['version']
-
+__release_date__ = get_versions()['date']
 
 # -- Project information -----------------------------------------------------
 
 project = 'SeisCat'
-copyright = '2022-2024, Claudio Satriano'
+copyright = '2022-2024, Claudio Satriano'  # pylint: disable=redefined-builtin
 author = 'Claudio Satriano'
 
 # The full version, including alpha/beta/rc tags.
 release = __version__
 # The short X.Y version.
 version = release.split('-')[0]
+
+# Release date in the format "Month DD, YYYY"
+release_date = datetime.strptime(
+    __release_date__, '%Y-%m-%dT%H:%M:%S%z'
+).strftime('%b %d, %Y')
+rst_epilog = f'\n.. |release date| replace:: {release_date}'
 
 
 # -- General configuration ---------------------------------------------------
