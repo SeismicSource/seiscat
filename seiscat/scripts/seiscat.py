@@ -12,6 +12,7 @@ Main script for seiscat.
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
 import sys
+import contextlib
 # NOTE: other modules are lazy-imported to speed up startup time
 # pylint: disable=import-outside-toplevel, relative-beyond-top-level
 
@@ -55,12 +56,11 @@ def run():
 
 def main():
     """Main function. Catch KeyboardInterrupt."""
-    try:
+    with contextlib.suppress(ImportError):
         # Avoid broken pipe errors, e.g., when piping output to head
+        # Note: SIGPIPE is not available on Windows
         from signal import signal, SIGPIPE, SIG_DFL
         signal(SIGPIPE, SIG_DFL)
-    except ImportError:  # If SIGPIPE is not available (win32),
-        pass
     try:
         run()
     except KeyboardInterrupt:
