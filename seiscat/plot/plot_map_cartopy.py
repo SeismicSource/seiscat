@@ -11,9 +11,9 @@ Plot events on a map using cartopy.
 """
 import numpy as np
 import matplotlib.pyplot as plt
-from .db import get_catalog_stats
-from .utils import err_exit
 from .plot_map_utils import get_map_extent
+from ..database.dbfunctions import get_catalog_stats
+from ..utils import err_exit
 try:
     import cartopy.crs as ccrs
     from cartopy.feature import AdaptiveScaler

@@ -9,9 +9,9 @@ Feed the database with events from FDSN web services.
     GNU General Public License v3.0 or later
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
-from .db import check_db_exists, write_catalog_to_db
-from .fdsnws import open_fdsn_connection, query_events
-from .utils import ExceptionExit
+from .dbfunctions import check_db_exists, write_catalog_to_db
+from ..sources.fdsnws import open_fdsn_connection, query_events
+from ..utils import ExceptionExit
 
 
 def feeddb(config, initdb):

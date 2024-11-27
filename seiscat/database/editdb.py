@@ -9,8 +9,8 @@ Edit functions for seiscat.
     GNU General Public License v3.0 or later
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
-from .utils import err_exit
-from .db import (
+from ..utils import err_exit
+from .dbfunctions import (
     read_fields_and_rows_from_db, replicate_event_in_db,
     delete_event_from_db, update_event_in_db, increment_event_in_db)
 

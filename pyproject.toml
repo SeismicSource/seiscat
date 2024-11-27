@@ -41,7 +41,7 @@ Source = "https://github.com/SeismicSource/seiscat"
 Documentation = "https://seiscat.readthedocs.io"
 
 [project.scripts]
-seiscat = "seiscat.scripts.seiscat:main"
+seiscat = "seiscat.main:main"
 
 [tool.setuptools]
 include-package-data = true

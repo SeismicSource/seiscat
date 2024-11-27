@@ -9,7 +9,8 @@ Printing functions for seiscat.
     GNU General Public License v3.0 or later
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
-from .db import read_fields_and_rows_from_db, get_catalog_stats
+from .database.dbfunctions import (
+    read_fields_and_rows_from_db, get_catalog_stats)
 from .utils import err_exit
 
 

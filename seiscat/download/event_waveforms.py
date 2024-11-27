@@ -12,8 +12,8 @@ Uses ObsPy mass downloader to download event waveforms from FDSN web services.
 import pathlib
 from obspy.clients.fdsn.mass_downloader import CircularDomain, \
     Restrictions, MassDownloader
-from .db import read_events_from_db
-from .utils import ExceptionExit
+from ..database.dbfunctions import read_events_from_db
+from ..utils import ExceptionExit
 
 
 def _download_waveforms(config, event):

@@ -9,8 +9,8 @@ Plot events on a map.
     GNU General Public License v3.0 or later
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
-from .utils import err_exit
-from .db import read_events_from_db
+from ..utils import err_exit
+from ..database.dbfunctions import read_events_from_db
 
 
 def plot_catalog_map(config):

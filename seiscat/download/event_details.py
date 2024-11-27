@@ -11,9 +11,9 @@ Download event details from FDSN web services and store them to local files.
 """
 import pathlib
 from obspy.clients.fdsn.header import FDSNNotImplementedException
-from .db import read_events_from_db
-from .fdsnws import open_fdsn_connection
-from .utils import ExceptionExit
+from ..database.dbfunctions import read_events_from_db
+from ..sources.fdsnws import open_fdsn_connection
+from ..utils import ExceptionExit
 
 
 def download_event_details(config):
