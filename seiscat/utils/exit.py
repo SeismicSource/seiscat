@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 # SPDX-License-Identifier: GPL-3.0-or-later
 """
-Utility functions for seiscat.
+Exit functions.
 
 :copyright:
     2022-2024 Claudio Satriano <satriano@ipgp.fr>
