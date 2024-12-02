@@ -193,6 +193,12 @@ def parse_arguments():
         formatter_class=NewlineHelpFormatter
     )
     fetchdata_parser.add_argument(
+        '-s', '--sds',
+        metavar='SDS_DIR',
+        type=str,
+        help='fetch waveform data from a local SDS archive'
+    )
+    fetchdata_parser.add_argument(
         'eventid', nargs='?',
         help='event ID to download (default: all events)'
     ).completer = _evid_completer

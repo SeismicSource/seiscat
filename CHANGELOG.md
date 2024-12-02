@@ -7,6 +7,8 @@ Copyright (c) 2022-2024 Claudio Satriano <satriano@ipgp.fr>
 ## unreleased
 
 - `seiscat download` renamed to `seiscat fetchdata`
+- New option for `seiscat fetchdata`: `--sds` to retrieve waveform data from
+  a local SDS archive
 - New option for `seiscat initdb` and `seiscat updatedb`: `--fromfile` to
   initialize or update the database from a CSV file
 
