@@ -55,7 +55,7 @@ include = ["seiscat", "seiscat.*"]
 
 [tool.setuptools.package-data]
 "*" = ["LICENSE"]
-"seiscat.conf" = ["*.conf"]
+"seiscat.config" = ["*.conf"]
 
 [tool.versioneer]
 VCS = "git"
