@@ -22,7 +22,13 @@ Then, edit the configuration file and init the database:
    seiscat initdb
 
 
-To keep the database updated, run on a regular basis:
+Alternatively, you can init the database from a CSV file:
+
+.. code-block::
+
+    seiscat initdb -f /path/to/your/catalog.csv
+
+To update an existing database from an FDSN webservice, run:
 
 .. code-block::
 
@@ -31,6 +37,13 @@ To keep the database updated, run on a regular basis:
 
 (This will use the configuration parameter ``recheck_period`` to recheck the
 last *n* days or hours).
+
+Alternatively, you can update the database from a CSV file:
+
+.. code-block::
+
+    seiscat updatedb -f /path/to/your/catalog.csv
+
 
 You can edit the attributes of specific events in the database using:
 

@@ -13,7 +13,8 @@ Overview
 SeisCat is a command line tool to keep a local seismic catalog.
 The local catalog can be used as a basis for further analyses.
 
-The seismic catalog is built and updated by querying a FDSNWS event webservice.
+The seismic catalog is built and updated by querying a FDSNWS event webservice
+or a local CSV file.
 More ways of feeding the catalog will be added in the future.
 
 The local catalog is stored in a SQLite database (single file database).

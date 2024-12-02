@@ -14,7 +14,8 @@ Copyright (c) 2022-2024 Claudio Satriano <satriano@ipgp.fr>
 SeisCat is a command line tool to keep a local seismic catalog.
 The local catalog can be used as a basis for further analyses.
 
-The seismic catalog is built and updated by querying a FDSNWS event webservice.
+The seismic catalog is built and updated by querying a FDSNWS event webservice
+or a local CSV file.
 More ways of feeding the catalog will be added in the future.
 
 The local catalog is stored in a SQLite database (single file database).
@@ -38,12 +39,20 @@ Then, edit the configuration file and init the database:
 
     seiscat initdb
 
-To keep the database updated, run on a regular basis:
+Alternatively, you can init the database from a CSV file:
+
+    seiscat initdb -f /path/to/your/catalog.csv
+
+To update an existing database from an FDSN webservice, run:
 
     seiscat updatedb
 
 (This will use the configuration parameter `recheck_period` to recheck the
 last *n* days or hours).
+
+Alternatively, you can update the database from a CSV file:
+
+    seiscat updatedb -f /path/to/your/catalog.csv
 
 You can edit the attributes of specific events in the database using:
 

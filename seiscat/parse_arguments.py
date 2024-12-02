@@ -85,8 +85,29 @@ def parse_arguments():
     parser = argparse.ArgumentParser(
         description='Keep a local seismic catalog.')
     subparser = parser.add_subparsers(dest='action')
-    subparser.add_parser('initdb', help='initialize database')
-    subparser.add_parser('updatedb', help='update database')
+    fromfile_parser = argparse.ArgumentParser(add_help=False)
+    fromfile_parser.add_argument(
+        '-f',
+        '--fromfile',
+        type=str,
+        metavar='FILENAME',
+        help='read events from a CSV file'
+    )
+    unit_parser = argparse.ArgumentParser(add_help=False)
+    unit_parser.add_argument(
+        '-d',
+        '--depth_units',
+        type=str,
+        default=None,
+        choices=['m', 'km'],
+        help='depth units (default: autodetect)'
+    )
+    subparser.add_parser(
+        'initdb', parents=[fromfile_parser, unit_parser],
+        help='initialize database')
+    subparser.add_parser(
+        'updatedb', parents=[fromfile_parser, unit_parser],
+        help='update database')
     editdb_parser = subparser.add_parser('editdb', help='edit database')
     editdb_parser.add_argument(
         'eventid', nargs='?',

@@ -4,6 +4,11 @@ Keep a local seismic catalog.
 
 Copyright (c) 2022-2024 Claudio Satriano <satriano@ipgp.fr>
 
+## unreleased
+
+- New option for `seiscat initdb` and `seiscat updatedb`: `--fromfile` to
+  initialize or update the database from a CSV file
+
 ## v0.8 - 2024-10-28
 
 - New option for `seiscat print` and `seiscat plot`: `--where` to filter events
