@@ -52,21 +52,29 @@ def _plot_events(ax, events, scale, plot_version_number=False):
     :param scale: scale for event markers
     :param ax: matplotlib axes object
     """
+    mags = [e['mag'] for e in events if e['mag'] is not None]
+    # use fixed radius if no magnitudes are available
+    fixed_radius = not mags
     marker_scale = scale / 10. * 2
-    # remove events with no magnitude
-    events = [e for e in events if e['mag'] is not None]
+    if not fixed_radius:
+        # remove events with no magnitude
+        events = [e for e in events if e['mag'] is not None]
+        radii = [np.exp(e['mag']) * marker_scale for e in events]
+    else:
+        radii = [3*marker_scale] * len(events)
     ev_attributes = [
         (e['evid'], e['ver'], e['time'], e['lon'], e['lat'], e['depth'],
-         e['mag'], np.exp(e['mag']) * marker_scale)
-        for e in events
+         e['mag'], radii[n])
+        for n, e in enumerate(events)
     ]
     # Sort events by time, so that the latest event is plotted on top
     ev_attributes.sort(key=lambda x: x[2])
     markers = []
     for evid, ver, time, lon, lat, depth, mag, size in ev_attributes:
         _evid = f'{evid} v{ver}' if plot_version_number else evid
+        mag_str = f'M{mag:.1f}' if mag is not None else ''
         marker_label = (
-            f'{_evid} M{mag:.1f} {depth:.1f} km\n'
+            f'{_evid} {mag_str} {depth:.1f} km\n'
             f'{time.strftime("%Y-%m-%d %H:%M:%S")}')
         marker = ax.scatter(
             lon, lat,

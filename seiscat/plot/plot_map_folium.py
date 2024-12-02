@@ -76,12 +76,25 @@ def plot_catalog_map_with_folium(events, config):
     branca_element = branca.element.Element(catalog_stats)
     m.get_root().html.add_child(branca_element)
     # Add events to the map
+    mags = [event['mag'] for event in events if event['mag'] is not None]
+    # If no magnitudes are available, use a fixed marker radius
+    fixed_radius = not mags
     scale = config['args'].scale
     marker_scale = 0.2 * scale
     for event in events:
+        if fixed_radius:
+            radius = marker_scale
+        elif event['mag'] is None:
+            continue
+        else:
+            radius = 1.5**(event['mag'])*marker_scale
+        mag_str = (
+            f"{event['mag_type']} {event['mag']:.1f} <br>"
+            if event['mag'] is not None else ''
+        )
         popup_text = folium.Html(
             f"<b>{event['evid']} v{event['ver']}</b> <br>"
-            f"{event['mag_type']} {event['mag']:.1f} <br>"
+            f"{mag_str}"
             f"{event['time']} <br>"
             f"{event['lat']:.2f} {event['lon']:.2f} "
             f"{event['depth']:.1f} km",
@@ -90,7 +103,7 @@ def plot_catalog_map_with_folium(events, config):
         popup = folium.Popup(popup_text, min_width=200, max_width=200)
         folium.CircleMarker(
             location=[event['lat'], event['lon']],
-            radius=1.5**(event['mag'])*marker_scale,
+            radius=radius,
             color='red',
             fill=True,
             fill_color='red',
