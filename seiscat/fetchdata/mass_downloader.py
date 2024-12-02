@@ -36,7 +36,7 @@ def _check_fdsn_providers(fdsn_providers):
             break
         if answer in ('n', 'no', ''):
             print('Exiting.')
-            sys.exit(0)
+            sys.exit()
         print('Please answer y or n:', end=' ')
 
 
