@@ -23,7 +23,10 @@ def open_fdsn_connection(config):
     :param config: config object
     :returns: FDSN client object
     """
-    return Client(config['fdsn_event_url'])
+    fdsn_event_url = config.get('fdsn_event_url')
+    if fdsn_event_url is None:
+        raise ValueError('FDSN event URL not set.')
+    return Client(fdsn_event_url)
 
 
 def _to_utc_datetime(time):
