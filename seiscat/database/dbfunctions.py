@@ -529,9 +529,10 @@ def get_catalog_stats(config):
     tmax = max(event['time'] for event in events)
     tmin = tmin.strftime('%Y-%m-%dT%H:%M:%S')
     tmax = tmax.strftime('%Y-%m-%dT%H:%M:%S')
-    mag_min = min(event['mag'] for event in events if event['mag'] is not None)
-    mag_max = max(event['mag'] for event in events if event['mag'] is not None)
-    return (
-        f'{nevents} events from {tmin} to {tmax}\n'
-        f'Magnitude range: {mag_min:.1f} -- {mag_max:.1f}'
-    )
+    stats_str = f'{nevents} events from {tmin} to {tmax}'
+    mags = [event['mag'] for event in events if event['mag'] is not None]
+    if mags:
+        mag_min = min(mags)
+        mag_max = max(mags)
+        stats_str += f'\nMagnitude range: {mag_min:.1f} -- {mag_max:.1f}'
+    return stats_str
