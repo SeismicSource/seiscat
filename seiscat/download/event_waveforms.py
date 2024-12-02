@@ -9,11 +9,36 @@ Uses ObsPy mass downloader to download event waveforms from FDSN web services.
     GNU General Public License v3.0 or later
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
+import sys
 import pathlib
 from obspy.clients.fdsn.mass_downloader import CircularDomain, \
     Restrictions, MassDownloader
 from ..database.dbfunctions import read_events_from_db
 from ..utils import ExceptionExit
+
+
+def _check_fdsn_providers(fdsn_providers):
+    """
+    Check if the user wants to use all known FDSN providers.
+
+    Exit if the user does not want to use any provider.
+
+    :param providers: list of FDSN providers or None
+    """
+    if fdsn_providers is not None:
+        return
+    print(
+        'No FDSN providers set in config file. Do you want to use all '
+        'known providers? (y/N)', end=' '
+    )
+    while True:
+        answer = input().strip().lower()
+        if answer in ('y', 'yes'):
+            break
+        if answer in ('n', 'no', ''):
+            print('Exiting.')
+            sys.exit(0)
+        print('Please answer y or n:', end=' ')
 
 
 def _download_waveforms(config, event):
@@ -23,6 +48,7 @@ def _download_waveforms(config, event):
     :param config: config object
     :param event: event object
     """
+    _check_fdsn_providers(config['fdsn_providers'])
     evid = event['evid']
     latitude = event['lat']
     longitude = event['lon']
