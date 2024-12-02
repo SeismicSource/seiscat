@@ -11,6 +11,7 @@ Copyright (c) 2022-2024 Claudio Satriano <satriano@ipgp.fr>
   a local SDS archive
 - New option for `seiscat initdb` and `seiscat updatedb`: `--fromfile` to
   initialize or update the database from a CSV file
+- New command `seiscat run` to run a user-defined command on each event
 
 ## v0.8 - 2024-10-28
 

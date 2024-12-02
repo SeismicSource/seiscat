@@ -52,6 +52,9 @@ def run():
     elif args.action == 'plot':
         from .plot.plot_map import plot_catalog_map
         plot_catalog_map(config)
+    elif args.action == 'run':
+        from .run_command import run_command
+        run_command(config)
 
 
 def main():

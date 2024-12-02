@@ -278,6 +278,20 @@ def parse_arguments():
         default=10,
         help='scale factor for marker size (default: %(default)s)'
     )
+    run_parser = subparser.add_parser(
+        'run', parents=[versions_parser, where_parser],
+        help='run a user-defined command on each event')
+    run_parser.add_argument(
+        'command',
+        type=str,
+        help='command to run. It can be any executable (e.g., shell script, '
+             'Python script, etc.). All the columns of the events table will '
+             'be available as environment variables (e.g., $evid, $time, etc.)'
+    )
+    run_parser.add_argument(
+        'eventid', nargs='?',
+        help='only run the command on this eventid'
+    ).completer = _evid_completer
     subparser.add_parser('sampleconfig', help='write sample config file')
     parser.add_argument(
         '-c',
