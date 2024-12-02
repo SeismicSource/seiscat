@@ -21,7 +21,7 @@ def run():
     """Run seiscat."""
     from .parse_arguments import parse_arguments
     args = parse_arguments()
-    from .utils import parse_configspec, read_config,  write_sample_config
+    from .config import parse_configspec, read_config, write_sample_config
     configspec = parse_configspec()
     if args.action == 'sampleconfig':
         write_sample_config(configspec, 'seiscat')
