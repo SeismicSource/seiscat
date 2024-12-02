@@ -37,15 +37,15 @@ def run():
     elif args.action == 'editdb':
         from .database.editdb import editdb
         editdb(config)
-    elif args.action == 'download':
-        download_event = args.event or args.both
-        download_data = args.data or args.both
-        if download_event:
-            from .download.event_details import download_event_details
-            download_event_details(config)
-        if download_data:
-            from .download.event_waveforms import download_event_waveforms
-            download_event_waveforms(config)
+    elif args.action == 'fetchdata':
+        fetch_event = args.event or args.both
+        fetch_data = args.data or args.both
+        if fetch_event:
+            from .fetchdata.event_details import fetch_event_details
+            fetch_event_details(config)
+        if fetch_data:
+            from .fetchdata.event_waveforms import fetch_event_waveforms
+            fetch_event_waveforms(config)
     elif args.action == 'print':
         from .print import print_catalog
         print_catalog(config)

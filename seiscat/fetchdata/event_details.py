@@ -16,9 +16,9 @@ from ..sources.fdsnws import open_fdsn_connection
 from ..utils import ExceptionExit
 
 
-def download_event_details(config):
+def fetch_event_details(config):
     """
-    Download event details from FDSN web services
+    Fetch event details from FDSN web services
     and store them to local files.
 
     :param config: config object

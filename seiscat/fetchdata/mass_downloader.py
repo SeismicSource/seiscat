@@ -13,7 +13,6 @@ import sys
 import pathlib
 from obspy.clients.fdsn.mass_downloader import CircularDomain, \
     Restrictions, MassDownloader
-from ..database.dbfunctions import read_events_from_db
 from ..utils import ExceptionExit
 
 
@@ -41,7 +40,7 @@ def _check_fdsn_providers(fdsn_providers):
         print('Please answer y or n:', end=' ')
 
 
-def _download_waveforms(config, event):
+def mass_download_waveforms(config, event):
     """
     Download waveforms for a single event using ObsPy mass downloader.
 
@@ -99,18 +98,3 @@ def _download_waveforms(config, event):
             f'\n{evid}: waveforms and station metadata saved to '
             f'{evid_dir}\n\n'
         )
-
-
-def download_event_waveforms(config):
-    """
-    Uses ObsPy mass downloader to download event waveforms from FDSN
-    web services.
-
-    :param config: config object
-    """
-    with ExceptionExit():
-        events = read_events_from_db(config)
-    event_dir = pathlib.Path(config['event_dir'])
-    event_dir.mkdir(parents=True, exist_ok=True)
-    for event in events:
-        _download_waveforms(config, event)

@@ -187,16 +187,16 @@ def parse_arguments():
              'Note that the comparison operators must be quoted to avoid\n'
              'interpretation by the shell.\n'
     )
-    download_parser = subparser.add_parser(
-        'download', parents=[versions_parser, where_parser],
-        help='download full event details and/or waveform data and metadata',
+    fetchdata_parser = subparser.add_parser(
+        'fetchdata', parents=[versions_parser, where_parser],
+        help='fetch full event details and/or waveform data and metadata',
         formatter_class=NewlineHelpFormatter
     )
-    download_parser.add_argument(
+    fetchdata_parser.add_argument(
         'eventid', nargs='?',
         help='event ID to download (default: all events)'
     ).completer = _evid_completer
-    group = download_parser.add_mutually_exclusive_group(required=True)
+    group = fetchdata_parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
         '-e',
         '--event',
@@ -220,7 +220,7 @@ def parse_arguments():
         default=False,
         help='download both event details and waveform data and metadata'
     )
-    download_parser.add_argument(
+    fetchdata_parser.add_argument(
         '-o',
         '--overwrite_existing',
         action='store_true',
