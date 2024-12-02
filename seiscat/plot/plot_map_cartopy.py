@@ -127,7 +127,7 @@ def plot_catalog_map_with_cartopy(events, config):
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(1, 1, 1, projection=ccrs.Mercator())
     ax.stock_img()
-    extent = get_map_extent(config)
+    extent = get_map_extent(events, config)
     ax.set_extent(extent)
     ax.coastlines(resolution='10m', edgecolor='black', linewidth=1)
     ax.add_feature(

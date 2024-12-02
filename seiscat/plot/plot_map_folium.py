@@ -32,12 +32,7 @@ def plot_catalog_map_with_folium(events, config):
     :param config: config object
     """
     # Get map extent
-    lon_min, lon_max, lat_min, lat_max = get_map_extent(config)
-    if None in (lon_min, lon_max, lat_min, lat_max):
-        err_exit(
-            'Map extent not defined. '
-            'Please define it in the config file.'
-        )
+    lon_min, lon_max, lat_min, lat_max = get_map_extent(events, config)
     # Plot map
     m = folium.Map(
         location=[(lat_min + lat_max) / 2, (lon_min + lon_max) / 2],

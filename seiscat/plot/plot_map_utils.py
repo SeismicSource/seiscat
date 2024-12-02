@@ -12,13 +12,41 @@ Utility functions for the map modules.
 import numpy as np
 
 
+def get_map_extent_from_events(events):
+    """
+    Get the map extent from the events.
+
+    :param events: list of events
+    :type events: list
+
+    :returns: lon_min, lon_max, lat_min, lat_max
+    :rtype: tuple of float
+    """
+    lon_min = min(event['lon'] for event in events)
+    lon_max = max(event['lon'] for event in events)
+    lat_min = min(event['lat'] for event in events)
+    lat_max = max(event['lat'] for event in events)
+    # add some padding
+    x_extent = lon_max - lon_min
+    lon_min -= 0.1 * x_extent
+    lon_max += 0.1 * x_extent
+    y_extent = lat_max - lat_min
+    lat_min -= 0.1 * y_extent
+    lat_max += 0.1 * y_extent
+    return lon_min, lon_max, lat_min, lat_max
+
+
 def _get_map_extent_for_suffix(config, suffix=None):
     """
     Get the map extent for a suffix.
 
     :param config: config object
+    :type config: dict
     :param suffix: suffix to be added to the config keys
+    :type suffix: str
+
     :returns: lon_min, lon_max, lat_min, lat_max
+    :rtype: tuple of float or None
     """
     suffix = '' if suffix is None else suffix
     lat_min = config.get(f'lat_min{suffix}', None)
@@ -39,19 +67,24 @@ def _get_map_extent_for_suffix(config, suffix=None):
     return None
 
 
-def get_map_extent(config):
+def get_map_extent(events, config):
     """
     Get the map extent from the config file.
 
+    :param events: list of events
+    :type events: list
     :param config: config object
+    :type config: dict
+
     :returns: lon_min, lon_max, lat_min, lat_max
+    :rtype: tuple of float
     """
     ret = _get_map_extent_for_suffix(config)
     if ret is None:
-        lon_min = -179
-        lon_max = 180
-        lat_min = -75
-        lat_max = 80
+        lon_min = np.nan
+        lon_max = np.nan
+        lat_min = np.nan
+        lat_max = np.nan
     else:
         lon_min, lon_max, lat_min, lat_max = ret
     # see if there are additional limits in the config file
@@ -61,9 +94,14 @@ def get_map_extent(config):
         if ret is None:
             break
         lon_min_, lon_max_, lat_min_, lat_max_ = ret
-        lon_min = min(lon_min, lon_min_)
-        lon_max = max(lon_max, lon_max_)
-        lat_min = min(lat_min, lat_min_)
-        lat_max = max(lat_max, lat_max_)
+        lon_min = np.nanmin((lon_min, lon_min_))
+        lon_max = np.nanmax((lon_max, lon_max_))
+        lat_min = np.nanmin((lat_min, lat_min_))
+        lat_max = np.nanmax((lat_max, lat_max_))
         n += 1
+    if np.nan in (lon_min, lon_max, lat_min, lat_max):
+        print('No map extent found in the config file. It will be set '
+              'automatically based on the events.')
+        lon_min, lon_max, lat_min, lat_max = get_map_extent_from_events(
+            events)
     return lon_min, lon_max, lat_min, lat_max
