@@ -4,7 +4,7 @@
 Argument parsing for seiscat.
 
 :copyright:
-    2022-2024 Claudio Satriano <satriano@ipgp.fr>
+    2022-2025 Claudio Satriano <satriano@ipgp.fr>
 :license:
     GNU General Public License v3.0 or later
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
@@ -187,6 +187,14 @@ def parse_arguments():
              'Note that the comparison operators must be quoted to avoid\n'
              'interpretation by the shell.\n'
     )
+    reverse_parser = argparse.ArgumentParser(add_help=False)
+    reverse_parser.add_argument(
+        '-r',
+        '--reverse',
+        action='store_true',
+        default=False,
+        help='output catalog in reverse order (default: %(default)s)'
+    )
     fetchdata_parser = subparser.add_parser(
         'fetchdata', parents=[versions_parser, where_parser],
         help='fetch full event details and/or waveform data and metadata',
@@ -235,7 +243,7 @@ def parse_arguments():
              'Only used when downloading event details'
     )
     print_parser = subparser.add_parser(
-        'print', parents=[versions_parser, where_parser],
+        'print', parents=[versions_parser, where_parser, reverse_parser],
         help='print catalog',
         formatter_class=NewlineHelpFormatter
     )
@@ -250,13 +258,6 @@ def parse_arguments():
         default='table',
         choices=['table', 'csv', 'stats'],
         help='output format (default: %(default)s)'
-    )
-    print_parser.add_argument(
-        '-r',
-        '--reverse',
-        action='store_true',
-        default=False,
-        help='print catalog in reverse order (default: %(default)s)'
     )
     plot_parser = subparser.add_parser(
         'plot', parents=[versions_parser, where_parser],
@@ -279,7 +280,7 @@ def parse_arguments():
         help='scale factor for marker size (default: %(default)s)'
     )
     run_parser = subparser.add_parser(
-        'run', parents=[versions_parser, where_parser],
+        'run', parents=[versions_parser, where_parser, reverse_parser],
         help='run a user-defined command on each event')
     run_parser.add_argument(
         'command',

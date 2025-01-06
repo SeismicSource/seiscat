@@ -4,7 +4,7 @@
 Run a user-defined command on a list of events.
 
 :copyright:
-    2022-2024 Claudio Satriano <satriano@ipgp.fr>
+    2022-2025 Claudio Satriano <satriano@ipgp.fr>
 :license:
     GNU General Public License v3.0 or later
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
@@ -24,9 +24,11 @@ def run_command(config):
     """
     args = config['args']
     command = args.command
+    reverse = args.reverse
     with ExceptionExit():
         events = read_events_from_db(config)
-    for event in events:
+    for event in sorted(
+            events, key=lambda ev: (ev['time'], ev['ver']), reverse=reverse):
         print(f'Running {command} on event {event["evid"]}')
         event_str = {k: str(v) for k, v in event.items()}
         env = {**os.environ, **event_str}
