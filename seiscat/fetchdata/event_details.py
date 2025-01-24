@@ -10,6 +10,7 @@ Download event details from FDSN web services and store them to local files.
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
 import pathlib
+import warnings
 from obspy.clients.fdsn.header import FDSNNotImplementedException
 from ..database.dbfunctions import read_events_from_db
 from ..sources.fdsnws import open_fdsn_connection
@@ -43,5 +44,7 @@ def fetch_event_details(config):
             event = client.get_events(eventid=evid, includearrivals=True)
         except FDSNNotImplementedException:
             event = client.get_events(eventid=evid)
-        event.write(outfile, format='QUAKEML')
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            event.write(outfile, format='QUAKEML')
         print(f'event details saved to {outfile}')
