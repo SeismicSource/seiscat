@@ -60,9 +60,13 @@ def _guess_field_names(input_fields):
     """
     field_guesses = {
         'evid': ['evid', 'event_id', 'eventid', 'event_id', 'id', 'evidid'],
+        'date': [
+            'date', 'orig_date', 'origin_date', 'origin_date_utc',
+            'origin_date_iso'
+        ],
         'time': [
             'time', 'orig_time', 'origin_time', 'origin_time_utc',
-            'origin_time_iso'
+            'origin_time_iso', 'datetime'
         ],
         'year': ['year', 'yr', 'yyyy'],
         'month': ['month', 'mon', 'mo', 'mm'],
@@ -73,7 +77,7 @@ def _guess_field_names(input_fields):
         'lat': ['lat', 'latitude'],
         'lon': ['lon', 'longitude'],
         'depth': ['depth', 'depth_km'],
-        'mag': ['mag', 'magnitude'],
+        'mag': ['mag', 'magnitude', 'mw', 'ml'],
         'mag_type': ['mag_type', 'magnitude_type'],
         'event_type': ['event_type', 'ev_type'],
     }
@@ -85,6 +89,7 @@ def _guess_field_names(input_fields):
         # A None key must be present in the output dictionary
         None: None,
         'evid': None,
+        'date': None,
         'time': None,
         'year': None,
         'month': None,
@@ -169,6 +174,136 @@ def _csv_file_info(filename):
     return delimiter, nrows
 
 
+def _read_orig_time_from_row(row, fields):
+    """
+    Read the origin time from a row.
+
+    :param row: row from the CSV file
+    :type row: dict
+    :param fields: field names
+    :type fields: dict
+
+    :return: the origin time
+    :rtype: obspy.UTCDateTime
+    """
+    if fields['time'] is None:
+        # try build a date-time field from year, month, day, hour,
+        # minute and seconds fields
+        year = int_or_none(row[fields['year']])
+        month = int_or_none(row[fields['month']])
+        day = int_or_none(row[fields['day']])
+        hour = int_or_none(row[fields['hour']])
+        minute = int_or_none(row[fields['minute']])
+        seconds = float_or_none(row[fields['seconds']])
+        orig_time = UTCDateTime(
+            year=year, month=month, day=day,
+            hour=hour, minute=minute, second=0) + seconds
+    else:
+        orig_time_str = (
+            f'{row[fields["date"]]} {row[fields["time"]]}'
+            if fields['date'] is not None
+            else row[fields['time']]
+        )
+        try:
+            orig_time = UTCDateTime(orig_time_str)
+        except ValueError:
+            # one last try: check if the time is in the format
+            # YYYYMMDD.hhmmss.
+            # Replace the dot with a space, pad with zeros
+            # and try again
+            try:
+                orig_time = UTCDateTime(
+                    orig_time_str.replace('.', ' ').ljust(15, '0')
+                )
+            except ValueError as e:
+                raise ValueError(
+                    f'Unable to parse origin time: "{orig_time_str}"'
+                ) from e
+    return orig_time
+
+
+def _read_csv_row(row, fields, depth_units, mag_type):
+    """
+    Read a row from a CSV file.
+
+    :param row: row from the CSV file
+    :type row: dict
+    :param fields: field names
+    :type fields: dict
+    :param depth_units: depth units (m or km)
+    :type depth_units: str
+    :param mag_type: magnitude type
+    :type mag_type: str
+
+    :return: an ObsPy event object
+    :rtype: obspy.Event
+    """
+    # this is needed to manage the case where a field name is None
+    row[None] = None
+    # check if origin time is parasable, or die trying
+    orig_time = _read_orig_time_from_row(row, fields)
+    ev = Event()
+    _evid = row[fields['evid']]
+    if _evid is None:
+        _evid = generate_evid(orig_time)
+    ev.resource_id = _evid
+    ev.event_type = row[fields['event_type']]
+    orig = Origin()
+    orig.time = orig_time
+    orig.longitude = float_or_none(row[fields['lon']])
+    orig.latitude = float_or_none(row[fields['lat']])
+    orig.depth = float_or_none(row[fields['depth']])
+    if depth_units == 'km':
+        orig.depth *= 1000
+    ev.origins.append(orig)
+    ev.preferred_origin_id = orig.resource_id
+    mag = Magnitude()
+    mag.magnitude_type = row[fields['mag_type']]
+    if mag.magnitude_type is None:
+        mag.magnitude_type = mag_type
+    mag.mag = float_or_none(row[fields['mag']])
+    ev.magnitudes.append(mag)
+    ev.preferred_magnitude_id = mag.resource_id
+    return ev
+
+
+def _read_csv(fp, delimiter, nrows, depth_units):
+    """
+    Read a catalog from a CSV file.
+
+    :param fp: file pointer
+    :type fp: file object
+    :param delimiter: CSV delimiter
+    :type delimiter: str
+    :param nrows: number of rows in the CSV file
+    :type nrows: int
+    :param depth_units: depth units (m or km)
+    :type depth_units: str
+
+    :return: an ObsPy catalog object
+    :rtype: obspy.Catalog
+    """
+    reader = csv.DictReader(fp, delimiter=delimiter)
+    fields = _guess_field_names(reader.fieldnames)
+    # if magtype is missing, try to guess it from the magnitude field name
+    mag_type = None
+    if fields['mag_type'] is None:
+        mag_field = fields['mag']
+        if mag_field is not None and mag_field.lower() in ['mw', 'ml']:
+            mag_type = mag_field
+    nrows -= 1  # first row is the header
+    cat = Catalog()
+    for n, row in enumerate(reader):
+        print(f'reading row {n+1}/{nrows}\r', end='')
+        try:
+            ev = _read_csv_row(row, fields, depth_units, mag_type)
+        except ValueError as e:
+            print(f'Error at row {n+2}: {e}')
+        cat.append(ev)
+    print()  # needed to add a newline after the last "reading row" message
+    return cat
+
+
 def read_catalog_from_csv(filename, depth_units=None):
     """
     Read a catalog from a CSV file.
@@ -186,65 +321,7 @@ def read_catalog_from_csv(filename, depth_units=None):
         raise ValueError(f'Invalid depth_units: {depth_units}')
     delimiter, nrows = _csv_file_info(filename)
     with open(filename, 'r', encoding='utf8') as fp:
-        reader = csv.DictReader(fp, delimiter=delimiter)
-        fields = _guess_field_names(reader.fieldnames)
-        nrows -= 1  # first row is the header
-        cat = Catalog()
-        for n, row in enumerate(reader):
-            print(f'reading row {n+1}/{nrows}\r', end='')
-            if fields['time'] is None:
-                # try build a date-time field from year, month, day, hour,
-                # minute and seconds fields
-                year = int_or_none(row[fields['year']])
-                month = int_or_none(row[fields['month']])
-                day = int_or_none(row[fields['day']])
-                hour = int_or_none(row[fields['hour']])
-                minute = int_or_none(row[fields['minute']])
-                seconds = float_or_none(row[fields['seconds']])
-                orig_time = UTCDateTime(
-                    year=year, month=month, day=day,
-                    hour=hour, minute=minute, second=0) + seconds
-            else:
-                orig_time_str = row[fields['time']]
-                try:
-                    orig_time = UTCDateTime(orig_time_str)
-                except ValueError:
-                    # one last try: check if the time is in the format
-                    # YYYYMMDD.hhmmss.
-                    # Replace the dot with a space, pad with zeros
-                    # and try again
-                    try:
-                        orig_time = UTCDateTime(
-                            orig_time_str.replace('.', ' ').ljust(15, '0')
-                        )
-                    except ValueError:
-                        print(
-                            f'Unable to parse origin time at row {n+2}: '
-                            f'"{orig_time_str}"')
-                        continue
-            row[None] = None
-            ev = Event()
-            _evid = row[fields['evid']]
-            if _evid is None:
-                _evid = generate_evid(orig_time)
-            ev.resource_id = _evid
-            ev.event_type = row[fields['event_type']]
-            orig = Origin()
-            orig.time = orig_time
-            orig.longitude = float_or_none(row[fields['lon']])
-            orig.latitude = float_or_none(row[fields['lat']])
-            orig.depth = float_or_none(row[fields['depth']])
-            if depth_units == 'km':
-                orig.depth *= 1000
-            ev.origins.append(orig)
-            ev.preferred_origin_id = orig.resource_id
-            mag = Magnitude()
-            mag.magnitude_type = row[fields['mag_type']]
-            mag.mag = float_or_none(row[fields['mag']])
-            ev.magnitudes.append(mag)
-            ev.preferred_magnitude_id = mag.resource_id
-            cat.append(ev)
-    print()  # needed to add a newline after the last "reading row" message
+        cat = _read_csv(fp, delimiter, nrows, depth_units)
     if depth_units is None:
         # If catalog's maximum depth is too small, assume it is in kilometers
         # and convert it to meters
