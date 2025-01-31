@@ -82,6 +82,14 @@ class NewlineHelpFormatter(argparse.HelpFormatter):
 
 def _get_parent_parsers():
     """Get a dictionary of parent parsers."""
+    configfile_parser = argparse.ArgumentParser(add_help=False)
+    configfile_parser.add_argument(
+        '-c',
+        '--configfile',
+        type=str,
+        default='seiscat.conf',
+        help='config file for data sources and processing params'
+    )
     fromfile_parser = argparse.ArgumentParser(add_help=False)
     fromfile_parser.add_argument(
         '-f',
@@ -134,6 +142,7 @@ def _get_parent_parsers():
         help='output catalog in reverse order (default: %(default)s)'
     )
     return {
+        'configfile_parser': configfile_parser,
         'fromfile_parser': fromfile_parser,
         'unit_parser': unit_parser,
         'versions_parser': versions_parser,
@@ -146,7 +155,11 @@ def _add_initdb_parser(subparser, parents):
     """Add the initdb subparser."""
     subparser.add_parser(
         'initdb',
-        parents=[parents['fromfile_parser'], parents['unit_parser']],
+        parents=[
+            parents['configfile_parser'],
+            parents['fromfile_parser'],
+            parents['unit_parser']
+        ],
         help='initialize database')
 
 
@@ -154,13 +167,20 @@ def _add_updatedb_parser(subparser, parents):
     """Add the updatedb subparser."""
     subparser.add_parser(
         'updatedb',
-        parents=[parents['fromfile_parser'], parents['unit_parser']],
+        parents=[
+            parents['configfile_parser'],
+            parents['fromfile_parser'],
+            parents['unit_parser']
+        ],
         help='update database')
 
 
-def _add_editdb_parser(subparser):
+def _add_editdb_parser(subparser, parents):
     """Add the editdb subparser."""
-    editdb_parser = subparser.add_parser('editdb', help='edit database')
+    editdb_parser = subparser.add_parser(
+        'editdb',
+        parents=[parents['configfile_parser']],
+        help='edit database')
     editdb_parser.add_argument(
         'eventid', nargs='?',
         help='event ID to edit. Use ALL to edit all events'
@@ -219,7 +239,11 @@ def _add_fetchdata_parser(subparser, parents):
     """Add the fetchdata subparser."""
     fetchdata_parser = subparser.add_parser(
         'fetchdata',
-        parents=[parents['versions_parser'], parents['where_parser']],
+        parents=[
+            parents['configfile_parser'],
+            parents['versions_parser'],
+            parents['where_parser']
+        ],
         help='fetch full event details and/or waveform data and metadata',
         formatter_class=NewlineHelpFormatter
     )
@@ -272,7 +296,9 @@ def _add_print_parser(subparser, parents):
     print_parser = subparser.add_parser(
         'print',
         parents=[
-            parents['versions_parser'], parents['where_parser'],
+            parents['configfile_parser'],
+            parents['versions_parser'],
+            parents['where_parser'],
             parents['reverse_parser']
         ],
         help='print catalog',
@@ -297,7 +323,9 @@ def _add_plot_parser(subparser, parents):
     plot_parser = subparser.add_parser(
         'plot',
         parents=[
-            parents['versions_parser'], parents['where_parser'],
+            parents['configfile_parser'],
+            parents['versions_parser'],
+            parents['where_parser'],
             parents['reverse_parser']
         ],
         help='plot catalog map',
@@ -325,7 +353,9 @@ def _add_run_parser(subparser, parents):
     run_parser = subparser.add_parser(
         'run',
         parents=[
-            parents['versions_parser'], parents['where_parser'],
+            parents['configfile_parser'],
+            parents['versions_parser'],
+            parents['where_parser'],
             parents['reverse_parser']
         ],
         help='run a user-defined command on each event'
@@ -351,13 +381,6 @@ def _add_sampleconfig_parser(subparser):
 def _add_main_arguments(parser):
     """Add main arguments."""
     parser.add_argument(
-        '-c',
-        '--configfile',
-        type=str,
-        default='seiscat.conf',
-        help='config file for data sources and processing params'
-    )
-    parser.add_argument(
         '-v',
         '--version',
         action='version',
@@ -374,7 +397,7 @@ def parse_arguments():
     parents = _get_parent_parsers()
     _add_initdb_parser(subparser, parents)
     _add_updatedb_parser(subparser, parents)
-    _add_editdb_parser(subparser)
+    _add_editdb_parser(subparser, parents)
     _add_fetchdata_parser(subparser, parents)
     _add_print_parser(subparser, parents)
     _add_plot_parser(subparser, parents)
