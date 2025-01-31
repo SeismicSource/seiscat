@@ -39,6 +39,9 @@ def _parse_set_arg(arg):
             f'Invalid argument "{arg}" for "--set". '
             'Argument must be in the form "key=value"')
     key, val = arg.split('=')
+    # sanitize key and val
+    key = key.strip()
+    val = val.strip()
     return key, val
 
 
