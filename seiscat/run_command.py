@@ -24,11 +24,9 @@ def run_command(config):
     """
     args = config['args']
     command = args.command
-    reverse = args.reverse
     with ExceptionExit():
         events = read_events_from_db(config)
-    for event in sorted(
-            events, key=lambda ev: (ev['time'], ev['ver']), reverse=reverse):
+    for event in events:
         print(f'Running {command} on event {event["evid"]}')
         event_str = {k: str(v) for k, v in event.items()}
         env = {**os.environ, **event_str}

@@ -29,6 +29,8 @@ def _print_catalog_table(config):
 
     :param config: config object
     """
+    # get fields and rows from database
+    # rows are sorted by time and version and reversed if requested
     fields, rows = read_fields_and_rows_from_db(config)
     if len(rows) == 0:
         print('No events in catalog')
@@ -42,12 +44,7 @@ def _print_catalog_table(config):
     for i, f in enumerate(fields):
         print(f'{f:{max_len[i]}}', end=' ')
     print()
-    # print rows sorted by time and version
-    time_idx = fields.index('time')
-    ver_idx = fields.index('ver')
-    reverse = config['args'].reverse
-    for row in sorted(
-            rows, key=lambda r: (r[time_idx], r[ver_idx]), reverse=reverse):
+    for row in rows:
         for i, val in enumerate(row):
             val = 'None' if val is None else val
             print(f'{val:{max_len[i]}}', end=' ')
@@ -60,18 +57,15 @@ def _print_catalog_csv(config):
 
     :param config: config object
     """
+    # get fields and rows from database
+    # rows are sorted by time and version and reversed if requested
     fields, rows = read_fields_and_rows_from_db(config)
     if len(rows) == 0:
         print('No events in catalog')
         return
     # print header
     print(','.join(fields))
-    # print rows sorted by time and version
-    time_idx = fields.index('time')
-    ver_idx = fields.index('ver')
-    reverse = config['args'].reverse
-    for row in sorted(
-            rows, key=lambda r: (r[time_idx], r[ver_idx]), reverse=reverse):
+    for row in rows:
         print(','.join([str(val) for val in row]))
 
 

@@ -296,7 +296,7 @@ def _process_where_option(where_str):
 def read_fields_and_rows_from_db(config, eventid=None, version=None):
     """
     Read fields and rows from database. Return a list of fields and a list of
-    rows.
+    rows. The rows are sorted by time and version.
 
     :param config: config object
     :param eventid: limit to events with this evid
@@ -350,6 +350,9 @@ def read_fields_and_rows_from_db(config, eventid=None, version=None):
                 evids.add(evid)
         rows = rows_to_keep
     conn.close()
+    # sort rows by time and version; reverse if needed
+    reverse = getattr(args, 'reverse', False)
+    rows.sort(key=lambda r: (r[2], r[1]), reverse=reverse)
     return fields, rows
 
 
