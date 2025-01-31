@@ -13,7 +13,7 @@ import os
 import re
 import sqlite3
 import numpy as np
-from obspy import UTCDateTime
+from .data_types import Event, EventList
 
 # Current supported DB version
 # Increment this number when changing the DB schema
@@ -507,14 +507,14 @@ def read_events_from_db(config):
     Read events from database. Return a list of events.
 
     :param config: config object
-    :returns: list of events, each event is a dictionary
+    :returns: list of events, each event is a dictionary-like object
     """
+    # get fields and rows from database
+    # rows are sorted by time and version and reversed if requested
     fields, rows = read_fields_and_rows_from_db(config)
-    # create a list of dictionaries
-    events_list = []
+    events_list = EventList()
     for event in rows:
-        event_dict = dict(zip(fields, event))
-        event_dict['time'] = UTCDateTime(event_dict['time'])
+        event_dict = Event(zip(fields, event))
         events_list.append(event_dict)
     return events_list
 
