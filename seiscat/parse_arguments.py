@@ -80,11 +80,8 @@ class NewlineHelpFormatter(argparse.HelpFormatter):
         return lines
 
 
-def parse_arguments():
-    """Parse command line arguments."""
-    parser = argparse.ArgumentParser(
-        description='Keep a local seismic catalog.')
-    subparser = parser.add_subparsers(dest='action')
+def _get_parent_parsers():
+    """Get a dictionary of parent parsers."""
     fromfile_parser = argparse.ArgumentParser(add_help=False)
     fromfile_parser.add_argument(
         '-f',
@@ -102,12 +99,67 @@ def parse_arguments():
         choices=['m', 'km'],
         help='depth units (default: autodetect)'
     )
+    versions_parser = argparse.ArgumentParser(add_help=False)
+    versions_parser.add_argument(
+        '-a',
+        '--allversions',
+        action='store_true',
+        default=False,
+        help='show all versions of each event (default: %(default)s)'
+    )
+    where_parser = argparse.ArgumentParser(add_help=False)
+    where_parser.add_argument(
+        '-w',
+        '--where',
+        type=str,
+        metavar='KEY OP VALUE [AND|OR KEY OP VALUE ...]',
+        help='filter events based on one or more conditions.\n\n'
+             'KEY is the attribute name, OP is the comparison operator \n'
+             '(=, <, >, <=, >=, !=), and VALUE is the value to compare to.\n'
+             'Multiple KEY OP VALUE pairs can be given, separated by the\n'
+             'logical operators AND or OR (uppercase or lowecase).\n'
+             'Examples:\n'
+             '-w "depth < 10.0 AND mag >= 3.0"\n'
+             '-w "depth < 10.0 OR depth > 100.0"\n'
+             '-w "evid = aa1234bb"\n\n'
+             'Note that the comparison operators must be quoted to avoid\n'
+             'interpretation by the shell.\n'
+    )
+    reverse_parser = argparse.ArgumentParser(add_help=False)
+    reverse_parser.add_argument(
+        '-r',
+        '--reverse',
+        action='store_true',
+        default=False,
+        help='output catalog in reverse order (default: %(default)s)'
+    )
+    return {
+        'fromfile_parser': fromfile_parser,
+        'unit_parser': unit_parser,
+        'versions_parser': versions_parser,
+        'where_parser': where_parser,
+        'reverse_parser': reverse_parser
+    }
+
+
+def _add_initdb_parser(subparser, parents):
+    """Add the initdb subparser."""
     subparser.add_parser(
-        'initdb', parents=[fromfile_parser, unit_parser],
+        'initdb',
+        parents=[parents['fromfile_parser'], parents['unit_parser']],
         help='initialize database')
+
+
+def _add_updatedb_parser(subparser, parents):
+    """Add the updatedb subparser."""
     subparser.add_parser(
-        'updatedb', parents=[fromfile_parser, unit_parser],
+        'updatedb',
+        parents=[parents['fromfile_parser'], parents['unit_parser']],
         help='update database')
+
+
+def _add_editdb_parser(subparser):
+    """Add the editdb subparser."""
     editdb_parser = subparser.add_parser('editdb', help='edit database')
     editdb_parser.add_argument(
         'eventid', nargs='?',
@@ -161,42 +213,13 @@ def parse_arguments():
         default=False,
         help='force edit (skip confirmation)'
     )
-    versions_parser = argparse.ArgumentParser(add_help=False)
-    versions_parser.add_argument(
-        '-a',
-        '--allversions',
-        action='store_true',
-        default=False,
-        help='show all versions of each event (default: %(default)s)'
-    )
-    where_parser = argparse.ArgumentParser(add_help=False)
-    where_parser.add_argument(
-        '-w',
-        '--where',
-        type=str,
-        metavar='KEY OP VALUE [AND|OR KEY OP VALUE ...]',
-        help='filter events based on one or more conditions.\n\n'
-             'KEY is the attribute name, OP is the comparison operator \n'
-             '(=, <, >, <=, >=, !=), and VALUE is the value to compare to.\n'
-             'Multiple KEY OP VALUE pairs can be given, separated by the\n'
-             'logical operators AND or OR (uppercase or lowecase).\n'
-             'Examples:\n'
-             '-w "depth < 10.0 AND mag >= 3.0"\n'
-             '-w "depth < 10.0 OR depth > 100.0"\n'
-             '-w "evid = aa1234bb"\n\n'
-             'Note that the comparison operators must be quoted to avoid\n'
-             'interpretation by the shell.\n'
-    )
-    reverse_parser = argparse.ArgumentParser(add_help=False)
-    reverse_parser.add_argument(
-        '-r',
-        '--reverse',
-        action='store_true',
-        default=False,
-        help='output catalog in reverse order (default: %(default)s)'
-    )
+
+
+def _add_fetchdata_parser(subparser, parents):
+    """Add the fetchdata subparser."""
     fetchdata_parser = subparser.add_parser(
-        'fetchdata', parents=[versions_parser, where_parser],
+        'fetchdata',
+        parents=[parents['versions_parser'], parents['where_parser']],
         help='fetch full event details and/or waveform data and metadata',
         formatter_class=NewlineHelpFormatter
     )
@@ -242,8 +265,16 @@ def parse_arguments():
         help='overwrite existing QuakeML files (default: %(default)s). '
              'Only used when downloading event details'
     )
+
+
+def _add_print_parser(subparser, parents):
+    """Add the print subparser."""
     print_parser = subparser.add_parser(
-        'print', parents=[versions_parser, where_parser, reverse_parser],
+        'print',
+        parents=[
+            parents['versions_parser'], parents['where_parser'],
+            parents['reverse_parser']
+        ],
         help='print catalog',
         formatter_class=NewlineHelpFormatter
     )
@@ -259,8 +290,16 @@ def parse_arguments():
         choices=['table', 'csv', 'stats'],
         help='output format (default: %(default)s)'
     )
+
+
+def _add_plot_parser(subparser, parents):
+    """Add the plot subparser."""
     plot_parser = subparser.add_parser(
-        'plot', parents=[versions_parser, where_parser],
+        'plot',
+        parents=[
+            parents['versions_parser'], parents['where_parser'],
+            parents['reverse_parser']
+        ],
         help='plot catalog map',
         formatter_class=NewlineHelpFormatter
     )
@@ -279,9 +318,18 @@ def parse_arguments():
         default=10,
         help='scale factor for marker size (default: %(default)s)'
     )
+
+
+def _add_run_parser(subparser, parents):
+    """Add the run subparser."""
     run_parser = subparser.add_parser(
-        'run', parents=[versions_parser, where_parser, reverse_parser],
-        help='run a user-defined command on each event')
+        'run',
+        parents=[
+            parents['versions_parser'], parents['where_parser'],
+            parents['reverse_parser']
+        ],
+        help='run a user-defined command on each event'
+    )
     run_parser.add_argument(
         'command',
         type=str,
@@ -293,7 +341,15 @@ def parse_arguments():
         'eventid', nargs='?',
         help='only run the command on this eventid'
     ).completer = _evid_completer
+
+
+def _add_sampleconfig_parser(subparser):
+    """Add the sampleconfig subparser."""
     subparser.add_parser('sampleconfig', help='write sample config file')
+
+
+def _add_main_arguments(parser):
+    """Add main arguments."""
     parser.add_argument(
         '-c',
         '--configfile',
@@ -307,6 +363,23 @@ def parse_arguments():
         action='version',
         version=f"%(prog)s {get_versions()['version']}",
     )
+
+
+def parse_arguments():
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(
+        description='Keep a local seismic catalog.')
+    _add_main_arguments(parser)
+    subparser = parser.add_subparsers(dest='action')
+    parents = _get_parent_parsers()
+    _add_initdb_parser(subparser, parents)
+    _add_updatedb_parser(subparser, parents)
+    _add_editdb_parser(subparser)
+    _add_fetchdata_parser(subparser, parents)
+    _add_print_parser(subparser, parents)
+    _add_plot_parser(subparser, parents)
+    _add_run_parser(subparser, parents)
+    _add_sampleconfig_parser(subparser)
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
     if args.action is None:
