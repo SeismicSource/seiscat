@@ -12,12 +12,18 @@ from setuptools import setup
 import versioneer
 
 # Dynamically generate the README text for PyPI, replacing local paths
-# with the corresponding URLs on GitHub.
+# with the corresponding URLs on GitHub and image paths with the corresponding
+# URLs on the CDN.
 GITHUB_BASEURL = 'https://github.com/SeismicSource/seiscat/blob/main'
+revision = versioneer.get_versions()['full-revisionid']
+cdn_baseurl = f'https://cdn.jsdelivr.net/gh/SeismicSource/seiscat@{revision}'
 with open('README.md', 'rb') as f:
     long_description = f.read().decode('utf-8').replace(
         ': CHANGELOG.md',
         f': {GITHUB_BASEURL}/CHANGELOG.md'
+    ).replace(
+        'imgs/SeisCat_logo.svg',
+        f'{cdn_baseurl}/imgs/SeisCat_logo.svg'
     )
 
 setup(

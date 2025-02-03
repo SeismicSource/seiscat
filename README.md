@@ -1,3 +1,5 @@
+<img src="imgs/SeisCat_logo.svg" width="400">
+
 # SeisCat
 
 Keep a local seismic catalog.
