@@ -465,6 +465,7 @@ def delete_event_from_db(config, eventid, version=None):
     :param version: version of the event to delete
                     (if None, delete all versions of the event)
     """
+    msg = None
     conn = _get_db_connection(config)
     c = conn.cursor()
     if eventid is None and version is None:
@@ -481,6 +482,9 @@ def delete_event_from_db(config, eventid, version=None):
     elif eventid is not None:
         c.execute('DELETE FROM events WHERE evid = ?', (eventid,))
         msg = f'Event {eventid} version {version} deleted from database'
+    if msg is None:
+        # this should never happen
+        raise ValueError('Invalid combination of eventid and version')
     # close database connection
     conn.commit()
     print(msg)
