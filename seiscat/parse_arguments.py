@@ -371,6 +371,11 @@ def _add_run_parser(subparser, parents):
         'eventid', nargs='?',
         help='only run the command on this eventid'
     ).completer = _evid_completer
+    run_parser.epilog = (
+        'Note: this command supports concurrent processes, all modifying the '
+        'database. It is therefore safe to run multiple instances of this '
+        'command at the same time.'
+    )
 
 
 def _add_sampleconfig_parser(subparser):
