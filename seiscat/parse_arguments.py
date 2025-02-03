@@ -383,6 +383,11 @@ def _add_sampleconfig_parser(subparser):
     subparser.add_parser('sampleconfig', help='write sample config file')
 
 
+def _add_logo_parser(subparser):
+    """Add the logo subparser."""
+    subparser.add_parser('logo', help='print the seiscat logo 🐱')
+
+
 def _add_main_arguments(parser):
     """Add main arguments."""
     parser.add_argument(
@@ -408,6 +413,7 @@ def parse_arguments():
     _add_plot_parser(subparser, parents)
     _add_run_parser(subparser, parents)
     _add_sampleconfig_parser(subparser)
+    _add_logo_parser(subparser)
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
     if args.action is None:

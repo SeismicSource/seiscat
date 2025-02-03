@@ -11,3 +11,4 @@ Utility functions for seiscat.
 """
 from .exit import err_exit, ExceptionExit  # noqa
 from .conversion import float_or_none, int_or_none  # noqa
+from .print_logo import print_logo  # noqa

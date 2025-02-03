@@ -26,6 +26,10 @@ def run():
     if args.action == 'sampleconfig':
         write_sample_config(configspec, 'seiscat')
         sys.exit(0)
+    if args.action == 'logo':
+        from .utils import print_logo
+        print_logo()
+        sys.exit(0)
     config = read_config(args.configfile, configspec)
     config['args'] = args
     if args.action == 'initdb':
