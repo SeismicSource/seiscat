@@ -348,6 +348,60 @@ def _add_plot_parser(subparser, parents):
     )
 
 
+def _add_get_parser(subparser, parents):
+    """Add the get subparser."""
+    get_parser = subparser.add_parser(
+        'get',
+        parents=[parents['configfile_parser']],
+        help='get the value of a specific event attribute'
+    )
+    get_parser.add_argument(
+        'key',
+        type=str,
+        help='attribute name'
+    )
+    get_parser.add_argument(
+        'eventid',
+        help='event ID to get'
+    ).completer = _evid_completer
+    get_parser.add_argument(
+        'version', nargs='?',
+        type=int,
+        default=None,
+        help='use this event version instead of the latest one'
+    )
+
+
+def _add_set_parser(subparser, parents):
+    """Add the set subparser."""
+    set_parser = subparser.add_parser(
+        'set',
+        parents=[parents['configfile_parser']],
+        help='set the value of a specific event attribute'
+    )
+    set_parser.add_argument(
+        'key',
+        type=str,
+        help='attribute name'
+    )
+    set_parser.add_argument(
+        'value',
+        type=str,
+        help='attribute value'
+    )
+    set_parser.add_argument(
+        'eventid',
+        type=str,
+        help='event ID to set'
+    ).completer = _evid_completer
+    set_parser.add_argument(
+        'version', nargs='?',
+        type=int,
+        default=None,
+        help='use this event version instead of the latest one'
+    )
+
+
 def _add_run_parser(subparser, parents):
     """Add the run subparser."""
     run_parser = subparser.add_parser(
@@ -408,10 +462,12 @@ def parse_arguments():
     _add_initdb_parser(subparser, parents)
     _add_updatedb_parser(subparser, parents)
     _add_editdb_parser(subparser, parents)
-    _add_fetchdata_parser(subparser, parents)
     _add_print_parser(subparser, parents)
     _add_plot_parser(subparser, parents)
+    _add_get_parser(subparser, parents)
+    _add_set_parser(subparser, parents)
     _add_run_parser(subparser, parents)
+    _add_fetchdata_parser(subparser, parents)
     _add_sampleconfig_parser(subparser)
     _add_logo_parser(subparser)
     argcomplete.autocomplete(parser)

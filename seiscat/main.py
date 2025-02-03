@@ -41,6 +41,12 @@ def run():
     elif args.action == 'editdb':
         from .database.editdb import editdb
         editdb(config)
+    elif args.action == 'get':
+        from .database import seiscat_get
+        seiscat_get(config)
+    elif args.action == 'set':
+        from .database import seiscat_set
+        seiscat_set(config)
     elif args.action == 'fetchdata':
         fetch_event = args.event or args.both
         fetch_data = args.data or args.both

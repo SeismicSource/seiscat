@@ -315,6 +315,11 @@ def _build_query(
         eventid = getattr(args, 'eventid', None)
         if eventid == 'ALL':
             eventid = None
+    if eventid is not None:
+        # raise ValueError if eventid is not in database
+        cursor.execute('SELECT * FROM events WHERE evid = ?', (eventid,))
+        if not cursor.fetchall():
+            raise ValueError(f'Event {eventid} not found in database')
     if version is None:
         version = getattr(args, 'version', None)
     where = getattr(args, 'where', None) if honor_where_filter else None
