@@ -113,7 +113,7 @@ def _get_parent_parsers():
         '--allversions',
         action='store_true',
         default=False,
-        help='show all versions of each event (default: %(default)s)'
+        help='consider all versions of each event (default: %(default)s)'
     )
     where_parser = argparse.ArgumentParser(add_help=False)
     where_parser.add_argument(
