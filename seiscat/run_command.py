@@ -11,23 +11,35 @@ Run a user-defined command on a list of events.
 """
 import os
 import subprocess
-from .database.dbfunctions import read_events_from_db
+from .database.dbfunctions import (
+    read_evids_and_versions_from_db, read_events_from_db
+)
 from .utils import ExceptionExit
 
 
 def run_command(config):
     """
     Run a user-defined command on a list of events.
+    This function supports concurrent processes, all modifying the database.
 
     :param config: config object
     :type config: dict
     """
     args = config['args']
     command = args.command
+    # Firs, just get the list of evids and versions, without using the "where"
+    # clause, to avoid concurrency problems
     with ExceptionExit():
-        events = read_events_from_db(config)
-    for event in events:
-        print(f'Running {command} on event {event["evid"]}')
+        evids_and_versions = read_evids_and_versions_from_db(config)
+    # Then, query the events one by one, now using the "where" clause
+    # This allows for concurrent processes to modify the database while
+    # we're querying the events
+    for evid, ver in evids_and_versions:
+        try:
+            event = read_events_from_db(config, eventid=evid, version=ver)[0]
+        except IndexError:
+            continue
+        print(f'Running {command} on event {evid} version {ver}')
         event_str = {k: str(v) for k, v in event.items()}
         env = {**os.environ, **event_str}
         try:

@@ -293,17 +293,22 @@ def _process_where_option(where_str):
     return where_filter, values
 
 
-def read_fields_and_rows_from_db(config, eventid=None, version=None):
+def _build_query(
+        cursor, config, eventid, version, field_list, honor_where_filter):
     """
-    Read fields and rows from database. Return a list of fields and a list of
-    rows. The rows are sorted by time and version.
+    Build a query to read events from the database.
 
     :param config: config object
     :param eventid: limit to events with this evid
     :param version: limit to events with this version
-    :returns: list of fields, list of rows
+    :param field_list: list of fields to read from the database
+    :param honor_where_filter: if True, honor the `where` option
+    :param cursor: database cursor
 
-    :raises ValueError: if field is not found in database
+    :returns: query, query values, fields
+
+    :note: if a ``field_list`` is provided, a ``time`` field is always added
+    to the query, for sorting purposes.
     """
     args = config['args']
     if eventid is None:
@@ -312,16 +317,17 @@ def read_fields_and_rows_from_db(config, eventid=None, version=None):
             eventid = None
     if version is None:
         version = getattr(args, 'version', None)
-    allversions = getattr(args, 'allversions', True)
-    where = getattr(args, 'where', None)
-    conn = _get_db_connection(config)
-    c = conn.cursor()
-    # read field names
-    c.execute('PRAGMA table_info(events)')
-    # we just need the field names, which are in the second column
-    fields = [f[1] for f in c.fetchall()]
-    # read events
-    query = 'SELECT * FROM events'
+    where = getattr(args, 'where', None) if honor_where_filter else None
+    if field_list is not None:
+        # always query time and version, for sorting
+        fields = field_list + ['time', 'ver']
+        query = f'SELECT {", ".join(fields)} FROM events'
+    else:
+        # read field names
+        cursor.execute('PRAGMA table_info(events)')
+        # we just need the field names, which are in the second column
+        fields = [f[1] for f in cursor.fetchall()]
+        query = 'SELECT * FROM events'
     query_values = []
     if where is not None:
         where_filter, values = _process_where_option(where)
@@ -333,27 +339,84 @@ def read_fields_and_rows_from_db(config, eventid=None, version=None):
     if version is not None:
         query += ' AND ver = ?' if 'WHERE' in query else ' WHERE ver = ?'
         query_values.append(version)
+    return query, query_values, fields
+
+
+def _keep_latest_version(rows, fields):
+    """
+    Keep only the latest version of each event in the list of rows.
+
+    :param rows: list of rows
+    :param fields: list of fields
+
+    :returns: list of kept rows
+    """
+    evid_index = fields.index('evid')
+    ver_index = fields.index('ver')
+    evids = set()
+    rows_to_keep = []
+    for row in sorted(
+        rows, key=lambda r: (r[evid_index], r[ver_index]), reverse=True
+    ):
+        evid = row[evid_index]
+        if evid not in evids:
+            rows_to_keep.append(row)
+            evids.add(evid)
+    return rows_to_keep
+
+
+def _sort_rows_by_time_and_version(rows, fields, reverse=False):
+    """
+    Sort rows by time and version; reverse if needed.
+
+    :param rows: list of rows
+    :param fields: list of fields
+    :param reverse: if True, sort in reverse order
+
+    :returns: sorted fields, sorted rows
+    """
+    time_index = fields.index('time')
+    ver_index = fields.index('ver')
+    rows.sort(key=lambda r: (r[time_index], r[ver_index]), reverse=reverse)
+    # if last two fields are 'time' and 'ver', they were added for sorting
+    # purposes and should be removed
+    if fields[-2] == 'time' and fields[-1] == 'ver':
+        fields = fields[:-2]
+        rows = [r[:-2] for r in rows]
+    return fields, rows
+
+
+def read_fields_and_rows_from_db(
+        config, eventid=None, version=None, field_list=None,
+        honor_where_filter=True):
+    """
+    Read fields and rows from database. Return a list of fields and a list of
+    rows. The rows are sorted by time and version.
+
+    :param config: config object
+    :param eventid: limit to events with this evid
+    :param version: limit to events with this version
+    :param field_list: list of fields to read from the database
+    :param honor_where_filter: if True, honor the `where` option
+
+    :returns: list of fields, list of rows
+    :raises ValueError: if field is not found in database
+    """
+    conn = _get_db_connection(config)
+    cursor = conn.cursor()
+    query, query_values, fields = _build_query(
+        cursor, config, eventid, version, field_list, honor_where_filter)
     try:
-        c.execute(query, query_values)
+        cursor.execute(query, query_values)
     except sqlite3.OperationalError as e:
         field = e.args[0].split()[-1]
         raise ValueError(f'Field "{field}" not found in database') from e
-    rows = c.fetchall()
-    if not allversions:
-        # keep only the latest version of each event
-        evids = set()
-        rows_to_keep = []
-        for row in sorted(rows, key=lambda r: r[:2], reverse=True):
-            evid = row[0]
-            if evid not in evids:
-                rows_to_keep.append(row)
-                evids.add(evid)
-        rows = rows_to_keep
+    rows = cursor.fetchall()
     conn.close()
-    # sort rows by time and version; reverse if needed
-    reverse = getattr(args, 'reverse', False)
-    rows.sort(key=lambda r: (r[2], r[1]), reverse=reverse)
-    return fields, rows
+    if not getattr(config['args'], 'allversions', True):
+        rows = _keep_latest_version(rows, fields)
+    reverse = getattr(config['args'], 'reverse', False)
+    return _sort_rows_by_time_and_version(rows, fields, reverse)
 
 
 def replicate_event_in_db(config, eventid, version=1):
@@ -502,21 +565,39 @@ def increment_event_in_db(config, eventid, version, field, value):
         f'for event {eventid} version {version}')
 
 
-def read_events_from_db(config):
+def read_events_from_db(config, eventid=None, version=None):
     """
     Read events from database. Return a list of events.
 
     :param config: config object
+    :param eventid: limit to events with this evid
+    :param version: limit to events with this version
+
     :returns: list of events, each event is a dictionary-like object
     """
     # get fields and rows from database
     # rows are sorted by time and version and reversed if requested
-    fields, rows = read_fields_and_rows_from_db(config)
+    fields, rows = read_fields_and_rows_from_db(config, eventid, version)
     events_list = EventList()
     for event in rows:
         event_dict = Event(zip(fields, event))
         events_list.append(event_dict)
     return events_list
+
+
+def read_evids_and_versions_from_db(config):
+    """
+    Get a list of event ids and versions from the database.
+
+    This function only onors the ``allversions`` option
+    but not the ``where`` option.
+
+    :param config: config object
+    :returns: list of tuples (evid, version)
+    """
+    _fields, rows = read_fields_and_rows_from_db(
+        config, field_list=['evid', 'ver'], honor_where_filter=False)
+    return rows
 
 
 def get_catalog_stats(config):
