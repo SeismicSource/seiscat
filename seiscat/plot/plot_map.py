@@ -33,4 +33,8 @@ def plot_catalog_map(config):
         from .plot_map_cartopy import plot_catalog_map_with_cartopy
         plot_catalog_map_with_cartopy(events, config)
         return
+    if args.maptype == 'plotly':
+        from .plot_map_plotly import plot_catalog_map_with_plotly
+        plot_catalog_map_with_plotly(events, config)
+        return
     err_exit(f'Invalid map type "{args.maptype}"')

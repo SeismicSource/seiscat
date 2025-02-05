@@ -336,7 +336,7 @@ def _add_plot_parser(subparser, parents):
         '--maptype',
         type=str,
         default='cartopy',
-        choices=['cartopy', 'folium'],
+        choices=['cartopy', 'folium', 'plotly'],
         help='map type (default: %(default)s)'
     )
     plot_parser.add_argument(
