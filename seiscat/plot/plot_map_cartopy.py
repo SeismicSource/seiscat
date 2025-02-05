@@ -123,7 +123,6 @@ def plot_catalog_map_with_cartopy(events, config):
 
     :param config: config object
     """
-    # lazy import cartopy, since it's not an install requirement
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(1, 1, 1, projection=ccrs.Mercator())
     ax.stock_img()
