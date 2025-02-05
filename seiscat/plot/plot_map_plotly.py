@@ -230,29 +230,34 @@ def plot_catalog_map_with_plotly(events, config):
     lons = [e['lon'] for e in events]
     lats = [e['lat'] for e in events]
     depths = [e['depth'] for e in events]
-    mags = [e['mag'] for e in events]
     hover_data = {
         'evid': evids, 'time': times,
-        'lon': lons, 'lat': lats, 'depth': depths,
-        'mag': mags
+        'lon': lons, 'lat': lats, 'depth': depths
     }
-    fig = px.scatter_3d(
-        x=xcoords, y=ycoords, z=depths,
-        labels={'x': 'X (km)', 'y': 'Y (km)', 'z': 'Depth (km)'},
-        size=radii,
-        hover_data=hover_data,
-    )
-    if radii is None:
-        fig.update_traces(marker={'size': 3})
-    # Update hover to exclude "x", "y", and "size"
-    fig.update_traces(hovertemplate='<br>'.join([
+    hover_template_list = [
         'Evid: %{customdata[0]}',
         'Time: %{customdata[1]}',
         'Lon: %{customdata[2]:.3f}',
         'Lat: %{customdata[3]:.3f}',
-        'Depth: %{customdata[4]:.1f} km',
-        'Mag: %{customdata[5]:.1f}'
-    ]))
+        'Depth: %{customdata[4]:.1f} km'
+    ]
+    mags = [e['mag'] for e in events]
+    # if not all mags are None, add them to the hover data
+    if any(mags):
+        hover_data['mag'] = mags
+        hover_template_list.append('Mag: %{customdata[5]:.1f}')
+    fig = px.scatter_3d(
+        x=xcoords, y=ycoords, z=depths,
+        labels={'x': 'X (km)', 'y': 'Y (km)', 'z': 'Depth (km)'},
+        size=radii,
+        hover_data=hover_data
+    )
+    if radii is None:
+        fig.update_traces(marker={'size': 3})
+    # Remove borders from markers
+    fig.update_traces(marker={'line': {'width': 0}})
+    # Update hover to exclude "x", "y", and "size"
+    fig.update_traces(hovertemplate='<br>'.join(hover_template_list))
     camera = {
         'up': {'x': 0, 'y': 0, 'z': 1},
         'center': {'x': 0, 'y': 0, 'z': 0},
