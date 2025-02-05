@@ -346,6 +346,14 @@ def _add_plot_parser(subparser, parents):
         default=10,
         help='scale factor for marker size (default: %(default)s)'
     )
+    plot_parser.add_argument(
+        '-t',
+        '--time_slider',
+        action='store_true',
+        default=False,
+        help='add a time slider to the plot (default: %(default)s), '
+                'only used for Plotly maps'
+    )
 
 
 def _add_get_parser(subparser, parents):

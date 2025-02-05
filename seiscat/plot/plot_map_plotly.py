@@ -214,6 +214,132 @@ def _map_projection(events, config):
     return xcoords, ycoords, (x0, x1, y0, y1), coast_km
 
 
+def _add_coastline_and_extent(fig, extent, coast):
+    """
+    Add the coastline and the map extent to the figure.
+    """
+    # add a rectangle to show the map extent
+    x0, x1, y0, y1 = extent
+    fig.add_trace(go.Scatter3d(
+        x=[x0, x1, x1, x0, x0],
+        y=[y0, y0, y1, y1, y0],
+        z=[0, 0, 0, 0, 0],
+        mode='lines',
+        line={'color': 'gray', 'width': 2},
+        name='bounding box'
+    ))
+    # Combine all coastline segments into a single trace
+    x_coast = []
+    y_coast = []
+    z_coast = []
+    for x, y in coast:
+        x_coast.extend(x)
+        y_coast.extend(y)
+        z_coast.extend([0] * len(x))
+        # Add `None` to create breaks between segments
+        x_coast.append(None)
+        y_coast.append(None)
+        z_coast.append(None)
+    # Add the combined coastline trace to the plot
+    fig.add_trace(go.Scatter3d(
+        x=x_coast, y=y_coast, z=z_coast,
+        mode='lines',
+        line={'color': 'black', 'width': 1},
+        name='coastline'
+    ))
+
+
+def _add_time_slider(fig, xcoords, ycoords, depths, radii, times):
+    """
+    Add a time slider to the figure.
+    """
+    def _scatter3d(xcoords, ycoords, depths, radii):
+        return go.Scatter3d(
+            x=xcoords,
+            y=ycoords,
+            z=depths,
+            mode='markers',
+            marker={'size': radii}
+        )
+    time_step = 1 if len(times) < 100 else len(times) // 100
+    frames = [
+        go.Frame(
+            data=[_scatter3d(
+                xcoords[:i+1], ycoords[:i+1], depths[:i+1],
+                radii[:i+1] if isinstance(radii, (list, np.ndarray)) else radii
+            )],
+            name=f'frame{i}'
+        )
+        for i in range(0, len(times), time_step)
+    ]
+    fig.update(frames=frames)
+    fig.update_layout(
+        updatemenus=[
+            {
+                'buttons': [
+                    {
+                        'args': [
+                            None, {
+                                'frame': {'duration': 100, 'redraw': True},
+                                'fromcurrent': True,
+                                'transition': {'duration': 100}
+                            }
+                        ],
+                        'label': 'Play',
+                        'method': 'animate'
+                    },
+                    {
+                        'args': [
+                            [None], {
+                                'frame': {'duration': 0, 'redraw': True},
+                                'mode': 'immediate',
+                                'transition': {'duration': 0}
+                                }
+                        ],
+                        'label': 'Pause',
+                        'method': 'animate'
+                    }
+                ],
+                'direction': 'left',
+                'pad': {'r': 10, 't': 87},
+                'showactive': False,
+                'type': 'buttons',
+                'x': 0.1,
+                'xanchor': 'right',
+                'y': 0,
+                'yanchor': 'top'
+            }
+        ],
+        sliders=[{
+            'active': 0,
+            'yanchor': 'top',
+            'xanchor': 'left',
+            'currentvalue': {
+                'font': {'size': 20},
+                'prefix': 'Time:',
+                'visible': True,
+                'xanchor': 'right'
+            },
+            'transition': {'duration': 300, 'easing': 'cubic-in-out'},
+            'pad': {'b': 10, 't': 50},
+            'len': 0.9,
+            'x': 0.1,
+            'y': 0,
+            'steps': [{
+                'args': [
+                    [f'frame{i}'], {
+                        'frame': {'duration': 300, 'redraw': True},
+                        'mode': 'immediate',
+                        'transition': {'duration': 300}
+                    }
+                ],
+                'label': f'{times[i]}',
+                'method': 'animate'
+            } for i in range(0, len(times), time_step)]
+        }]
+    )
+
+
 def plot_catalog_map_with_plotly(events, config):
     """
     Plot the catalog map using plotly
@@ -277,33 +403,7 @@ def plot_catalog_map_with_plotly(events, config):
         width=1200, height=800,
         scene_camera=camera
     )
-    # add a rectangle to show the map extent
-    x0, x1, y0, y1 = extent
-    fig.add_trace(go.Scatter3d(
-        x=[x0, x1, x1, x0, x0],
-        y=[y0, y0, y1, y1, y0],
-        z=[0, 0, 0, 0, 0],
-        mode='lines',
-        line={'color': 'gray', 'width': 2},
-        name='bounding box'
-    ))
-    # Combine all coastline segments into a single trace
-    x_coast = []
-    y_coast = []
-    z_coast = []
-    for x, y in coast:
-        x_coast.extend(x)
-        y_coast.extend(y)
-        z_coast.extend([0] * len(x))
-        # Add `None` to create breaks between segments
-        x_coast.append(None)
-        y_coast.append(None)
-        z_coast.append(None)
-    # Add the combined coastline trace to the plot
-    fig.add_trace(go.Scatter3d(
-        x=x_coast, y=y_coast, z=z_coast,
-        mode='lines',
-        line={'color': 'black', 'width': 1},
-        name='coastline'
-    ))
+    _add_coastline_and_extent(fig, extent, coast)
+    if config['args'].time_slider:
+        _add_time_slider(fig, xcoords, ycoords, depths, radii, times)
     fig.show()
