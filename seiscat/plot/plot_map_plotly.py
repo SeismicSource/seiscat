@@ -14,6 +14,7 @@ from .plot_map_utils import get_map_extent
 from ..utils import err_exit
 try:
     import plotly.express as px
+    import plotly.graph_objects as go
 except ImportError:
     err_exit(
         'Plotly is not installed. '
@@ -89,6 +90,47 @@ def _utmzone(lon, lat):
     raise ValueError('Longitude out of range')
 
 
+def _map_projection(events, config):
+    """
+    Project the events on a map using UTM coordinates.
+
+    :param events: list of events, each event is a dictionary
+    :type events: list
+    :param config: config object
+    :type config: configspec.ConfigObj
+
+    :returns: xcoords, ycoords, extent
+    :rtype: tuple
+    """
+    lonlat_extent = get_map_extent(events, config)
+    utm_zone = _utmzone(
+        (lonlat_extent[0] + lonlat_extent[1]) / 2,
+        (lonlat_extent[2] + lonlat_extent[3]) / 2
+    )
+    to_utm = Proj(proj='utm', zone=utm_zone, ellps='WGS84')
+    lons = [e['lon'] for e in events]
+    lats = [e['lat'] for e in events]
+    xcoords, ycoords = to_utm(lons, lats)
+    xcoords = np.array(xcoords) / 1e3
+    ycoords = np.array(ycoords) / 1e3
+    # convert extent to UTM
+    x0, y0 = to_utm(lonlat_extent[0], lonlat_extent[2])
+    x1, y1 = to_utm(lonlat_extent[1], lonlat_extent[3])
+    x0 /= 1e3
+    y0 /= 1e3
+    x1 /= 1e3
+    y1 /= 1e3
+    x_mean = (x0 + x1) / 2
+    y_mean = (y0 + y1) / 2
+    x0 -= x_mean
+    x1 -= x_mean
+    y0 -= y_mean
+    y1 -= y_mean
+    xcoords -= x_mean
+    ycoords -= y_mean
+    return xcoords, ycoords, (x0, x1, y0, y1)
+
+
 def plot_catalog_map_with_plotly(events, config):
     """
     Plot the catalog map using plotly
@@ -99,22 +141,13 @@ def plot_catalog_map_with_plotly(events, config):
     :type config: configspec.ConfigObj
     """
     events, radii = _get_marker_sizes(events, config['args'].scale)
-    extent = get_map_extent(events, config)
-    utm_zone = _utmzone(
-        (extent[0] + extent[1]) / 2, (extent[2] + extent[3]) / 2
-    )
-    to_utm = Proj(proj='utm', zone=utm_zone, ellps='WGS84')
-    lons = [e['lon'] for e in events]
-    lats = [e['lat'] for e in events]
-    xcoords, ycoords = to_utm(lons, lats)
-    xcoords = np.array(xcoords) / 1e3
-    ycoords = np.array(ycoords) / 1e3
-    xcoords -= xcoords.mean()
-    ycoords -= ycoords.mean()
-    depths = [e['depth'] for e in events]
-    mags = [e['mag'] for e in events]
+    xcoords, ycoords, extent = _map_projection(events, config)
     evids = [e['evid'] for e in events]
     times = [e['time'] for e in events]
+    lons = [e['lon'] for e in events]
+    lats = [e['lat'] for e in events]
+    depths = [e['depth'] for e in events]
+    mags = [e['mag'] for e in events]
     hover_data = {
         'evid': evids, 'time': times,
         'lon': lons, 'lat': lats, 'depth': depths,
@@ -127,7 +160,7 @@ def plot_catalog_map_with_plotly(events, config):
         hover_data=hover_data,
     )
     if radii is None:
-        fig.update_traces(marker=dict(size=3))
+        fig.update_traces(marker={'size': 3})
     # Update hover to exclude "x", "y", and "size"
     fig.update_traces(hovertemplate='<br>'.join([
         'Evid: %{customdata[0]}',
@@ -143,8 +176,21 @@ def plot_catalog_map_with_plotly(events, config):
         'eye': {'x': 0, 'y': -1.5, 'z': 2}
     }
     fig.update_layout(
-        scene={'zaxis': {'autorange': 'reversed'}},
-        width=1000, height=800,
+        scene={
+            'zaxis': {'autorange': 'reversed'},
+            'aspectmode': 'data'
+        },
+        width=1200, height=800,
         scene_camera=camera
     )
+    # add a rectangle to show the map extent
+    x0, x1, y0, y1 = extent
+    fig.add_trace(go.Scatter3d(
+        x=[x0, x1, x1, x0, x0],
+        y=[y0, y0, y1, y1, y0],
+        z=[0, 0, 0, 0, 0],
+        mode='lines',
+        line={'color': 'gray', 'width': 2},
+        name='bounding box'
+    ))
     fig.show()
