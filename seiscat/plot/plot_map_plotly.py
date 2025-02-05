@@ -62,13 +62,13 @@ def _get_marker_sizes(events, scale):
     mags = [e['mag'] for e in events if e['mag'] is not None]
     # use fixed radius if no magnitudes are available
     fixed_radius = not mags
-    marker_scale = scale
     if not fixed_radius:
         # remove events with no magnitude
         events = [e for e in events if e['mag'] is not None]
-        radii = [np.exp(e['mag']) * marker_scale for e in events]
+        radii = [np.exp(e['mag']) for e in events]
+        radii = np.array(radii)/np.max(radii) * scale * 3
     else:
-        radii = None
+        radii = scale/3
     return events, radii
 
 
@@ -246,14 +246,20 @@ def plot_catalog_map_with_plotly(events, config):
     if any(mags):
         hover_data['mag'] = mags
         hover_template_list.append('Mag: %{customdata[5]:.1f}')
+    if isinstance(radii, (list, np.ndarray)):
+        size = radii
+        size_max = np.max(radii)
+    else:
+        size = size_max = None
     fig = px.scatter_3d(
         x=xcoords, y=ycoords, z=depths,
         labels={'x': 'X (km)', 'y': 'Y (km)', 'z': 'Depth (km)'},
-        size=radii,
+        size=size,
+        size_max=size_max,
         hover_data=hover_data
     )
-    if radii is None:
-        fig.update_traces(marker={'size': 3})
+    if size is None:
+        fig.update_traces(marker={'size': radii})
     # Remove borders from markers
     fig.update_traces(marker={'line': {'width': 0}})
     # Update hover to exclude "x", "y", and "size"
