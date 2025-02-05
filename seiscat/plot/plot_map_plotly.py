@@ -9,6 +9,10 @@ Plot events in 3D using Plotly.
     GNU General Public License v3.0 or later
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
+import warnings
+import os
+from zipfile import ZipFile
+import requests
 import numpy as np
 from .plot_map_utils import get_map_extent
 from ..utils import err_exit
@@ -29,6 +33,17 @@ except ImportError:
         'Please install it to plot the catalog map.\n'
         'See https://pyproj4.github.io/pyproj/stable/installation.html'
     )
+try:
+    import shapefile
+    import shapely
+except ImportError:
+    err_exit(
+        'Pyshp and Shapely are not installed. '
+        'Please install them to plot the catalog map.\n'
+        'See https://pypi.org/project/pyshp/'
+        'and https://pypi.org/project/Shapely/'
+    )
+warnings.filterwarnings('ignore', category=RuntimeWarning, module='shapely')
 
 
 def _get_marker_sizes(events, scale):
@@ -90,6 +105,68 @@ def _utmzone(lon, lat):
     raise ValueError('Longitude out of range')
 
 
+def _download_coastline(shapefile_dir):
+    """
+    Download the coastline shapefile from Natural Earth and extract it.
+
+    :param shapefile_dir: directory where the shapefile will be saved
+    :type shapefile_dir: str
+    """
+    print('Downloading coastline shapefile from Natural Earth...')
+    os.makedirs(shapefile_dir, exist_ok=True)
+    url = 'https://naciscdn.org/naturalearth/10m/physical/ne_10m_coastline.zip'
+    zip_path = os.path.join(shapefile_dir, 'ne_10m_coastline.zip')
+    with requests.get(url, stream=True, timeout=60) as r:
+        r.raise_for_status()
+        with open(zip_path, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                f.write(chunk)
+    with ZipFile(zip_path, 'r') as zip_ref:
+        zip_ref.extractall(shapefile_dir)
+    os.remove(zip_path)
+
+
+def _get_coastline(bounding_box=None):
+    """
+    Read coastline from a shapefile, clip it to a bounding box, and return it
+    as a list of coordinates.
+
+    Uses pyshp as backend.
+
+    :param shapefile_path: Path to the shapefile.
+    :type shapefile_path: str
+    :param bounding_box: Bounding box to clip the coastline
+        (lon_min, lon_max, lat_min, lat_max).
+    :type bounding_box: tuple or None
+
+    :returns: clipped coastline coordinates.
+    :rtype: list
+    """
+    shapefile_dir = os.path.join(
+        os.path.expanduser('~'), '.seiscat', 'shapefiles')
+    shapefile_path = os.path.join(shapefile_dir, 'ne_10m_coastline.shp')
+    if not os.path.exists(shapefile_path):
+        _download_coastline(shapefile_dir)
+    if bounding_box is not None:
+        lon_min, lon_max, lat_min, lat_max = bounding_box
+    else:
+        lon_min, lon_max, lat_min, lat_max = -180, 180, -90, 90
+    bounding_box = shapely.geometry.box(lon_min, lat_min, lon_max, lat_max)
+    sf = shapefile.Reader(shapefile_path)
+    clipped_coastline = []
+    for feature in sf.shapeRecords():
+        geom = shapely.geometry.shape(feature.shape.__geo_interface__)
+        clipped_geom = geom.intersection(bounding_box)
+        if clipped_geom.is_empty:
+            continue
+        if clipped_geom.geom_type == 'LineString':
+            clipped_coastline.append(list(clipped_geom.coords))
+        elif clipped_geom.geom_type == 'MultiLineString':
+            clipped_coastline.extend(
+                list(line.coords) for line in clipped_geom.geoms)
+    return clipped_coastline
+
+
 def _map_projection(events, config):
     """
     Project the events on a map using UTM coordinates.
@@ -99,7 +176,7 @@ def _map_projection(events, config):
     :param config: config object
     :type config: configspec.ConfigObj
 
-    :returns: xcoords, ycoords, extent
+    :returns: xcoords, ycoords, extent, coast_km
     :rtype: tuple
     """
     lonlat_extent = get_map_extent(events, config)
@@ -128,7 +205,13 @@ def _map_projection(events, config):
     y1 -= y_mean
     xcoords -= x_mean
     ycoords -= y_mean
-    return xcoords, ycoords, (x0, x1, y0, y1)
+    coast = _get_coastline(bounding_box=lonlat_extent)
+    coast_km = [
+        (np.array(to_utm(*zip(*line))[0]) / 1e3 - x_mean,
+         np.array(to_utm(*zip(*line))[1]) / 1e3 - y_mean)
+        for line in coast
+    ]
+    return xcoords, ycoords, (x0, x1, y0, y1), coast_km
 
 
 def plot_catalog_map_with_plotly(events, config):
@@ -141,7 +224,7 @@ def plot_catalog_map_with_plotly(events, config):
     :type config: configspec.ConfigObj
     """
     events, radii = _get_marker_sizes(events, config['args'].scale)
-    xcoords, ycoords, extent = _map_projection(events, config)
+    xcoords, ycoords, extent, coast = _map_projection(events, config)
     evids = [e['evid'] for e in events]
     times = [e['time'] for e in events]
     lons = [e['lon'] for e in events]
@@ -192,5 +275,24 @@ def plot_catalog_map_with_plotly(events, config):
         mode='lines',
         line={'color': 'gray', 'width': 2},
         name='bounding box'
+    ))
+    # Combine all coastline segments into a single trace
+    x_coast = []
+    y_coast = []
+    z_coast = []
+    for x, y in coast:
+        x_coast.extend(x)
+        y_coast.extend(y)
+        z_coast.extend([0] * len(x))
+        # Add `None` to create breaks between segments
+        x_coast.append(None)
+        y_coast.append(None)
+        z_coast.append(None)
+    # Add the combined coastline trace to the plot
+    fig.add_trace(go.Scatter3d(
+        x=x_coast, y=y_coast, z=z_coast,
+        mode='lines',
+        line={'color': 'black', 'width': 1},
+        name='coastline'
     ))
     fig.show()
