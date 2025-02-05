@@ -121,7 +121,10 @@ def plot_catalog_map_with_cartopy(events, config):
     """
     Plot the catalog map using cartopy.
 
+    :param events: list of events, each event is a dictionary
+    :type events: list
     :param config: config object
+    :type config: configspec.ConfigObj
     """
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(1, 1, 1, projection=ccrs.Mercator())

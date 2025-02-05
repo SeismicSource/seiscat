@@ -29,7 +29,10 @@ def plot_catalog_map_with_folium(events, config):
     """
     Plot the catalog map with folium.
 
+    :param events: list of events, each event is a dictionary
+    :type events: list
     :param config: config object
+    :type config: configspec.ConfigObj
     """
     # Get map extent
     lon_min, lon_max, lat_min, lat_max = get_map_extent(events, config)
