@@ -247,9 +247,10 @@ def _read_csv_row(row, fields, depth_units, mag_type):
     orig_time = _read_orig_time_from_row(row, fields)
     ev = Event()
     _evid = row[fields['evid']]
-    if _evid is None:
-        _evid = generate_evid(orig_time)
-    ev.resource_id = _evid
+    ev.resource_id = (
+        generate_evid(orig_time) if _evid is None
+        else str(_evid).strip()
+    )
     ev.event_type = row[fields['event_type']]
     orig = Origin()
     orig.time = orig_time
