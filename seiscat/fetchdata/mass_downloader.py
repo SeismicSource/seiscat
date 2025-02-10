@@ -11,8 +11,10 @@ Uses ObsPy mass downloader to download event waveforms from FDSN web services.
 """
 import sys
 import pathlib
-from obspy.clients.fdsn.mass_downloader import CircularDomain, \
-    Restrictions, MassDownloader
+import logging
+from obspy.clients.fdsn.mass_downloader import (
+    CircularDomain, Restrictions, MassDownloader
+)
 from ..utils import ExceptionExit
 
 
@@ -38,6 +40,31 @@ def _check_fdsn_providers(fdsn_providers):
             print('Exiting.')
             sys.exit()
         print('Please answer y or n:', end=' ')
+
+
+def _set_mdl_logger(evid):
+    """
+    Set up the ObsPy mass downloader logger.
+    Prepend the event ID to each log message.
+
+    :param evid: event ID
+    """
+    mdl_logger = logging.getLogger('obspy.clients.fdsn.mass_downloader')
+    mdl_logger.setLevel(logging.DEBUG)
+    # Prevent propagating to higher loggers.
+    mdl_logger.propagate = 0
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter(f'{evid}: %(message)s'))
+    handler.setLevel(logging.INFO)
+    mdl_logger.addHandler(handler)
+
+
+def _unset_mdl_logger():
+    """
+    Unset the ObsPy mass downloader logger.
+    """
+    mdl_logger = logging.getLogger('obspy.clients.fdsn.mass_downloader')
+    mdl_logger.handlers = []
 
 
 def mass_download_waveforms(config, event):
@@ -69,7 +96,8 @@ def mass_download_waveforms(config, event):
     station_dir = pathlib.Path(evid_dir / config['station_dir'])
     station_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f'{evid}: downloading waveforms and station metadata\n')
+    print(f'\n{evid}: downloading waveforms and station metadata')
+    _set_mdl_logger(evid)
 
     domain = CircularDomain(
         latitude=latitude, longitude=longitude,
@@ -88,13 +116,11 @@ def mass_download_waveforms(config, event):
         restrictions['location_priorities'] = location_priorities
     restrictions = Restrictions(**restrictions)
     with ExceptionExit():
-        mdl = MassDownloader(providers=providers)
+        mdl = MassDownloader(providers=providers, configure_logging=False)
         mdl.download(
             domain, restrictions,
             mseed_storage=str(waveform_dir),
             stationxml_storage=str(station_dir)
         )
-        print(
-            f'\n{evid}: waveforms and station metadata saved to '
-            f'{evid_dir}\n\n'
-        )
+        _unset_mdl_logger()
+        print(f'{evid}: waveforms and station metadata saved to {evid_dir}\n')
