@@ -27,7 +27,7 @@ def run_command(config):
     """
     args = config['args']
     command = args.command
-    # Firs, just get the list of evids and versions, without using the "where"
+    # First, just get the list of evids and versions, without using the "where"
     # clause, to avoid concurrency problems
     with ExceptionExit():
         evids_and_versions = read_evids_and_versions_from_db(config)
