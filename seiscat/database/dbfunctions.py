@@ -202,10 +202,14 @@ def _get_db_values_from_event(ev, config):
     :param ev: obspy event object
     :param config: config object
     :returns: list of values
+    :raises ValueError: if event has no origin
     """
     evid = _get_evid(str(ev.resource_id.id))
     version = 1
-    orig = ev.preferred_origin() or ev.origins[0]
+    try:
+        orig = ev.preferred_origin() or ev.origins[0]
+    except IndexError as e:
+        raise ValueError(f'Event {evid} has no origin') from e
     time = str(orig.time)
     lat = orig.latitude
     lon = orig.longitude
@@ -247,7 +251,11 @@ def write_catalog_to_db(cat, config, initdb):
         f'({", ".join(field_definitions)}, PRIMARY KEY (evid, ver))')
     events_written = 0
     for ev in cat:
-        values = _get_db_values_from_event(ev, config)
+        try:
+            values = _get_db_values_from_event(ev, config)
+        except ValueError as e:
+            print(e)
+            continue
         if initdb or config['overwrite_updated_events']:
             # add events to table, replace events that already exist
             c.execute(
