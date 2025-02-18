@@ -27,9 +27,7 @@ def feeddb(config, initdb):
     args = config['args']
     if args.fromfile:
         with ExceptionExit(additional_msg='Error reading CSV file'):
-            cat = read_catalog_from_csv(
-                args.fromfile, args.delimiter, args.column_names,
-                args.depth_units)
+            cat = read_catalog_from_csv(config)
     else:
         with ExceptionExit(additional_msg='Error connecting to FDSN server'):
             client = open_fdsn_connection(config)
