@@ -98,9 +98,17 @@ def _get_parent_parsers():
         metavar='FILENAME',
         help='read events from a CSV file'
     )
+    fromfile_parser.add_argument(
+        '-d',
+        '--delimiter',
+        type=str,
+        default=None,
+        help='CSV delimiter (default: autoset). '
+             'Use "\\t" for tab or " " for space.'
+    )
     unit_parser = argparse.ArgumentParser(add_help=False)
     unit_parser.add_argument(
-        '-d',
+        '-z',
         '--depth_units',
         type=str,
         default=None,

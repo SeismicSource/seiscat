@@ -308,12 +308,16 @@ def _read_csv(fp, delimiter, nrows, depth_units):
     return cat
 
 
-def read_catalog_from_csv(filename, depth_units=None):
+def read_catalog_from_csv(filename, delimiter=None, depth_units=None):
     """
     Read a catalog from a CSV file.
 
     :param filename: input filename
     :type filename: str
+    :param delimiter: CSV delimiter (aka separator)
+    :type delimiter: str
+    :param depth_units: depth units (m or km)
+    :type depth_units: str
 
     :return: an ObsPy catalog object
     :rtype: obspy.Catalog
@@ -323,7 +327,10 @@ def read_catalog_from_csv(filename, depth_units=None):
     """
     if depth_units not in [None, 'km', 'm']:
         raise ValueError(f'Invalid depth_units: {depth_units}')
-    delimiter, nrows = _csv_file_info(filename)
+    _delimiter, nrows = _csv_file_info(filename)
+    delimiter = delimiter or _delimiter
+    print(f'CSV delimiter: "{delimiter}"')
+    print(f'CSV number of rows: {nrows}')
     with open(filename, 'r', encoding='utf8') as fp:
         cat = _read_csv(fp, delimiter, nrows, depth_units)
     if depth_units is None:
