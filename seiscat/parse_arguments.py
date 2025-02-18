@@ -106,6 +106,14 @@ def _get_parent_parsers():
         help='CSV delimiter (default: autoset). '
              'Use "\\t" for tab or " " for space.'
     )
+    fromfile_parser.add_argument(
+        '-n',
+        '--column_names',
+        type=str,
+        default=None,
+        nargs='+',
+        help='column names in the CSV file (default: autodetect)'
+    )
     unit_parser = argparse.ArgumentParser(add_help=False)
     unit_parser.add_argument(
         '-z',

@@ -271,7 +271,7 @@ def _read_csv_row(row, fields, depth_units, mag_type):
     return ev
 
 
-def _read_csv(fp, delimiter, nrows, depth_units):
+def _read_csv(fp, delimiter, column_names, nrows, depth_units):
     """
     Read a catalog from a CSV file.
 
@@ -280,6 +280,8 @@ def _read_csv(fp, delimiter, nrows, depth_units):
     :param delimiter: CSV delimiter
     :type delimiter: str
     :param nrows: number of rows in the CSV file
+    :type column_names: list of str
+    :param nrows: list of column names
     :type nrows: int
     :param depth_units: depth units (m or km)
     :type depth_units: str
@@ -287,7 +289,9 @@ def _read_csv(fp, delimiter, nrows, depth_units):
     :return: an ObsPy catalog object
     :rtype: obspy.Catalog
     """
-    reader = csv.DictReader(fp, delimiter=delimiter)
+    reader = csv.DictReader(fp, delimiter=delimiter, skipinitialspace=True)
+    if column_names is not None:
+        reader.fieldnames = column_names
     fields = _guess_field_names(reader.fieldnames)
     # if magtype is missing, try to guess it from the magnitude field name
     mag_type = None
@@ -308,7 +312,8 @@ def _read_csv(fp, delimiter, nrows, depth_units):
     return cat
 
 
-def read_catalog_from_csv(filename, delimiter=None, depth_units=None):
+def read_catalog_from_csv(
+        filename, delimiter=None, column_names=None, depth_units=None):
     """
     Read a catalog from a CSV file.
 
@@ -316,6 +321,8 @@ def read_catalog_from_csv(filename, delimiter=None, depth_units=None):
     :type filename: str
     :param delimiter: CSV delimiter (aka separator)
     :type delimiter: str
+    :param column_names: list of column names
+    :type column_names: list of str
     :param depth_units: depth units (m or km)
     :type depth_units: str
 
@@ -332,7 +339,7 @@ def read_catalog_from_csv(filename, delimiter=None, depth_units=None):
     print(f'CSV delimiter: "{delimiter}"')
     print(f'CSV number of rows: {nrows}')
     with open(filename, 'r', encoding='utf8') as fp:
-        cat = _read_csv(fp, delimiter, nrows, depth_units)
+        cat = _read_csv(fp, delimiter, column_names, nrows, depth_units)
     if depth_units is None:
         # If catalog's maximum depth is too small, assume it is in kilometers
         # and convert it to meters
