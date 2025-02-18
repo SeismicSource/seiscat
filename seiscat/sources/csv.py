@@ -292,9 +292,9 @@ def _read_csv(fp, delimiter, column_names, nrows, depth_units):
     :return: an ObsPy catalog object
     :rtype: obspy.Catalog
     """
-    reader = csv.DictReader(fp, delimiter=delimiter, skipinitialspace=True)
-    if column_names is not None:
-        reader.fieldnames = column_names
+    reader = csv.DictReader(
+        fp, delimiter=delimiter, skipinitialspace=True,
+        fieldnames=column_names)
     fields = _guess_field_names(reader.fieldnames)
     # if magtype is missing, try to guess it from the magnitude field name
     mag_type = None
@@ -302,14 +302,16 @@ def _read_csv(fp, delimiter, column_names, nrows, depth_units):
         mag_field = fields['mag']
         if mag_field is not None and mag_field.lower() in ['mw', 'ml']:
             mag_type = mag_field
-    nrows -= 1  # first row is the header
+    if column_names is None:
+        nrows -= 1  # first row is the header
     cat = Catalog()
     for n, row in enumerate(reader):
         print(f'reading row {n+1}/{nrows}\r', end='')
         try:
             ev = _read_csv_row(row, fields, depth_units, mag_type)
-        except ValueError as e:
-            print(f'Error at row {n+2}: {e}')
+        except (ValueError, TypeError) as e:
+            print(f'Error at row {n+1}: {e}')
+            continue
         cat.append(ev)
     print()  # needed to add a newline after the last "reading row" message
     return cat
