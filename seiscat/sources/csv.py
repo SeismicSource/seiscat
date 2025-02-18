@@ -177,6 +177,74 @@ def _csv_file_info(filename):
     return delimiter, nrows
 
 
+def _read_orig_time_from_ymdhms(row, fields):
+    """
+    Try to build a date-time field from separated year, month, day, hour,
+    minute and seconds fields.
+
+    :param row: row from the CSV file
+    :type row: dict
+    :param fields: field names
+    :type fields: dict
+
+    :return: the origin time
+    :rtype: obspy.UTCDateTime
+
+    :raises ValueError: if the origin time cannot be parsed
+    """
+    year = int_or_none(row[fields['year']])
+    # if year has two digits, assume it is in the 21st century
+    if year is not None and year < 100:
+        year += 2000
+    month = int_or_none(row[fields['month']])
+    day = int_or_none(row[fields['day']])
+    hour = int_or_none(row[fields['hour']])
+    minute = int_or_none(row[fields['minute']])
+    seconds = float_or_none(row[fields['seconds']])
+    return (
+        UTCDateTime(
+            year=year, month=month, day=day,
+            hour=hour, minute=minute, second=0
+        ) + seconds
+    )
+
+
+def _read_orig_time_from_datetime(row, fields):
+    """
+    Read the origin time from a date-time field.
+
+    :param row: row from the CSV file
+    :type row: dict
+    :param fields: field names
+    :type fields: dict
+
+    :return: the origin time
+    :rtype: obspy.UTCDateTime
+
+    :raises ValueError: if the origin time cannot be parsed
+    """
+    orig_time_str = (
+        f'{row[fields["date"]]} {row[fields["time"]]}'
+        if fields['date'] is not None
+        else row[fields['time']]
+    )
+    try:
+        return UTCDateTime(orig_time_str)
+    except ValueError:
+        # One last try: check if the time is in the format
+        # YYYYMMDD.hhmmss.
+        # Replace the dot with a space, pad with zeros
+        # and try again
+        try:
+            return UTCDateTime(
+                orig_time_str.replace('.', ' ').ljust(15, '0')
+            )
+        except ValueError as e:
+            raise ValueError(
+                f'Unable to parse origin time: "{orig_time_str}"'
+            ) from e
+
+
 def _read_orig_time_from_row(row, fields):
     """
     Read the origin time from a row.
@@ -188,44 +256,14 @@ def _read_orig_time_from_row(row, fields):
 
     :return: the origin time
     :rtype: obspy.UTCDateTime
+
+    :raises ValueError: if the origin time cannot be parsed
     """
-    if fields['time'] is None:
-        # try build a date-time field from year, month, day, hour,
-        # minute and seconds fields
-        year = int_or_none(row[fields['year']])
-        # if year has two digits, assume it is in the 21st century
-        if year is not None and year < 100:
-            year += 2000
-        month = int_or_none(row[fields['month']])
-        day = int_or_none(row[fields['day']])
-        hour = int_or_none(row[fields['hour']])
-        minute = int_or_none(row[fields['minute']])
-        seconds = float_or_none(row[fields['seconds']])
-        orig_time = UTCDateTime(
-            year=year, month=month, day=day,
-            hour=hour, minute=minute, second=0) + seconds
-    else:
-        orig_time_str = (
-            f'{row[fields["date"]]} {row[fields["time"]]}'
-            if fields['date'] is not None
-            else row[fields['time']]
-        )
-        try:
-            orig_time = UTCDateTime(orig_time_str)
-        except ValueError:
-            # one last try: check if the time is in the format
-            # YYYYMMDD.hhmmss.
-            # Replace the dot with a space, pad with zeros
-            # and try again
-            try:
-                orig_time = UTCDateTime(
-                    orig_time_str.replace('.', ' ').ljust(15, '0')
-                )
-            except ValueError as e:
-                raise ValueError(
-                    f'Unable to parse origin time: "{orig_time_str}"'
-                ) from e
-    return orig_time
+    return (
+        _read_orig_time_from_ymdhms(row, fields)
+        if fields['time'] is None
+        else _read_orig_time_from_datetime(row, fields)
+    )
 
 
 def _read_csv_row(row, fields, depth_units, mag_type):
