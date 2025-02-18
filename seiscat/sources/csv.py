@@ -193,6 +193,9 @@ def _read_orig_time_from_row(row, fields):
         # try build a date-time field from year, month, day, hour,
         # minute and seconds fields
         year = int_or_none(row[fields['year']])
+        # if year has two digits, assume it is in the 21st century
+        if year is not None and year < 100:
+            year += 2000
         month = int_or_none(row[fields['month']])
         day = int_or_none(row[fields['day']])
         hour = int_or_none(row[fields['hour']])
