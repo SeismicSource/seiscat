@@ -292,7 +292,10 @@ def _read_csv_row(row, fields, depth_units, mag_type):
         generate_evid(orig_time) if _evid is None
         else str(_evid).strip()
     )
-    ev.event_type = row[fields['event_type']]
+    try:
+        ev.event_type = row[fields['event_type']]
+    except ValueError:
+        print(f'Ignoring unknown event type: {ev.event_type}')
     orig = Origin()
     orig.time = orig_time
     orig.longitude = float_or_none(row[fields['lon']])
