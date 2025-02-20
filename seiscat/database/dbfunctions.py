@@ -491,10 +491,10 @@ def delete_event_from_db(config, eventid, version=None):
         c.execute(
             'DELETE FROM events WHERE evid = ? AND ver = ?',
             (eventid, version))
-        msg = f'Event {eventid} deleted from database'
+        msg = f'Event {eventid} version {version} deleted from database'
     elif eventid is not None:
         c.execute('DELETE FROM events WHERE evid = ?', (eventid,))
-        msg = f'Event {eventid} version {version} deleted from database'
+        msg = f'Event {eventid} deleted from database'
     if msg is None:
         # this should never happen
         raise ValueError('Invalid combination of eventid and version')
