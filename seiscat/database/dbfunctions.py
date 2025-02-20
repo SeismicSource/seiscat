@@ -302,15 +302,20 @@ def _process_where_option(where_str):
 
 
 def _build_query(
-        cursor, config, eventid, version, field_list, honor_where_filter):
+        cursor, config, eventid=None, version=None, field_list=None,
+        honor_where_filter=True):
     """
     Build a query to read events from the database.
 
     :param config: config object
-    :param eventid: limit to events with this evid
-    :param version: limit to events with this version
+    :param eventid: limit to events with this evid. If ``None``, then the
+                    eventid is taken from the command line arguments via
+                    ``config['args']``
+    :param version: limit to events with this version. If ``None``, then the
+                    version is taken from the command line arguments via
+                    ``config['args']``
     :param field_list: list of fields to read from the database
-    :param honor_where_filter: if True, honor the `where` option
+    :param honor_where_filter: if ``True``, honor the ``where`` option
     :param cursor: database cursor
 
     :returns: query, query values, fields
@@ -407,10 +412,14 @@ def read_fields_and_rows_from_db(
     rows. The rows are sorted by time and version.
 
     :param config: config object
-    :param eventid: limit to events with this evid
-    :param version: limit to events with this version
+    :param eventid: limit to events with this evid. If ``None``, then the
+                    eventid is taken from the command line arguments via
+                    ``config['args']``
+    :param version: limit to events with this version. If ``None``, then the
+                    version is taken from the command line arguments via
+                    ``config['args']``
     :param field_list: list of fields to read from the database
-    :param honor_where_filter: if True, honor the `where` option
+    :param honor_where_filter: if ``True``, honor the ``where`` option
 
     :returns: list of fields, list of rows
     :raises ValueError: if field is not found in database
