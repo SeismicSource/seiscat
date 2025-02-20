@@ -21,7 +21,9 @@ def seiscat_get(config):
     field_list = [args.key]
     with ExceptionExit():
         _, rows = read_fields_and_rows_from_db(
-            config, eventid=args.eventid, version=args.version,
+            config,
+            eventid=args.eventid,
+            version=args.event_version,
             field_list=field_list)
     if not rows:
         err_exit('Event not found')
@@ -36,7 +38,9 @@ def seiscat_set(config):
     field_list = ['ver', args.key]
     with ExceptionExit():
         fields, rows = read_fields_and_rows_from_db(
-            config, eventid=args.eventid, version=args.version,
+            config,
+            eventid=args.eventid,
+            version=args.event_version,
             field_list=field_list)
     if not rows:
         err_exit('Event not found')

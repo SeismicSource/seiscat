@@ -329,7 +329,7 @@ def _build_query(
         if not cursor.fetchall():
             raise ValueError(f'Event {eventid} not found in database')
     if version is None:
-        version = getattr(args, 'version', None)
+        version = getattr(args, 'event_version', None)
     where = getattr(args, 'where', None) if honor_where_filter else None
     if field_list is not None:
         # always query time and version, for sorting

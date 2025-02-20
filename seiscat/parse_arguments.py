@@ -198,12 +198,13 @@ def _add_editdb_parser(subparser, parents):
         parents=[parents['configfile_parser']],
         help='edit database')
     editdb_parser.add_argument(
-        'eventid', nargs='?',
+        'eventid',
+        nargs='?',
         help='event ID to edit. Use ALL to edit all events'
     ).completer = _evid_completer
     editdb_parser.add_argument(
-        '-v',
-        '--version',
+        'event_version',
+        nargs='?',
         type=int,
         default=None,
         help='event version to edit, required if more than one version'
@@ -389,7 +390,8 @@ def _add_get_parser(subparser, parents):
         help='event ID to get'
     ).completer = _evid_completer
     get_parser.add_argument(
-        'version', nargs='?',
+        'event_version',
+        nargs='?',
         type=int,
         default=None,
         help='use this event version instead of the latest one'
@@ -419,7 +421,8 @@ def _add_set_parser(subparser, parents):
         help='event ID to set'
     ).completer = _evid_completer
     set_parser.add_argument(
-        'version', nargs='?',
+        'event_version',
+        nargs='?',
         type=int,
         default=None,
         help='use this event version instead of the latest one'
