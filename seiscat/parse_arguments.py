@@ -369,7 +369,7 @@ def _add_plot_parser(subparser, parents):
         action='store_true',
         default=False,
         help='add a time slider to the plot (default: %(default)s), '
-                'only used for Plotly maps'
+             'only used for Plotly maps'
     )
 
 
