@@ -233,6 +233,67 @@ def _get_db_values_from_event(ev, config):
     return values
 
 
+def _add_event_to_db(
+        config, ev, cursor, initdb, n_standard_fields, n_extra_fields):
+    """
+    Add an obspy event to the database.
+
+    :param config: config object
+    :param ev: obspy event object
+    :param cursor: database cursor
+    :param initdb: if True, create new database file
+    :param n_standard_fields: number of standard fields
+    :param n_extra_fields: number of extra fields
+
+    :returns: number of events created, number of events updated
+    """
+    values = _get_db_values_from_event(ev, config)
+    evid, version = values[:2]
+    ncreated = nupdated = 0
+    # skip evid and ver fields as well as extra fields
+    if _event_exists(cursor, values, skip_begin=2, skip_end=n_extra_fields):
+        return ncreated, nupdated
+    if initdb or config['overwrite_updated_events']:
+        # if the event exists, get the values of extra fields
+        ev_exists = False
+        cursor.execute(
+            'SELECT * FROM events WHERE evid = ? AND ver = ?',
+            (evid, version))
+        row = cursor.fetchone()
+        if row is not None:
+            ev_exists = True
+            row = list(row)
+            # merge event values with existing extra field values
+            values = values[:n_standard_fields] + row[n_standard_fields:]
+        # add events to table, replace events that already exist
+        cursor.execute(
+            'INSERT OR REPLACE INTO events VALUES '
+            f'({", ".join("?" * len(values))})', values)
+        if ev_exists:
+            nupdated = cursor.rowcount
+        else:
+            ncreated = cursor.rowcount
+        return ncreated, nupdated
+    # add event to table, increment version if evid already exists
+    while True:
+        ev_exists = False
+        try:
+            cursor.execute(
+                'INSERT INTO events VALUES '
+                f'({", ".join("?" * len(values))})', values)
+            if ev_exists:
+                nupdated = cursor.rowcount
+            else:
+                ncreated = cursor.rowcount
+            break
+        except sqlite3.IntegrityError:
+            # evid and ver already exist
+            ev_exists = True
+            # increment version in the values list
+            values[1] += 1
+    return ncreated, nupdated
+
+
 def write_catalog_to_db(cat, config, initdb):
     """
     Write catalog to database.
@@ -242,56 +303,44 @@ def write_catalog_to_db(cat, config, initdb):
     :param initdb: if True, create new database file
     """
     conn = _get_db_connection(config, initdb)
-    c = conn.cursor()
+    cursor = conn.cursor()
     if initdb:
-        _set_db_version(c)
+        _set_db_version(cursor)
     else:
-        _check_db_version(c, config)
+        _check_db_version(cursor, config)
     field_definitions, n_standard_fields, n_extra_fields =\
         _get_db_field_definitions(config)
     # create table if it doesn't exist, use evid and ver as primary key
-    c.execute(
+    cursor.execute(
         'CREATE TABLE IF NOT EXISTS events '
         f'({", ".join(field_definitions)}, PRIMARY KEY (evid, ver))')
-    events_written = 0
+    events_created = 0
+    events_updated = 0
     for ev in cat:
         try:
-            values = _get_db_values_from_event(ev, config)
-            evid, version = values[:2]
+            _ncreated, _nupdated = _add_event_to_db(
+                config, ev, cursor, initdb, n_standard_fields, n_extra_fields)
         except ValueError as e:
             print(e)
             continue
-        if initdb or config['overwrite_updated_events']:
-            # if the event exists, get the values of extra fields
-            c.execute(
-                'SELECT * FROM events WHERE evid = ? AND ver = ?',
-                (evid, version))
-            row = c.fetchone()
-            if row is not None:
-                row = list(row)
-                # merge event values with existing extra field values
-                values = values[:n_standard_fields] + row[n_standard_fields:]
-            # add events to table, replace events that already exist
-            c.execute(
-                'INSERT OR REPLACE INTO events VALUES '
-                f'({", ".join("?" * len(values))})', values)
-            events_written += c.rowcount
-        elif not _event_exists(
-                # skip evid and ver fields as well as extra fields
-                c, values, skip_begin=2, skip_end=n_extra_fields):
-            while True:
-                try:
-                    c.execute(
-                        'INSERT INTO events VALUES '
-                        f'({", ".join("?" * len(values))})', values)
-                    events_written += c.rowcount
-                    break
-                except sqlite3.IntegrityError:
-                    # evid and ver already exist, increment ver
-                    values[1] += 1
+        events_created += _ncreated
+        events_updated += _nupdated
     # close database connection
     conn.commit()
-    print(f'Wrote {events_written} events to database "{config["db_file"]}"')
+    if events_created:
+        plural = 's' if events_created > 1 else ''
+        print(
+            f'{events_created} new event{plural} added to the database '
+            f'"{config["db_file"]}"'
+        )
+    if events_updated:
+        plural = 's' if events_updated > 1 else ''
+        print(
+            f'{events_updated} event{plural} updated in the database '
+            f'"{config["db_file"]}"'
+        )
+    if not events_created and not events_updated:
+        print('No new events added or updated in the database')
 
 
 def _process_where_option(where_str):
