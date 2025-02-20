@@ -170,10 +170,12 @@ def _get_evid(resource_id):
 
 def _get_db_field_definitions(config):
     """
-    Get a list of database fields.
+    Get a list of database fields, number of standard fields, and number of
+    extra fields.
 
     :param config: config object
-    :returns: list of field definitions, number of extra fields
+    :returns: list of field definitions, number of standard fields,
+              number of extra fields
     """
     field_definitions = [
         'evid TEXT',
@@ -186,13 +188,14 @@ def _get_db_field_definitions(config):
         'mag_type TEXT',
         'event_type TEXT',
     ]
+    n_standard_fields = len(field_definitions)
     extra_field_names = config['extra_field_names'] or []
     extra_field_types = config['extra_field_types'] or []
     n_extra_fields = len(extra_field_names)
     field_definitions.extend(
         f'{name} {dbtype}' for name, dbtype
         in zip(extra_field_names, extra_field_types))
-    return field_definitions, n_extra_fields
+    return field_definitions, n_standard_fields, n_extra_fields
 
 
 def _get_db_values_from_event(ev, config):
@@ -244,7 +247,8 @@ def write_catalog_to_db(cat, config, initdb):
         _set_db_version(c)
     else:
         _check_db_version(c, config)
-    field_definitions, n_extra_fields = _get_db_field_definitions(config)
+    field_definitions, n_standard_fields, n_extra_fields =\
+        _get_db_field_definitions(config)
     # create table if it doesn't exist, use evid and ver as primary key
     c.execute(
         'CREATE TABLE IF NOT EXISTS events '
@@ -253,16 +257,27 @@ def write_catalog_to_db(cat, config, initdb):
     for ev in cat:
         try:
             values = _get_db_values_from_event(ev, config)
+            evid, version = values[:2]
         except ValueError as e:
             print(e)
             continue
         if initdb or config['overwrite_updated_events']:
+            # if the event exists, get the values of extra fields
+            c.execute(
+                'SELECT * FROM events WHERE evid = ? AND ver = ?',
+                (evid, version))
+            row = c.fetchone()
+            if row is not None:
+                row = list(row)
+                # merge event values with existing extra field values
+                values = values[:n_standard_fields] + row[n_standard_fields:]
             # add events to table, replace events that already exist
             c.execute(
                 'INSERT OR REPLACE INTO events VALUES '
                 f'({", ".join("?" * len(values))})', values)
             events_written += c.rowcount
         elif not _event_exists(
+                # skip evid and ver fields as well as extra fields
                 c, values, skip_begin=2, skip_end=n_extra_fields):
             while True:
                 try:
