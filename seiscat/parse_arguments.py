@@ -195,7 +195,10 @@ def _add_editdb_parser(subparser, parents):
     """Add the editdb subparser."""
     editdb_parser = subparser.add_parser(
         'editdb',
-        parents=[parents['configfile_parser']],
+        parents=[
+            parents['configfile_parser'],
+            parents['where_parser'],
+        ],
         help='edit database')
     editdb_parser.add_argument(
         'eventid',
