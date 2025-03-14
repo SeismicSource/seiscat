@@ -11,7 +11,9 @@ Download event details from FDSN web services and store them to local files.
 """
 import pathlib
 import warnings
-from obspy.clients.fdsn.header import FDSNNotImplementedException
+from obspy.clients.fdsn.header import (
+    FDSNNotImplementedException, FDSNNoDataException
+)
 from ..database.dbfunctions import read_events_from_db
 from ..sources.fdsnws import open_fdsn_connection
 from ..utils import ExceptionExit
@@ -41,9 +43,13 @@ def fetch_event_details(config):
             print(f'{outfile} exists, skipping')
             continue
         try:
-            event = client.get_events(eventid=evid, includearrivals=True)
-        except FDSNNotImplementedException:
-            event = client.get_events(eventid=evid)
+            try:
+                event = client.get_events(eventid=evid, includearrivals=True)
+            except FDSNNotImplementedException:
+                event = client.get_events(eventid=evid)
+        except FDSNNoDataException:
+            print(f'No data available for {evid}')
+            continue
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             event.write(outfile, format='QUAKEML')
