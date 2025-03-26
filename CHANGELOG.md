@@ -9,6 +9,9 @@ Copyright (c) 2022-2025 Claudio Satriano <satriano@ipgp.fr>
 - `seiscat download` renamed to `seiscat fetchdata`
 - New option for `seiscat fetchdata`: `--sds` to retrieve waveform data from
   a local SDS archive
+- Configuration option `channel_priorities` replaced by `channel_codes`
+- Removed configuration option `location_priorities`
+- Added configuration option `prefer_high_sampling_rate`
 - New option for `seiscat initdb` and `seiscat updatedb`: `--fromfile` to
   initialize or update the database from a CSV file
 - New command `seiscat run` to run a user-defined command on each event

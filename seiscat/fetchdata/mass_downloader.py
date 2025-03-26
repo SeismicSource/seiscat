@@ -15,7 +15,9 @@ import logging
 from obspy.clients.fdsn.mass_downloader import (
     CircularDomain, Restrictions, MassDownloader
 )
+from .event_waveforms_utils import prefer_high_sampling_rate
 from ..utils import ExceptionExit
+mdl_logger = logging.getLogger('obspy.clients.fdsn.mass_downloader')
 
 
 def _check_fdsn_providers(fdsn_providers):
@@ -49,7 +51,6 @@ def _set_mdl_logger(evid):
 
     :param evid: event ID
     """
-    mdl_logger = logging.getLogger('obspy.clients.fdsn.mass_downloader')
     mdl_logger.setLevel(logging.DEBUG)
     # Prevent propagating to higher loggers.
     mdl_logger.propagate = 0
@@ -63,7 +64,6 @@ def _unset_mdl_logger():
     """
     Unset the ObsPy mass downloader logger.
     """
-    mdl_logger = logging.getLogger('obspy.clients.fdsn.mass_downloader')
     mdl_logger.handlers = []
 
 
@@ -86,8 +86,7 @@ def mass_download_waveforms(config, event):
     seconds_after = config['seconds_after_origin']
     duration_min = config['duration_min']
     interstation_distance_min = config['interstation_distance_min']
-    channel_priorities = config['channel_priorities']
-    location_priorities = config['location_priorities']
+    channel_codes = config['channel_codes']
 
     event_dir = pathlib.Path(config['event_dir'])
     evid_dir = event_dir / f'{evid}'
@@ -96,8 +95,8 @@ def mass_download_waveforms(config, event):
     station_dir = pathlib.Path(evid_dir / config['station_dir'])
     station_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f'\n{evid}: downloading waveforms and station metadata')
     _set_mdl_logger(evid)
+    mdl_logger.info('Downloading waveforms and station metadata')
 
     domain = CircularDomain(
         latitude=latitude, longitude=longitude,
@@ -110,10 +109,12 @@ def mass_download_waveforms(config, event):
         'minimum_length': duration_min,
         'minimum_interstation_distance_in_m': interstation_distance_min * 1e3,
     }
-    if channel_priorities:
-        restrictions['channel_priorities'] = channel_priorities
-    if location_priorities:
-        restrictions['location_priorities'] = location_priorities
+    if channel_codes:
+        # remove spaces inside channel codes
+        channel_codes = channel_codes.replace(' ', '')
+        restrictions['channel'] = channel_codes
+    else:
+        restrictions['channel'] = '*'
     restrictions = Restrictions(**restrictions)
     with ExceptionExit():
         mdl = MassDownloader(providers=providers, configure_logging=False)
@@ -122,5 +123,8 @@ def mass_download_waveforms(config, event):
             mseed_storage=str(waveform_dir),
             stationxml_storage=str(station_dir)
         )
-        _unset_mdl_logger()
-        print(f'{evid}: waveforms and station metadata saved to {evid_dir}\n')
+    if config['prefer_high_sampling_rate']:
+        prefer_high_sampling_rate(waveform_dir, mdl_logger)
+    _info_msg = f'Waveforms and station metadata saved to {evid_dir}'
+    mdl_logger.info(_info_msg)
+    _unset_mdl_logger()

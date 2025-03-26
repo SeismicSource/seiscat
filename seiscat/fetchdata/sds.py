@@ -12,6 +12,7 @@ Fetch event waveforms from a local SDS archive.
 import pathlib
 import re
 from obspy.clients.filesystem.sds import Client
+from .event_waveforms_utils import prefer_high_sampling_rate
 
 
 def get_sds_client(sds_root):
@@ -32,27 +33,32 @@ def get_sds_client(sds_root):
     return client
 
 
-def _check_channel(channel, channel_priorities):
+def _check_channel(channel, channel_codes):
     """
-    Check if a channel is in the list of channel priorities.
+    Check if a channel matches the specified channel codes.
+    The channel codes can contain wildcards:
+    - '*' matches any number of characters
+    - '?' matches a single character
 
     :param channel: channel code
     :type channel: str
-    :param channel_priorities: list of channel codes
-    :type channel_priorities: list
+    :param channel_codes: string with channel codes separated by commas
+    :type channel_codes: str
 
     :return: True if the channel is in the list of channel priorities
     :rtype: bool
     """
-    for priority in channel_priorities:
-        # Convert wildcard pattern to regex pattern
-        regex_pattern = re.escape(priority)\
-            .replace(r'\*', '.*').replace(r'\?', '.')
-        # Handle character sets like [ZNE]
-        regex_pattern = re.sub(r'\\\[([^\\\]]+)\\\]', r'[\1]', regex_pattern)
-        if re.fullmatch(regex_pattern, channel):
-            return True
-    return False
+    # Escape dots, replace `?` with `.`, replace `*` with `.*`,
+    # and split by comma
+    regex_parts = [
+        code.replace('.', r'\.')   # Escape dots if any
+            .replace('?', '.')     # Single-character wildcard
+            .replace('*', '.*')    # Multi-character wildcard
+        for code in channel_codes.split(',')
+    ]
+    # Join with `|` to create an OR pattern
+    regex = f"^({'|'.join(regex_parts)})$"
+    return bool(re.match(regex, channel))
 
 
 def fetch_sds_waveforms(config, event, client):
@@ -66,21 +72,26 @@ def fetch_sds_waveforms(config, event, client):
     :param client: SDS client
     :type client: obspy.clients.filesystem.sds.Client
     """
-    event_dir = pathlib.Path(config['event_dir'], event['evid'], 'waveforms')
-    event_dir.mkdir(parents=True, exist_ok=True)
+    evid = event['evid']
+    event_dir = pathlib.Path(config['event_dir'])
+    evid_dir = event_dir / f'{evid}'
+    waveform_dir = pathlib.Path(evid_dir / config['waveform_dir'])
+    waveform_dir.mkdir(parents=True, exist_ok=True)
     seconds_before = config['seconds_before_origin']
     seconds_after = config['seconds_after_origin']
     t0 = event['time'] - seconds_before
     t1 = event['time'] + seconds_after
-    channel_priorities = config['channel_priorities']
-    print(f'Fetching waveforms for event: {event["evid"]}')
+    channel_codes = config['channel_codes']
+    print(f'Fetching waveforms for event: {evid}')
     all_nslc = client.get_all_nslc()
     for nslc in all_nslc:
-        if not _check_channel(nslc[-1], channel_priorities):
-            continue
         net, sta, loc, chan = nslc
+        if not _check_channel(chan, channel_codes):
+            continue
         st = client.get_waveforms(net, sta, loc, chan, t0, t1)
-        outfile = event_dir / f'{net}.{sta}.{loc}.{chan}.mseed'
+        outfile = waveform_dir / f'{net}.{sta}.{loc}.{chan}.mseed'
         st.write(outfile, format='MSEED')
         print(f'  {outfile} written')
+    if config['prefer_high_sampling_rate']:
+        prefer_high_sampling_rate(waveform_dir)
     print()
