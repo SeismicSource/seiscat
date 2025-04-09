@@ -19,7 +19,7 @@ import contextlib
 
 def run():
     """Run seiscat."""
-    from .parse_arguments import parse_arguments
+    from .config import parse_arguments
     args = parse_arguments()
     from .config import parse_configspec, read_config, write_sample_config
     configspec = parse_configspec()

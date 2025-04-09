@@ -10,3 +10,4 @@ Configuration functions for seiscat.
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
 from .config import parse_configspec, read_config, write_sample_config  # noqa
+from .parse_arguments import parse_arguments  # noqa
