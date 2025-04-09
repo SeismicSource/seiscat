@@ -80,6 +80,22 @@ class NewlineHelpFormatter(argparse.HelpFormatter):
         return lines
 
 
+class SubcommandHelpFormatter(argparse.RawDescriptionHelpFormatter):
+    """
+    Custom help formatter that removes the list of subcommands from the help
+    message.
+
+    See: https://stackoverflow.com/a/13429281/2021880
+    """
+    def _format_action(self, action):
+        parts = super(
+            argparse.RawDescriptionHelpFormatter, self
+        )._format_action(action)
+        if action.nargs == argparse.PARSER:
+            parts = '\n'.join(parts.split('\n')[1:])
+        return parts
+
+
 def _get_parent_parsers():
     """Get a dictionary of parent parsers."""
     configfile_parser = argparse.ArgumentParser(add_help=False)
@@ -485,9 +501,12 @@ def _add_main_arguments(parser):
 def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description='Keep a local seismic catalog.')
+        description='Keep a local seismic catalog.',
+        formatter_class=SubcommandHelpFormatter
+    )
     _add_main_arguments(parser)
-    subparser = parser.add_subparsers(dest='action')
+    subparser = parser.add_subparsers(dest='action', title='commands')
+    subparser.metavar = '<command> [options]'
     parents = _get_parent_parsers()
     _add_initdb_parser(subparser, parents)
     _add_updatedb_parser(subparser, parents)
