@@ -79,7 +79,7 @@ def _guess_field_names(input_fields):
         'seconds': ['seconds', 'second', 'sec', 's', 'ss'],
         'lat': ['lat', 'latitude'],
         'lon': ['lon', 'longitude'],
-        'depth': ['depth', 'depth_km'],
+        'depth': ['depth', 'depth_km', 'dep', 'evz'],
         'mag': ['mag', 'magnitude', 'mw', 'ml'],
         'mag_type': ['mag_type', 'magnitude_type'],
         'event_type': ['event_type', 'ev_type'],
