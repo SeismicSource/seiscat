@@ -12,6 +12,7 @@ This code is modified from Requake (https://github.com/SeismicSource/requake)
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
 import csv
+from io import StringIO
 from obspy import UTCDateTime
 from obspy.core.event import Origin, Event, Catalog, Magnitude
 from ..utils import float_or_none, int_or_none
@@ -333,6 +334,15 @@ def _read_csv(fp, delimiter, column_names, nrows, depth_units):
     :return: an ObsPy catalog object
     :rtype: obspy.Catalog
     """
+    if delimiter == ' ':
+        # if the delimiter is a space,
+        # remove possible multiple spaces between fields
+        updated_lines = [
+            ' '.join(line.split()) for line in fp
+        ]
+        updated_lines = '\n'.join(updated_lines)
+        # generate a new file pointer
+        fp = StringIO(updated_lines)
     reader = csv.DictReader(
         fp, delimiter=delimiter, skipinitialspace=True,
         fieldnames=column_names)
