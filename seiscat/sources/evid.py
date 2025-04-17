@@ -47,7 +47,7 @@ def generate_evid(orig_time):
     :return: an event id
     :rtype: str
     """
-    prefix = 'reqk'
+    prefix = 'scat'
     year = orig_time.year
     orig_year = UTCDateTime(year=year, month=1, day=1)
     val = int(orig_time - orig_year)
