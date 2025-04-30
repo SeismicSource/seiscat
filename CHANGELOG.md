@@ -20,6 +20,11 @@ Copyright (c) 2022-2025 Claudio Satriano <satriano@ipgp.fr>
 - New plottype `plotly` for `seiscat plot`, producing interactive 3D seismicity
   plots
 - New command `seiscat logo` to print the beautiful, ascii-art SeisCat logo
+- Fixed an issue in `seiscat editdb` where positional arguments (`eventid` and
+  `event_version`) were not parsed correctly due to improper handling of the
+  `--set` and `--increment` options. Users must now repeat the `--set` and
+  `--increment` options for each `KEY=VALUE` pair
+  (e.g., `-s locked=True -s processed=True`).
 
 ## v0.8 - 2024-10-28
 

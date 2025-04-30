@@ -233,20 +233,21 @@ def _add_editdb_parser(subparser, parents):
         '--set',
         type=str,
         metavar='KEY=VALUE',
-        nargs='+',
-        help='set event attributes. Multiple KEY=VALUE pairs can be given '
-             '(e.g., -s time=2022-01-01T00:00:00.0Z lat=12.0 lon=-3.0 '
-             'depth=20.0)'
+        action='append',
+        help='Set event attributes. Use multiple -s options for multiple '
+             'KEY=VALUE pairs (e.g., -s time=2022-01-01T00:00:00.0Z '
+             '-s lat=12.0 -s lon=-3.0 -s depth=20.0)'
     )
     editdb_parser.add_argument(
         '-i',
         '--increment',
         type=str,
         metavar='KEY=INCREMENT',
-        nargs='+',
+        action='append',
         help='increment a numeric event attribute by a specified amount '
              '(e.g., -i depth=3.0). Use a negative INCREMENT to decrement '
-             '(e.g., -i depth=-5.0)'
+             '(e.g., -i depth=-5.0). Use multiple -i options for multiple '
+             'KEY=INCREMENT pairs (e.g., -i depth=3.0 -i mag=-0.5). '
     )
     editdb_parser.add_argument(
         '-r',
