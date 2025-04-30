@@ -161,7 +161,8 @@ def editdb(config):
     if eventid and len(rows) > 1:
         err_exit(
             f'Event {eventid} has {len(rows)} versions, '
-            'please specify version with "--version"')
+            'please specify the version number after the event ID'
+        )
     try:
         if args.replicate:
             _replicate(config, fields, rows)
