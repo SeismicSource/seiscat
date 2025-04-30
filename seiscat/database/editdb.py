@@ -162,13 +162,16 @@ def editdb(config):
         err_exit(
             f'Event {eventid} has {len(rows)} versions, '
             'please specify version with "--version"')
-    if args.replicate:
-        _replicate(config, fields, rows)
-    elif args.delete:
-        _delete(config, fields, rows, eventid, version, args)
-    elif args.set:
-        _set(config, fields, rows, args.set, args)
-    elif args.increment:
-        _increment(config, fields, rows, args.increment, args)
-    else:
-        err_exit('No action specified. See "seiscat editdb -h" for help')
+    try:
+        if args.replicate:
+            _replicate(config, fields, rows)
+        elif args.delete:
+            _delete(config, fields, rows, eventid, version, args)
+        elif args.set:
+            _set(config, fields, rows, args.set, args)
+        elif args.increment:
+            _increment(config, fields, rows, args.increment, args)
+        else:
+            err_exit('No action specified. See "seiscat editdb -h" for help')
+    except ValueError as msg:
+        err_exit(msg)
