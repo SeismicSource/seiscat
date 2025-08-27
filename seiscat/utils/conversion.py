@@ -9,11 +9,13 @@ Function to convert data types.
     GNU General Public License v3.0 or later
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
+import math
 
 
 def float_or_none(string):
     """
-    Convert string to float, return None if conversion fails.
+    Convert string to float, return None if conversion fails
+    or if the value is NaN.
 
     :param string: Input string.
     :type string: str
@@ -22,6 +24,8 @@ def float_or_none(string):
     """
     try:
         val = float(string)
+        if math.isnan(val):
+            val = None
     except (TypeError, ValueError):
         val = None
     return val
