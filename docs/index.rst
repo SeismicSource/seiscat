@@ -31,6 +31,7 @@ The local catalog is stored in a SQLite database (single file database).
 
    installation
    getting_started
+   commands
    changelog
    api
 

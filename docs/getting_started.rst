@@ -38,41 +38,7 @@ To update an existing database from an FDSN webservice, run:
 (This will use the configuration parameter ``recheck_period`` to recheck the
 last *n* days or hours).
 
-Alternatively, you can update the database from a CSV file:
-
-.. code-block::
-
-    seiscat updatedb -f /path/to/your/catalog.csv
-
-
-You can edit the attributes of specific events in the database using:
-
-.. code-block::
-
-    seiscat editdb
-
-
-You can print the catalog to screen:
-
-.. code-block::
-
-   seiscat print
-
-
-Or plot it:
-
-.. code-block::
-
-   seiscat plot
-
-
-Each of the above commands can have its own options.
-As an example, to discover the options for the ``plot`` command, try:
-
-.. code-block::
-
-    seiscat plot -h
-
+See the full command reference in :doc:`commands`.
 
 SeisCat supports command line tab completion for arguments, thanks to
 `argcomplete <https://kislyuk.github.io/argcomplete/>`__.
