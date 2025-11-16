@@ -481,7 +481,15 @@ def _add_run_parser(subparser, parents):
 
 def _add_sampleconfig_parser(subparser):
     """Add the sampleconfig subparser."""
-    subparser.add_parser('sampleconfig', help='write sample config file')
+    subparser.add_parser('sampleconfig', help='write a sample config file')
+
+
+def _add_samplescript_parser(subparser):
+    """Add the samplescript subparser."""
+    subparser.add_parser(
+        'samplescript',
+        help='write a sample script file to be used with the "run" command'
+    )
 
 
 def _add_logo_parser(subparser):
@@ -519,6 +527,7 @@ def parse_arguments():
     _add_run_parser(subparser, parents)
     _add_fetchdata_parser(subparser, parents)
     _add_sampleconfig_parser(subparser)
+    _add_samplescript_parser(subparser)
     _add_logo_parser(subparser)
     argcomplete.autocomplete(parser)
     args = parser.parse_args()

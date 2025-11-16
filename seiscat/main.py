@@ -26,6 +26,10 @@ def run():
     if args.action == 'sampleconfig':
         write_sample_config(configspec, 'seiscat')
         sys.exit(0)
+    elif args.action == 'samplescript':
+        from .utils import write_sample_script
+        write_sample_script()
+        sys.exit(0)
     if args.action == 'logo':
         from .utils import print_logo
         print_logo()

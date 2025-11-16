@@ -13,7 +13,7 @@ import os
 import sys
 from .configobj import ConfigObj
 from .configobj.validate import Validator
-from ..utils import err_exit, ExceptionExit
+from ..utils import err_exit, ExceptionExit, write_ok
 
 
 def parse_configspec():
@@ -25,21 +25,6 @@ def parse_configspec():
     curdir = os.path.dirname(__file__)
     configspec_file = os.path.join(curdir, 'configspec.conf')
     return read_config(configspec_file)
-
-
-def write_ok(filepath):
-    """
-    Check if it is ok to write to a file.
-
-    :param filepath: path to the file
-    :returns: True if it is ok to write to the file, False otherwise
-    """
-    if os.path.exists(filepath):
-        ans = input(
-            f'"{filepath}" already exists. Do you want to overwrite it? [y/N] '
-        )
-        return ans in ['y', 'Y']
-    return True
 
 
 def write_sample_config(configspec, progname):

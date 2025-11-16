@@ -15,6 +15,8 @@ Copyright (c) 2022-2025 Claudio Satriano <satriano@ipgp.fr>
 - New option for `seiscat initdb` and `seiscat updatedb`: `--fromfile` to
   initialize or update the database from a CSV file
 - New command `seiscat run` to run a user-defined command on each event
+- New command `seiscat samplescript` to write a sample script for the
+  `seiscat run` command
 - New commands `seiscat get` and `seiscat set` to get and set the value of
   a specfic event attribute
 - New plottype `plotly` for `seiscat plot`, producing interactive 3D seismicity
