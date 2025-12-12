@@ -11,6 +11,15 @@ Exit functions.
 """
 import sys
 import contextlib
+import traceback
+DEBUG = False
+
+
+def set_debug(debug):
+    """Enable or disable debug mode for error handling."""
+    # pylint: disable=global-statement
+    global DEBUG
+    DEBUG = bool(debug)
 
 
 def err_exit(msg):
@@ -39,6 +48,8 @@ class ExceptionExit(contextlib.AbstractContextManager):
 
     def __exit__(self, exc_type, exc_value, _traceback):
         if exc_type:
+            if DEBUG:
+                traceback.print_exception(exc_type, exc_value, _traceback)
             if self.additional_msg is not None:
                 msg = f'{self.additional_msg}: {exc_value}'
             else:

@@ -11,6 +11,7 @@ Main script for seiscat.
     GNU General Public License v3.0 or later
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
+import os
 import sys
 import contextlib
 # NOTE: other modules are lazy-imported to speed up startup time
@@ -21,6 +22,9 @@ def run():
     """Run seiscat."""
     from .config import parse_arguments
     args = parse_arguments()
+    from .utils import set_debug
+    env_debug = os.environ.get('SC_DEBUG', '')
+    set_debug(env_debug.lower() in ('1', 'true', 'yes', 'on'))
     from .config import parse_configspec, read_config, write_sample_config
     configspec = parse_configspec()
     if args.action == 'sampleconfig':

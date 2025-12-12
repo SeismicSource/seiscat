@@ -9,7 +9,7 @@ Utility functions for seiscat.
     GNU General Public License v3.0 or later
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
-from .exit import err_exit, ExceptionExit  # noqa
+from .exit import err_exit, ExceptionExit, set_debug  # noqa
 from .conversion import float_or_none, int_or_none  # noqa
 from .sample_script import write_sample_script  # noqa
 from .print_logo import print_logo  # noqa
