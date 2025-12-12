@@ -216,7 +216,10 @@ def _get_db_values_from_event(ev, config):
     time = str(orig.time)
     lat = orig.latitude
     lon = orig.longitude
-    depth = orig.depth / 1e3  # km
+    try:
+        depth = orig.depth / 1e3  # km
+    except TypeError:
+        depth = None
     try:
         magnitude = ev.preferred_magnitude() or ev.magnitudes[0]
         mag = magnitude.mag

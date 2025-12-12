@@ -397,7 +397,9 @@ def read_catalog_from_csv(config):
         # and convert it to meters
         depths = [ev.origins[0].depth for ev in cat]
         max_depth = max(depths)
-        if max_depth < 500:
+        if max_depth is None:
+            pass
+        elif max_depth < 500:
             print(
                 'Assuming depths are in kilometers, you can specify '
                 '--depth_units in the command line to avoid this check')
