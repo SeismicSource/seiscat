@@ -19,7 +19,7 @@ __release_date__ = get_versions()['date']
 # -- Project information -----------------------------------------------------
 
 project = 'SeisCat'
-copyright = '2022-2025, Claudio Satriano'  # pylint: disable=redefined-builtin
+copyright = '2022-2026, Claudio Satriano'  # pylint: disable=redefined-builtin
 author = 'Claudio Satriano'
 
 # The full version, including alpha/beta/rc tags.
