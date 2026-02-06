@@ -22,6 +22,10 @@ def float_or_none(string):
     :return: Float value or None.
     :rtype: float or None
     """
+    # first check if the decimal separator is a comma,
+    # and if so, replace it with a dot
+    if isinstance(string, str) and ',' in string and '.' not in string:
+        string = string.replace(',', '.')
     try:
         val = float(string)
         if math.isnan(val):
