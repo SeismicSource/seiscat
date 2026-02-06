@@ -44,7 +44,7 @@ def _get_tile_scale(extent):
     return int(tile_scale)
 
 
-def _plot_events(ax, events, scale, plot_version_number=False):
+def _plot_events(ax, events, scale):
     """
     Plot events on a map.
 
@@ -69,53 +69,18 @@ def _plot_events(ax, events, scale, plot_version_number=False):
     ]
     # Sort events by time, so that the latest event is plotted on top
     ev_attributes.sort(key=lambda x: x[2])
-    markers = []
-    for evid, ver, time, lon, lat, depth, mag, size in ev_attributes:
-        _evid = f'{evid} v{ver}' if plot_version_number else evid
-        mag_str = f'M{mag:.1f}' if mag is not None else ''
-        depth_str = f'{depth:.1f} km' if depth is not None else ''
-        marker_label = (
-            f'{_evid} {mag_str} {depth_str}\n'
-            f'{time.strftime("%Y-%m-%d %H:%M:%S")}')
-        marker = ax.scatter(
-            lon, lat,
-            s=size,
-            facecolor='red', edgecolor='black',
-            label=marker_label,
-            zorder=10,
-            transform=ccrs.PlateCarree(),
-        )
-        markers.append(marker)
-    # Empty annotation that will be updated interactively
-    annot = ax.annotate(
-        '', xy=(0, 0), xytext=(5, 5),
-        textcoords='offset points',
-        bbox=dict(boxstyle='round', fc='w'),
-        zorder=20
+    # Collect all coordinates and sizes for batch plotting
+    lons = [attr[3] for attr in ev_attributes]
+    lats = [attr[4] for attr in ev_attributes]
+    sizes = [attr[7] for attr in ev_attributes]
+    # Plot all events at once
+    ax.scatter(
+        lons, lats,
+        s=sizes,
+        facecolor='red', edgecolor='black',
+        zorder=10,
+        transform=ccrs.PlateCarree(),
     )
-    annot.set_visible(False)
-    fig = ax.get_figure()
-
-    def hover(event):
-        vis = annot.get_visible()
-        if vis:
-            annot.set_visible(False)
-            fig.canvas.draw_idle()
-        if event.inaxes != ax:
-            return
-        for marker in markers:
-            cont, _ = marker.contains(event)
-            if cont:
-                marker.set_linewidth(3)
-                annot.xy = (event.xdata, event.ydata)
-                annot.set_text(marker.get_label())
-                annot.get_bbox_patch().set_facecolor('white')
-                annot.get_bbox_patch().set_alpha(0.8)
-                annot.set_visible(True)
-            else:
-                marker.set_linewidth(1)
-        fig.canvas.draw_idle()
-    fig.canvas.mpl_connect('motion_notify_event', hover)
 
 
 def plot_catalog_map_with_cartopy(events, config):
@@ -154,8 +119,7 @@ def plot_catalog_map_with_cartopy(events, config):
         ax.gridlines(**g_kwargs)
     ax.callbacks.connect('xlim_changed', redraw_gridlines)
     scale = config['args'].scale
-    plot_version_number = config['args'].allversions
-    _plot_events(ax, events, scale, plot_version_number)
+    _plot_events(ax, events, scale)
     ax.set_title(get_catalog_stats(config))
     if out_file:
         plt.savefig(out_file, bbox_inches='tight')
