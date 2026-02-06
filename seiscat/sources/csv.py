@@ -13,6 +13,7 @@ This code is modified from Requake (https://github.com/SeismicSource/requake)
 """
 import csv
 from io import StringIO
+import numpy as np
 from obspy import UTCDateTime
 from obspy.core.event import Origin, Event, Catalog, Magnitude
 from ..utils import float_or_none, int_or_none
@@ -452,11 +453,14 @@ def read_catalog_from_csv(config):
     if args.depth_units is None:
         # If catalog's maximum depth is too small, assume it is in kilometers
         # and convert it to meters
-        depths = [ev.origins[0].depth for ev in cat]
-        max_depth = max(depths)
-        if max_depth is None:
-            pass
-        elif max_depth < 500:
+        depths = np.array([ev.origins[0].depth for ev in cat], dtype=np.float64)
+        # if all depths are NaN, skip the check
+        if np.isnan(depths).all():
+            return cat
+        max_depth = np.nanmax(depths)
+        if np.isnan(max_depth):
+            return cat
+        if max_depth < 500:
             print(
                 'Assuming depths are in kilometers, you can specify '
                 '--depth_units in the command line to avoid this check')
