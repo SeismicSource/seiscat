@@ -47,6 +47,15 @@ def _field_match_score(field, field_list):
         return 0
 
 
+def _remove_redundant_fields(output_fields, main_field, redundant_fields):
+    """
+    Remove redundant fields from the output_fields dictionary.
+    """
+    if output_fields[main_field] is not None:
+        for redundant_field in redundant_fields:
+            output_fields[redundant_field] = None
+
+
 def _guess_field_names(input_fields):
     """
     Guess the field names corresponding to origin time, latitude, longitude,
@@ -132,6 +141,11 @@ def _guess_field_names(input_fields):
         for key2, value2 in output_fields.items():
             if value2 == value and score > output_field_scores[key2]:
                 output_fields[key2] = None
+    # remove redundant fields
+    _remove_redundant_fields(
+        output_fields, 'date', ['year', 'month', 'day'])
+    _remove_redundant_fields(
+        output_fields, 'time', ['hour', 'minute', 'seconds'])
     print('Columns identified ("column name" --> "identified name"):')
     for in_field, matched_field in output_fields.items():
         if in_field is None:
