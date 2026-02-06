@@ -62,7 +62,8 @@ def _guess_field_names(input_fields):
     field_guesses = {
         'evid': [
             'evid', 'event_id', 'eventid', 'event_id', 'id', 'evidid',
-            'publicid', 'public_id', 'event_public_id', 'event_publicid'
+            'publicid', 'public_id', 'event_public_id', 'event_publicid',
+            'orid', 'origin_id', 'originid'
         ],
         'date': [
             'date', 'orig_date', 'origin_date', 'origin_date_utc',
