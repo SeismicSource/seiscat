@@ -31,6 +31,7 @@ requires-python = ">=3.7"
 dependencies = [
     "obspy>=1.2.0",
     "argcomplete",
+    "Pillow",
 ]
 
 [project.urls]

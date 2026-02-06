@@ -23,6 +23,7 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
   plots
 - New command `seiscat logo` to print the beautiful, ascii-art SeisCat logo
 - New option for `seiscat plot`: `--out-file` to save the plot to a file
+- Use higher resolution Natural Earth background images for Cartopy maps
 - Fixed an issue in `seiscat editdb` where positional arguments (`eventid` and
   `event_version`) were not parsed correctly due to improper handling of the
   `--set` and `--increment` options. Users must now repeat the `--set` and
