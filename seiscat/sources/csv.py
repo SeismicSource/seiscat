@@ -225,6 +225,49 @@ def _read_orig_time_from_ymdhms(row, fields):
     )
 
 
+def _normalize_date_format(date):
+    """
+    Normalize a date string by reversing day-month-year to year-month-day
+    format.
+
+    Handles both "-" and "/" as separators. Validates month (1-12), 
+    day (1-31), and year ranges.
+
+    :param date: date string
+    :type date: str
+
+    :return: normalized date string
+    :rtype: str
+    """
+    if not date:
+        return date
+    date = date.strip()
+    separator = '-' if '-' in date else ('/' if '/' in date else None)
+    if not separator:
+        return date
+    date_parts = date.split(separator)
+    if len(date_parts) != 3:
+        return date
+    # Check structure: 1-2 digit day/month, any length middle, 4 digit year
+    if len(date_parts[0]) > 2 or len(date_parts[2]) != 4:
+        return date
+    # Try to convert parts to integers for validation
+    try:
+        day_or_month = int(date_parts[0])
+        month_or_day = int(date_parts[1])
+        year = int(date_parts[2])
+    except ValueError:
+        return date
+    # Validate year is in reasonable range
+    if not 1800 <= year <= 2100:
+        return date
+    # Validate month is 1-12 and day is 1-31
+    # If first part is 1-31 and second is 1-12, it's day-month-year format
+    if 1 <= day_or_month <= 31 and 1 <= month_or_day <= 12:
+        return separator.join([date_parts[2], date_parts[1], date_parts[0]])
+    return date
+
+
 def _read_orig_time_from_datetime(row, fields):
     """
     Read the origin time from a date-time field.
@@ -239,11 +282,10 @@ def _read_orig_time_from_datetime(row, fields):
 
     :raises ValueError: if the origin time cannot be parsed
     """
-    orig_time_str = (
-        f'{row[fields["date"]]} {row[fields["time"]]}'
-        if fields['date'] is not None
-        else row[fields['time']]
-    )
+    date = row[fields['date']] if fields['date'] is not None else ''
+    time = row[fields['time']] if fields['time'] is not None else ''
+    date = _normalize_date_format(date)
+    orig_time_str = f'{date} {time}'
     try:
         return UTCDateTime(orig_time_str)
     except ValueError:
