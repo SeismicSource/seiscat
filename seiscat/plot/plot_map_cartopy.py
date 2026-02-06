@@ -127,6 +127,18 @@ def plot_catalog_map_with_cartopy(events, config):
     :param config: config object
     :type config: configspec.ConfigObj
     """
+    out_file = config['args'].out_file
+    if out_file:
+        valid_exts = (
+            '.png', '.pdf', '.svg', '.jpg', '.jpeg', '.tif', '.tiff', '.eps')
+        if not out_file.lower().endswith(valid_exts):
+            err_exit(
+                'Output file for cartopy maps should have one of the '
+                f'following extensions:\n  {", ".join(valid_exts)}'
+            )
+        print(f'Saving map to {out_file}...')
+    else:
+        print('Building map...')
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(1, 1, 1, projection=ccrs.Mercator())
     ax.stock_img()
@@ -145,4 +157,8 @@ def plot_catalog_map_with_cartopy(events, config):
     plot_version_number = config['args'].allversions
     _plot_events(ax, events, scale, plot_version_number)
     ax.set_title(get_catalog_stats(config))
-    plt.show()
+    if out_file:
+        plt.savefig(out_file, bbox_inches='tight')
+        print(f'Map saved to {out_file}')
+    else:
+        plt.show()

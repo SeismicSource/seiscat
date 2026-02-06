@@ -391,6 +391,16 @@ def _add_plot_parser(subparser, parents):
         help='add a time slider to the plot (default: %(default)s), '
              'only used for Plotly maps'
     )
+    plot_parser.add_argument(
+        '-o', '--out-file',
+        type=str,
+        default=None,
+        help='output file for the plot (default: show on screen). '
+             'For cartopy maps, the output file format is determined by '
+             'the file extension (e.g., .png, .pdf, .svg). '
+             'For folium and plotly maps, the output file should have '
+             'a .html extension. '
+    )
 
 
 def _add_get_parser(subparser, parents):

@@ -34,6 +34,14 @@ def plot_catalog_map_with_folium(events, config):
     :param config: config object
     :type config: configspec.ConfigObj
     """
+    out_file = config['args'].out_file
+    if out_file:
+        if not out_file.endswith('.html'):
+            err_exit(
+                'Output file for folium maps should have a .html extension')
+        print(f'Saving map to {out_file}...')
+    else:
+        print('Building map...')
     # Get map extent
     lon_min, lon_max, lat_min, lat_max = get_map_extent(events, config)
     # Plot map
@@ -117,8 +125,12 @@ def plot_catalog_map_with_folium(events, config):
         color='gray',
         fill=False
     ).add_to(m)
-    # Save map to temporary file and open it in the browser
-    with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as f:
-        m.save(f.name)
-        file_uri = f'file://{f.name}'
-        webbrowser.open_new(file_uri)
+    if out_file:
+        m.save(out_file)
+        print(f'Map saved to {out_file}')
+    else:
+        # Save map to temporary file and open it in the browser
+        with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as f:
+            m.save(f.name)
+            file_uri = f'file://{f.name}'
+            webbrowser.open_new(file_uri)

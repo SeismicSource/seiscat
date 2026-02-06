@@ -349,6 +349,14 @@ def plot_catalog_map_with_plotly(events, config):
     :param config: config object
     :type config: configspec.ConfigObj
     """
+    out_file = config['args'].out_file
+    if out_file:
+        if not out_file.endswith('.html'):
+            err_exit(
+                'Output file for plotly maps should have a .html extension')
+        print(f'Saving map to {out_file}...')
+    else:
+        print('Building map...')
     events, radii = _get_marker_sizes(events, config['args'].scale)
     xcoords, ycoords, extent, coast = _map_projection(events, config)
     evids = [e['evid'] for e in events]
@@ -407,4 +415,8 @@ def plot_catalog_map_with_plotly(events, config):
     _add_coastline_and_extent(fig, extent, coast)
     if config['args'].time_slider:
         _add_time_slider(fig, xcoords, ycoords, depths, radii, times)
-    fig.show()
+    if out_file:
+        fig.write_html(out_file)
+        print(f'Map saved to {out_file}')
+    else:
+        fig.show()
