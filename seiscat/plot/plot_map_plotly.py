@@ -355,7 +355,8 @@ def plot_catalog_map_with_plotly(events, config):
     times = [e['time'] for e in events]
     lons = [e['lon'] for e in events]
     lats = [e['lat'] for e in events]
-    depths = [e['depth'] for e in events]
+    # if depth is None, use 0
+    depths = [e['depth'] if e['depth'] is not None else 0 for e in events]
     hover_data = {
         'evid': evids, 'time': times,
         'lon': lons, 'lat': lats, 'depth': depths

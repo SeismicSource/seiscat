@@ -73,8 +73,9 @@ def _plot_events(ax, events, scale, plot_version_number=False):
     for evid, ver, time, lon, lat, depth, mag, size in ev_attributes:
         _evid = f'{evid} v{ver}' if plot_version_number else evid
         mag_str = f'M{mag:.1f}' if mag is not None else ''
+        depth_str = f'{depth:.1f} km' if depth is not None else ''
         marker_label = (
-            f'{_evid} {mag_str} {depth:.1f} km\n'
+            f'{_evid} {mag_str} {depth_str}\n'
             f'{time.strftime("%Y-%m-%d %H:%M:%S")}')
         marker = ax.scatter(
             lon, lat,

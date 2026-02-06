@@ -90,12 +90,16 @@ def plot_catalog_map_with_folium(events, config):
             f"{event['mag_type']} {event['mag']:.1f} <br>"
             if event['mag'] is not None else ''
         )
+        depth_str = (
+            f"{event['depth']:.1f} km"
+            if event['depth'] is not None else ''
+        )
         popup_text = folium.Html(
             f"<b>{event['evid']} v{event['ver']}</b> <br>"
             f"{mag_str}"
             f"{event['time']} <br>"
             f"{event['lat']:.2f} {event['lon']:.2f} "
-            f"{event['depth']:.1f} km",
+            f"{depth_str}",
             script=True
         )
         popup = folium.Popup(popup_text, min_width=200, max_width=200)
