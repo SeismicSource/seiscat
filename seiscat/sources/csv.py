@@ -453,7 +453,9 @@ def read_catalog_from_csv(config):
     if args.depth_units is None:
         # If catalog's maximum depth is too small, assume it is in kilometers
         # and convert it to meters
-        depths = np.array([ev.origins[0].depth for ev in cat], dtype=np.float64)
+        depths = np.array(
+            [ev.origins[0].depth for ev in cat], dtype=np.float64
+        )
         # if all depths are NaN, skip the check
         if np.isnan(depths).all():
             return cat
