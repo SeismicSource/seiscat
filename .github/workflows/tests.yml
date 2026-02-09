@@ -7,12 +7,14 @@ on:
     paths:
         - 'seiscat/**'
         - 'tests/**'
+        - '.github/workflows/tests.yml'
         - 'pyproject.toml'
         - 'setup.py'
   pull_request:
     paths:
         - 'seiscat/**'
         - 'tests/**'
+        - '.github/workflows/tests.yml'
         - 'pyproject.toml'
         - 'setup.py'
 
@@ -37,9 +39,10 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip setuptools wheel
-        pip install .
-        pip install pytest pytest-cov
+        python -m pip install --upgrade pip wheel
+        python -m pip install "setuptools>=65"
+        python -m pip install .
+        python -m pip install pytest pytest-cov
 
     - name: Run tests with coverage
       run: |
