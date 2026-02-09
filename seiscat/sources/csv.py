@@ -226,12 +226,45 @@ def _read_orig_time_from_ymdhms(row, fields):
     )
 
 
+def _split_date_time(date_time_str):
+    """
+    Split a date-time string into date and time components.
+
+    :param date_time_str: date-time string
+    :type date_time_str: str
+    :return: a tuple with the date and time components
+    :rtype: tuple of (str, str)
+    """
+    if 'T' in date_time_str:
+        # ISO 8601 format, split on 'T'
+        return date_time_str.split('T', 1)
+    if ' ' in date_time_str:
+        val1, val2 = date_time_str.split(' ', 1)
+    else:
+        # cannot split
+        # return the original string as date and an empty string as time
+        return date_time_str, ''
+    # check for typical date separators
+    if any(c in ['-', '/'] for c in val1):
+        return val1, val2
+    if any(c in ['-', '/'] for c in val2):
+        return val2, val1
+    # check for typical time separators
+    if any(c in [':', '.'] for c in val1):
+        return val2, val1
+    if any(c in [':', '.'] for c in val2):
+        return val1, val2
+    # if we get here, we couldn't identify date and time components
+    # return the original string as date and an empty string as time
+    return date_time_str, ''
+
+
 def _normalize_date_format(date):
     """
     Normalize a date string by reversing day-month-year to year-month-day
     format.
 
-    Handles both "-" and "/" as separators. Validates month (1-12), 
+    Handles both "-" and "/" as separators. Validates month (1-12),
     day (1-31), and year ranges.
 
     :param date: date string
@@ -285,8 +318,12 @@ def _read_orig_time_from_datetime(row, fields):
     """
     date = row[fields['date']] if fields['date'] is not None else ''
     time = row[fields['time']] if fields['time'] is not None else ''
+    if not date and not time:
+        raise ValueError('No date or time information found')
+    if not date or not time:
+        date, time = _split_date_time(date or time)
     date = _normalize_date_format(date)
-    orig_time_str = f'{date} {time}'
+    orig_time_str = f'{date} {time}'.strip()
     try:
         return UTCDateTime(orig_time_str)
     except ValueError:
