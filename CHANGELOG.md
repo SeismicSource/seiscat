@@ -6,7 +6,8 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 
 ## unreleased
 
-- Raised minimum required Python version to 3.9
+- Raised minimum required Python version to 3.9, added support for Python
+  3.13 and 3.14
 - `seiscat download` renamed to `seiscat fetchdata`
 - New option for `seiscat fetchdata`: `--sds` to retrieve waveform data from
   a local SDS archive
