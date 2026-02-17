@@ -19,6 +19,7 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - New command `seiscat run` to run a user-defined command on each event
 - New command `seiscat samplescript` to write a sample script for the
   `seiscat run` command
+- New GeoJSON output format for `seiscat print` command (`-f geojson`)
 - New commands `seiscat get` and `seiscat set` to get and set the value of
   a specfic event attribute
 - New plottype `plotly` for `seiscat plot`, producing interactive 3D seismicity

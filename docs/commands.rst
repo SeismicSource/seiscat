@@ -114,11 +114,13 @@ Print the catalog.
 
    seiscat print                        # default table
    seiscat print -f csv                 # CSV format
+   seiscat print -f geojson             # GeoJSON format
    seiscat print -f stats               # Summary statistics
-   seiscat print [EVID]                 # Only used for table format
+
+Note: add ``EVID`` argument to print a specific event.
 
 Options: ``--configfile``, ``--where``, ``--allversions``, ``--reverse``,
-``--format {table,csv,stats}``.
+``--format {table,csv,geojson,stats}``.
 
 seiscat plot
 ~~~~~~~~~~~~

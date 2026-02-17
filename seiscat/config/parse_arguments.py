@@ -343,14 +343,14 @@ def _add_print_parser(subparser, parents):
     )
     print_parser.add_argument(
         'eventid', nargs='?',
-        help='event ID to print (only used for table format)'
+        help='event ID to print'
     ).completer = _evid_completer
     print_parser.add_argument(
         '-f',
         '--format',
         type=str,
         default='table',
-        choices=['table', 'csv', 'stats'],
+        choices=['table', 'csv', 'geojson', 'stats'],
         help='output format (default: %(default)s)'
     )
 
