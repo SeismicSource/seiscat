@@ -368,7 +368,7 @@ def _add_export_parser(subparser, parents):
         help='export catalog to file',
         formatter_class=NewlineHelpFormatter
     )
-    formats = ['csv', 'json']
+    formats = ['csv', 'json', 'kml']
     export_parser.add_argument(
         '-f',
         '--format',
@@ -380,6 +380,16 @@ def _add_export_parser(subparser, parents):
             'If specified, this option takes precedence over the extension '
             'of the output file. '
             'If omitted, the format is inferred from the outfile extension.'
+        )
+    )
+    export_parser.add_argument(
+        '-s',
+        '--scale',
+        type=float,
+        default=5.0,
+        help=(
+            'Scale factor for marker size (default: %(default)s). '
+            'Only valid for KML output.'
         )
     )
     export_parser.add_argument(

@@ -20,7 +20,7 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - New command `seiscat samplescript` to write a sample script for the
   `seiscat run` command
 - New command `seiscat export` to export the catalog to a file in
-  a specified format (currently supported formats are CSV and GeoJSON)
+  a specified format (currently supported formats are CSV, GeoJSON, and KML)
 - `seiscat print`: remove the CSV format, which is now available
   through `seiscat export`
 - New commands `seiscat get` and `seiscat set` to get and set the value of

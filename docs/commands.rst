@@ -125,19 +125,23 @@ See also :ref:`seiscat export` for exporting to files.
 seiscat export
 ~~~~~~~~~~~~~~
 
-Export the catalog to a file in CSV or GeoJSON format.
+Export the catalog to a file in CSV, GeoJSON, or KML format.
 
 .. code-block::
 
    seiscat export catalog.csv           # Export to CSV (format inferred)
    seiscat export catalog.json          # Export to GeoJSON
+   seiscat export catalog.kml           # Export to KML
    seiscat export -f csv out.txt        # Explicit format (CSV)
    seiscat export -f json data.json     # Explicit format (GeoJSON)
+   seiscat export -f kml map.kml        # Explicit format (KML)
    seiscat export catalog.csv -w "mag >= 3.0"  # Export filtered events
+   seiscat export catalog.kml -s 8.0    # KML with custom marker size
 
 Options: ``--configfile``, ``--where``, ``--allversions``, ``--reverse``,
-``--format {csv,json}`` (optional; if omitted, format is inferred from
-the output file extension).
+``--format {csv,json,kml}`` (optional; if omitted, format is inferred from
+the output file extension),
+``--scale FLOAT`` (KML only; scale factor for marker size, default: 5.0).
 
 seiscat plot
 ~~~~~~~~~~~~
