@@ -108,19 +108,36 @@ Options: ``--configfile``, ``--where``, ``--allversions``,
 seiscat print
 ~~~~~~~~~~~~~
 
-Print the catalog.
+Print the catalog to the console in various formats.
 
 .. code-block::
 
-   seiscat print                        # default table
-   seiscat print -f csv                 # CSV format
-   seiscat print -f geojson             # GeoJSON format
+   seiscat print                        # default table format
    seiscat print -f stats               # Summary statistics
-
-Note: add ``EVID`` argument to print a specific event.
+   seiscat print EVID                   # Print a specific event
+   seiscat print -w "mag >= 3.0"        # Filter and print
 
 Options: ``--configfile``, ``--where``, ``--allversions``, ``--reverse``,
-``--format {table,csv,geojson,stats}``.
+``--format {table,stats}``.
+
+See also :ref:`seiscat export` for exporting to files.
+
+seiscat export
+~~~~~~~~~~~~~~
+
+Export the catalog to a file in CSV or GeoJSON format.
+
+.. code-block::
+
+   seiscat export catalog.csv           # Export to CSV (format inferred)
+   seiscat export catalog.json          # Export to GeoJSON
+   seiscat export -f csv out.txt        # Explicit format (CSV)
+   seiscat export -f json data.json     # Explicit format (GeoJSON)
+   seiscat export catalog.csv -w "mag >= 3.0"  # Export filtered events
+
+Options: ``--configfile``, ``--where``, ``--allversions``, ``--reverse``,
+``--format {csv,json}`` (optional; if omitted, format is inferred from
+the output file extension).
 
 seiscat plot
 ~~~~~~~~~~~~

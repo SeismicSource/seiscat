@@ -350,8 +350,47 @@ def _add_print_parser(subparser, parents):
         '--format',
         type=str,
         default='table',
-        choices=['table', 'csv', 'geojson', 'stats'],
+        choices=['table', 'stats'],
         help='output format (default: %(default)s)'
+    )
+
+
+def _add_export_parser(subparser, parents):
+    """Add the export subparser."""
+    export_parser = subparser.add_parser(
+        'export',
+        parents=[
+            parents['configfile_parser'],
+            parents['versions_parser'],
+            parents['where_parser'],
+            parents['reverse_parser']
+        ],
+        help='export catalog to file',
+        formatter_class=NewlineHelpFormatter
+    )
+    formats = ['csv', 'json']
+    export_parser.add_argument(
+        '-f',
+        '--format',
+        type=str,
+        choices=formats,
+        default=None,
+        help=(
+            f'Output format ({", ".join(formats)}). '
+            'If specified, this option takes precedence over the extension '
+            'of the output file. '
+            'If omitted, the format is inferred from the outfile extension.'
+        )
+    )
+    export_parser.add_argument(
+        'outfile',
+        type=str,
+        help=(
+            'Path to the output file. '
+            'The file format is inferred from the filename extension '
+            f'(e.g., {", ".join(f".{fmt}" for fmt in formats)}), '
+            'unless overridden by --format.'
+        )
     )
 
 
@@ -531,6 +570,7 @@ def parse_arguments():
     _add_updatedb_parser(subparser, parents)
     _add_editdb_parser(subparser, parents)
     _add_print_parser(subparser, parents)
+    _add_export_parser(subparser, parents)
     _add_plot_parser(subparser, parents)
     _add_get_parser(subparser, parents)
     _add_set_parser(subparser, parents)

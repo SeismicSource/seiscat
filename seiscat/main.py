@@ -67,6 +67,9 @@ def run():
     elif args.action == 'print':
         from .print import print_catalog
         print_catalog(config)
+    elif args.action == 'export':
+        from .export import export_catalog
+        export_catalog(config)
     elif args.action == 'plot':
         from .plot.plot_map import plot_catalog_map
         plot_catalog_map(config)
