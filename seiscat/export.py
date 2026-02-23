@@ -286,6 +286,9 @@ def export_catalog(config):
                 'Cannot infer output format from file extension. '
                 'Please specify the format with the -f option.'
             )
+    # Add file extension if missing
+    if not args.outfile.lower().endswith(f'.{out_format}'):
+        args.outfile += f'.{out_format}'
     try:
         if out_format == 'csv':
             _export_catalog_csv(config)
