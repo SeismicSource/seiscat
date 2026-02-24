@@ -47,6 +47,12 @@ def fetch_event_details(config):
                 event = client.get_events(eventid=evid, includearrivals=True)
             except FDSNNotImplementedException:
                 event = client.get_events(eventid=evid)
+        except ValueError as e:
+            print(
+                f'Cannot fetch event details for {evid} '
+                f'from server {client.base_url}: {e}'
+            )
+            continue
         except FDSNNoDataException:
             print(f'No data available for {evid}')
             continue
