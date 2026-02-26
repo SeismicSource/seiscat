@@ -77,6 +77,11 @@ Sources
     :undoc-members:
     :show-inheritance:
 
+.. automodule:: seiscat.sources.obspy_events
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 .. automodule:: seiscat.sources.evid
     :members:
     :undoc-members:

@@ -7,14 +7,17 @@ Common options
 ~~~~~~~~~~~~~~
 
 - ``-c, --configfile PATH``: configuration file (default: ``seiscat.conf``).
-- CSV input (``initdb``, ``updatedb``):
+- Event file input (``initdb``, ``updatedb``):
 
-   - ``-f, --fromfile FILENAME``: read events from CSV.
+   - ``-f, --fromfile FILENAME``: read events from a file.
+     Tries CSV format first, then falls back to ObsPy format
+     auto-detection (QuakeML, SC3ML, NLLOC, etc.).
    - ``-d, --delimiter DELIM``: CSV delimiter (use ``\t`` for tab,
-     ``" "`` for space). Default: auto.
+     ``" "`` for space). Default: auto. Only used for CSV files.
    - ``-n, --column_names NAME [NAME ...]``: column names (default:
-     autodetect).
+     autodetect). Only used for CSV files.
    - ``-z, --depth_units {m,km}``: depth units (default: autodetect).
+     Only used for CSV files.
 - Selection and ordering (where supported: see per-command):
 
    - ``-w, --where "KEY OP VALUE [AND|OR KEY OP VALUE ...]"``:
@@ -40,28 +43,32 @@ Examples:
 seiscat initdb
 ~~~~~~~~~~~~~~
 
-Initialize the database (from configured sources or a CSV file).
+Initialize the database (from configured sources or an event file).
 
 .. code-block::
 
-   seiscat initdb                      # from config (e.g., FDSN)
-   seiscat initdb -f catalog.csv       # from CSV
-   seiscat initdb -f catalog.csv -z km # explicit depth units
+   seiscat initdb                           # from config (e.g., FDSN)
+   seiscat initdb -f catalog.csv            # from CSV
+   seiscat initdb -f catalog.csv -z km      # explicit depth units
+   seiscat initdb -f catalog.xml            # QuakeML (ObsPy auto-detect)
+   seiscat initdb -f events.quakeml         # QuakeML (ObsPy auto-detect)
+   seiscat initdb -f events.sc3ml           # SC3ML format
 
-Options: ``--configfile``, CSV input options, ``--depth_units``.
+Options: ``--configfile``, event file input options, ``--depth_units``.
 
 seiscat updatedb
 ~~~~~~~~~~~~~~~~
 
 Update an existing database (honors ``recheck_period`` in the config).
-Can also read new events from CSV.
+Can also read new events from an event file.
 
 .. code-block::
 
    seiscat updatedb
    seiscat updatedb -f catalog.csv
+   seiscat updatedb -f events.xml
 
-Options: ``--configfile``, CSV input options, ``--depth_units``.
+Options: ``--configfile``, event file input options, ``--depth_units``.
 
 seiscat editdb
 ~~~~~~~~~~~~~~

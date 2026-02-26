@@ -18,7 +18,8 @@ SeisCat is a command line tool to keep a local seismic catalog.
 The local catalog can be used as a basis for further analyses.
 
 The seismic catalog is built and updated by querying a FDSNWS event webservice
-or a local CSV file.
+or from a local event file. Supported formats include CSV and any format
+supported by ObsPy (QuakeML, SC3ML, NLLOC, etc.).
 More ways of feeding the catalog will be added in the future.
 
 The local catalog is stored in a SQLite database (single file database).
@@ -42,9 +43,11 @@ Then, edit the configuration file and init the database:
 
     seiscat initdb
 
-Alternatively, you can init the database from a CSV file:
+Alternatively, you can init the database from an event file (CSV, QuakeML,
+SC3ML, NLLOC, etc.):
 
     seiscat initdb -f /path/to/your/catalog.csv
+    seiscat initdb -f /path/to/your/events.xml
 
 To update an existing database from an FDSN webservice, run:
 
@@ -53,9 +56,10 @@ To update an existing database from an FDSN webservice, run:
 (This will use the configuration parameter `recheck_period` to recheck the
 last *n* days or hours).
 
-Alternatively, you can update the database from a CSV file:
+Alternatively, you can update the database from an event file:
 
     seiscat updatedb -f /path/to/your/catalog.csv
+    seiscat updatedb -f /path/to/your/events.xml
 
 You can edit the attributes of specific events in the database using:
 

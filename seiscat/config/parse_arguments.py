@@ -112,7 +112,9 @@ def _get_parent_parsers():
         '--fromfile',
         type=str,
         metavar='FILENAME',
-        help='read events from a CSV file'
+        help='read events from a file. '
+             'Tries CSV format first, then falls back to '
+             'ObsPy format auto-detection (QuakeML, SC3ML, NLLOC, etc.)'
     )
     fromfile_parser.add_argument(
         '-d',
@@ -120,7 +122,8 @@ def _get_parent_parsers():
         type=str,
         default=None,
         help='CSV delimiter (default: autoset). '
-             'Use "\\t" for tab or " " for space.'
+             'Use "\\t" for tab or " " for space. '
+             'Only used for CSV files.'
     )
     fromfile_parser.add_argument(
         '-n',
@@ -128,7 +131,8 @@ def _get_parent_parsers():
         type=str,
         default=None,
         nargs='+',
-        help='column names in the CSV file (default: autodetect)'
+        help='column names in the CSV file (default: autodetect). '
+             'Only used for CSV files.'
     )
     unit_parser = argparse.ArgumentParser(add_help=False)
     unit_parser.add_argument(

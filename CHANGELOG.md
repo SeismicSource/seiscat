@@ -15,7 +15,9 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - Removed configuration option `location_priorities`
 - Added configuration option `prefer_high_sampling_rate`
 - New option for `seiscat initdb` and `seiscat updatedb`: `--fromfile` to
-  initialize or update the database from a CSV file
+  initialize or update the database from an event file. Supported formats:
+  CSV and any format supported by ObsPy (QuakeML, SC3ML, NLLOC, etc.).
+  CSV format is tried first, then falls back to ObsPy if needed
 - New command `seiscat run` to run a user-defined command on each event
 - New command `seiscat samplescript` to write a sample script for the
   `seiscat run` command

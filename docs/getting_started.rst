@@ -22,11 +22,13 @@ Then, edit the configuration file and init the database:
    seiscat initdb
 
 
-Alternatively, you can init the database from a CSV file:
+Alternatively, you can init the database from an event file (CSV, QuakeML,
+SC3ML, NLLOC, etc.):
 
 .. code-block::
 
     seiscat initdb -f /path/to/your/catalog.csv
+    seiscat initdb -f /path/to/your/events.xml
 
 To update an existing database from an FDSN webservice, run:
 

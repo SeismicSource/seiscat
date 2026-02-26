@@ -20,6 +20,89 @@ from ..utils import float_or_none, int_or_none
 from .evid import generate_evid
 
 
+def _is_csv_like(filename, delimiter=None):
+    """
+    Check if a file appears to be CSV or CSV-like format.
+
+    This performs basic checks to quickly determine if a file could be CSV,
+    tab-separated, or space-separated values format.
+
+    :param filename: input filename
+    :type filename: str
+    :param delimiter: optional delimiter to check for (if provided by user)
+    :type delimiter: str or None
+
+    :return: True if file appears to be CSV-like, False otherwise
+    :rtype: bool
+    """
+    try:
+        with open(filename, 'rb') as fp:
+            # Read first few bytes to check if it's binary
+            first_bytes = fp.read(1024)
+            # Check for null bytes (indicates binary file)
+            if b'\x00' in first_bytes:
+                return False
+        with open(filename, 'r', encoding='utf8') as fp:
+            # Read first few lines
+            first_lines = []
+            for _ in range(10):
+                line = fp.readline()
+                if not line:
+                    break
+                first_lines.append(line.strip())
+            if not first_lines:
+                return False
+            # Check if it looks like XML (QuakeML, SC3ML, etc.)
+            first_line = first_lines[0]
+            if first_line.startswith('<?xml') or first_line.startswith('<'):
+                return False
+            # Check for CSV delimiters
+            # If user provided a delimiter, check specifically for that
+            if delimiter is not None:
+                delimiters = [delimiter]
+            else:
+                # Otherwise check common CSV delimiters
+                delimiters = [',', ';', '\t', ' ']
+            has_delimiters = any(
+                any(delim in line for line in first_lines[:5])
+                for delim in delimiters
+            )
+            if not has_delimiters:
+                return False
+            # Check if lines have consistent number of fields
+            # (at least some of them should)
+            field_counts = []
+            for line in first_lines[:5]:
+                if not line:
+                    continue
+                # Try different delimiters
+                for delim in delimiters:
+                    if delim in line:
+                        # For space delimiter, split on whitespace
+                        if delim == ' ':
+                            fields = line.split()
+                        else:
+                            fields = line.split(delim)
+                        if len(fields) > 1:
+                            field_counts.append(len(fields))
+                            break
+            # If we found multiple lines with fields,
+            # check if they're somewhat consistent
+            if len(field_counts) >= 2:
+                # Allow some variation (e.g., header vs data rows)
+                # but they should be in a reasonable range
+                min_fields = min(field_counts)
+                max_fields = max(field_counts)
+                # If the difference is huge, probably not CSV
+                if max_fields > min_fields * 3:
+                    return False
+                return True
+            return False
+    except (UnicodeDecodeError, OSError):
+        # If we can't read it as text, it's not CSV
+        return False
+
+
 def _field_match_score(field, field_list):
     """
     Return the length of the longest substring of field that matches any of
@@ -476,12 +559,32 @@ def read_catalog_from_csv(config):
     :rtype: obspy.Catalog
 
     :raises FileNotFoundError: if filename does not exist
-    :raises ValueError: if no origin time field is found
+    :raises ValueError: if depth units are invalid or
+        file is not CSV-like or no origin time field is found
     """
     args = config['args']
-    csv_filename = args.fromfile
     if args.depth_units not in [None, 'km', 'm']:
         raise ValueError(f'Invalid depth_units: {args.depth_units}')
+    csv_filename = args.fromfile
+    # Quickly return FileNotFoundError if file does not exist, before doing
+    # any other checks
+    try:
+        with open(csv_filename, 'r', encoding='utf8'):
+            pass
+    except FileNotFoundError as e:
+        raise FileNotFoundError(
+            f'CSV file not found: {csv_filename}'
+        ) from e
+    # Check if file appears to be CSV-like format
+    # Pass user-provided delimiter if available
+    if not _is_csv_like(csv_filename, delimiter=args.delimiter):
+        delimiter_msg = (
+            f'with delimiter "{args.delimiter}"' if args.delimiter
+            else 'in CSV, tab-separated, or space-separated format'
+        )
+        raise ValueError(
+            f'File {csv_filename} does not appear to be {delimiter_msg}'
+        )
     guess_delimiter, nrows = _csv_file_info(csv_filename)
     delimiter = args.delimiter or guess_delimiter
     print(f'CSV delimiter: "{delimiter}"')
