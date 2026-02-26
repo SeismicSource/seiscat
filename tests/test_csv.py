@@ -777,10 +777,14 @@ class TestReadCatalogFromCSV(unittest.TestCase):
 
     def test_raises_error_for_invalid_depth_units(self):
         """Test raises error for invalid depth units."""
+        csv_content = """lat,lon,depth,mag,time
+42.5,13.2,10.0,3.5,2023-05-15T14:30:45
+43.0,14.0,15.0,4.0,2023-05-16T10:00:00
+"""
         with tempfile.NamedTemporaryFile(
             mode='w', delete=False, suffix='.csv'
         ) as f:
-            f.write('lat,lon,depth,mag,time\n')
+            f.write(csv_content)
             filename = f.name
 
         try:
@@ -818,6 +822,7 @@ class TestReadCatalogFromCSV(unittest.TestCase):
         """Test treats large depth values as meters."""
         csv_content = """latitude,longitude,depth,magnitude,origin_time
 42.5,13.2,10000.0,3.5,2023-05-15T14:30:45
+43.0,14.0,15000.0,4.0,2023-05-16T10:00:00
 """
         with tempfile.NamedTemporaryFile(
             mode='w', delete=False, suffix='.csv'
@@ -840,6 +845,7 @@ class TestReadCatalogFromCSV(unittest.TestCase):
         """Test uses custom delimiter when specified."""
         csv_content = """latitude;longitude;depth;magnitude;origin_time
 42.5;13.2;10.0;3.5;2023-05-15T14:30:45
+43.0;14.0;15.0;4.0;2023-05-16T10:00:00
 """
         with tempfile.NamedTemporaryFile(
             mode='w', delete=False, suffix='.csv'
@@ -855,13 +861,14 @@ class TestReadCatalogFromCSV(unittest.TestCase):
             with patch('builtins.print'):
                 cat = read_catalog_from_csv(config)
 
-            self.assertEqual(len(cat), 1)
+            self.assertEqual(len(cat), 2)
         finally:
             os.unlink(filename)
 
     def test_uses_custom_column_names(self):
         """Test uses custom column names when specified."""
         csv_content = """42.5,13.2,10.0,3.5,2023-05-15T14:30:45
+43.0,14.0,15.0,4.0,2023-05-16T10:00:00
 """
         with tempfile.NamedTemporaryFile(
             mode='w', delete=False, suffix='.csv'
@@ -883,7 +890,7 @@ class TestReadCatalogFromCSV(unittest.TestCase):
             with patch('builtins.print'):
                 cat = read_catalog_from_csv(config)
 
-            self.assertEqual(len(cat), 1)
+            self.assertEqual(len(cat), 2)
             self.assertEqual(cat[0].origins[0].latitude, 42.5)
         finally:
             os.unlink(filename)
