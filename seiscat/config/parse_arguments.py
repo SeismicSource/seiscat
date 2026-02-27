@@ -57,6 +57,17 @@ def _evid_completer(prefix, parsed_args, **_kwargs):
         _evid_completer.db_cursor = _get_db_cursor(parsed_args.configfile)
     if _evid_completer.db_cursor is None:
         return []
+    # Count matching evids first to avoid overwhelming completion
+    _evid_completer.db_cursor.execute(
+        'SELECT COUNT(*) FROM events WHERE evid LIKE ?', (f'{prefix}%',)
+    )
+    count = _evid_completer.db_cursor.fetchone()[0]
+    max_completions = 100
+    if count > max_completions:
+        return [
+            f'[Too many events ({count}) for autocompletion'
+            '\nUse exact EVID or --where to filter]'
+        ]
     _evid_completer.db_cursor.execute(
         'SELECT evid FROM events WHERE evid LIKE ?', (f'{prefix}%',)
     )
