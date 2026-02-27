@@ -9,6 +9,7 @@ Argument parsing for seiscat.
     GNU General Public License v3.0 or later
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
+import os
 import sys
 import textwrap
 import argparse
@@ -593,7 +594,10 @@ def parse_arguments():
     _add_sampleconfig_parser(subparser)
     _add_samplescript_parser(subparser)
     _add_logo_parser(subparser)
-    argcomplete.autocomplete(parser)
+    # Check if we're in completion mode before running argcomplete
+    # This avoids unnecessary overhead when not doing shell completion
+    if '_ARGCOMPLETE' in os.environ:
+        argcomplete.autocomplete(parser)
     args = parser.parse_args()
     if args.action is None:
         parser.print_help()

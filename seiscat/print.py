@@ -9,9 +9,9 @@ Printing functions for seiscat.
     GNU General Public License v3.0 or later
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
-from .database.dbfunctions import (
-    read_fields_and_rows_from_db, get_catalog_stats)
 from .utils import err_exit
+# Other modules are lazily imported inside functions to speed up startup time
+# pylint: disable=import-outside-toplevel
 
 
 def _print_catalog_stats(config):
@@ -20,6 +20,7 @@ def _print_catalog_stats(config):
 
     :param config: config object
     """
+    from .database.dbfunctions import get_catalog_stats
     print(get_catalog_stats(config))
 
 
@@ -29,6 +30,7 @@ def _print_catalog_table(config):
 
     :param config: config object
     """
+    from .database.dbfunctions import read_fields_and_rows_from_db
     # get fields and rows from database
     # rows are sorted by time and version and reversed if requested
     fields, rows = read_fields_and_rows_from_db(config)

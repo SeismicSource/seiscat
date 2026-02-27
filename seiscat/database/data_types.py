@@ -9,8 +9,6 @@ Event data types for seiscat.
     GNU General Public License v3.0 or later
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
-from obspy import UTCDateTime
-
 
 class Event(dict):
     """
@@ -22,6 +20,9 @@ class Event(dict):
         """Initialize the Event object."""
         super().__init__(*args, **kwargs)
         try:
+            # Lazy import to speed up startup time
+            # pylint: disable=import-outside-toplevel
+            from obspy import UTCDateTime
             self['time'] = UTCDateTime(self['time'])
         except KeyError as e:
             raise KeyError('Event object must have a "time" key') from e
