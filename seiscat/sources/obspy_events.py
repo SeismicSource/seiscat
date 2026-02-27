@@ -15,7 +15,7 @@ multiple formats including QuakeML, SC3ML, NLLOC, etc.
 from obspy import read_events
 
 
-def read_catalog_from_obspy_events(config):
+def read_catalog_from_obspy_events(config, filename=None):
     """
     Read a catalog from an event file using obspy.read_events().
 
@@ -23,6 +23,8 @@ def read_catalog_from_obspy_events(config):
 
     :param config: configuration object
     :type config: dict
+    :param filename: event filename (if None, uses args.fromfile[0])
+    :type filename: str or None
 
     :return: an ObsPy catalog object
     :rtype: obspy.Catalog
@@ -31,7 +33,8 @@ def read_catalog_from_obspy_events(config):
     :raises Exception: if file cannot be read by ObsPy
     """
     args = config['args']
-    event_filename = args.fromfile
+    # Support both filename parameter and args.fromfile list
+    event_filename = filename if filename is not None else args.fromfile[0]
     # First, try ObsPy's read_events with format auto-detection
     try:
         cat = read_events(event_filename)

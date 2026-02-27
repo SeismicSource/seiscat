@@ -124,7 +124,9 @@ def _get_parent_parsers():
         '--fromfile',
         type=str,
         metavar='FILENAME',
-        help='read events from a file. '
+        nargs='+',
+        help='read events from file(s). '
+             'Accepts multiple filenames. '
              'Tries CSV format first, then falls back to '
              'ObsPy format auto-detection (QuakeML, SC3ML, NLLOC, etc.)'
     )

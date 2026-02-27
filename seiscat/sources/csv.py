@@ -548,12 +548,14 @@ def _read_csv(fp, delimiter, column_names, nrows, depth_units):
     return cat
 
 
-def read_catalog_from_csv(config):
+def read_catalog_from_csv(config, filename=None):
     """
     Read a catalog from a CSV file.
 
     :param config: configuration object
     :type config: dict
+    :param filename: CSV filename (if None, uses args.fromfile[0])
+    :type filename: str or None
 
     :return: an ObsPy catalog object
     :rtype: obspy.Catalog
@@ -565,7 +567,8 @@ def read_catalog_from_csv(config):
     args = config['args']
     if args.depth_units not in [None, 'km', 'm']:
         raise ValueError(f'Invalid depth_units: {args.depth_units}')
-    csv_filename = args.fromfile
+    # Support both filename parameter and args.fromfile list
+    csv_filename = filename if filename is not None else args.fromfile[0]
     # Quickly return FileNotFoundError if file does not exist, before doing
     # any other checks
     try:

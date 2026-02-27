@@ -50,7 +50,7 @@ def create_mock_config(
     :rtype: dict
     """
     args = MagicMock()
-    args.fromfile = filename
+    args.fromfile = [filename]
     args.depth_units = depth_units
     args.delimiter = delimiter
     args.column_names = column_names

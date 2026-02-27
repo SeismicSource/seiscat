@@ -9,9 +9,9 @@ Common options
 - ``-c, --configfile PATH``: configuration file (default: ``seiscat.conf``).
 - Event file input (``initdb``, ``updatedb``):
 
-   - ``-f, --fromfile FILENAME``: read events from a file.
-     Tries CSV format first, then falls back to ObsPy format
-     auto-detection (QuakeML, SC3ML, NLLOC, etc.).
+   - ``-f, --fromfile FILE [FILE ...]``: read events from one or more files.
+     Accepts multiple filenames. Tries CSV format first, then falls back to
+     ObsPy format auto-detection (QuakeML, SC3ML, NLLOC, etc.).
    - ``-d, --delimiter DELIM``: CSV delimiter (use ``\t`` for tab,
      ``" "`` for space). Default: auto. Only used for CSV files.
    - ``-n, --column_names NAME [NAME ...]``: column names (default:

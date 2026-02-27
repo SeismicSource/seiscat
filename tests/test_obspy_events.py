@@ -28,7 +28,7 @@ def create_mock_config(filename):
     :rtype: dict
     """
     args = MagicMock()
-    args.fromfile = filename
+    args.fromfile = [filename]
     return {'args': args}
 
 

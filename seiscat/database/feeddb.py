@@ -18,8 +18,11 @@ from ..utils import ExceptionExit, err_exit
 
 def feeddb(config, initdb):
     """
-    Feed the database with events from file (CSV or any ObsPy-supported
+    Feed the database with events from file(s) (CSV or any ObsPy-supported
     format) or FDSN web services.
+
+    Multiple files can be provided with --fromfile and will be merged into
+    a single catalog before writing to the database.
 
     :param config: config object
     :param initdb: if True, create new database file
@@ -28,21 +31,29 @@ def feeddb(config, initdb):
         check_db_exists(config, initdb)
     args = config['args']
     if args.fromfile:
-        print(f'Reading event file: {args.fromfile}')
-        # Try CSV first, then fall back to ObsPy
-        try:
-            cat = read_catalog_from_csv(config)
-        except FileNotFoundError:
-            err_exit(f'File not found: {args.fromfile}')
-        except ValueError as csv_error:
-            # CSV reader failed, try ObsPy
-            print(
-                '\nCSV reader could not read the file:\n'
-                f'{csv_error}\n\n'
-                f'Trying ObsPy reader...'
-            )
-            with ExceptionExit():
-                cat = read_catalog_from_obspy_events(config)
+        # Handle multiple files (args.fromfile is always a list with nargs='+')
+        cat = None
+        for filename in args.fromfile:
+            print(f'Reading event file: {filename}')
+            # Try CSV first, then fall back to ObsPy
+            try:
+                file_cat = read_catalog_from_csv(config, filename)
+            except FileNotFoundError:
+                err_exit(f'File not found: {filename}')
+            except ValueError as csv_error:
+                # CSV reader failed, try ObsPy
+                print(
+                    '\nCSV reader could not read the file:\n'
+                    f'{csv_error}\n\n'
+                    f'Trying ObsPy reader...'
+                )
+                with ExceptionExit():
+                    file_cat = read_catalog_from_obspy_events(config, filename)
+            # Merge catalogs
+            if cat is None:
+                cat = file_cat
+            else:
+                cat.extend(file_cat)
     else:
         with ExceptionExit(additional_msg='Error connecting to FDSN server'):
             client = open_fdsn_connection(config)
