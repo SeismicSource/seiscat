@@ -33,10 +33,19 @@ def _get_db_cursor(configfile):
             line.split('=')[1].strip() for line in fp
             if line.startswith('db_file')][0]
     except IndexError:
-        db_file = 'seiscat.sqlite'
-    try:
-        open(db_file, 'r', encoding='utf-8')
-    except FileNotFoundError:
+        db_file = None
+    db_files_to_try = (
+        [db_file]
+        if db_file is not None
+        else ['seiscat_db.sqlite', 'seiscat.sqlite']
+    )
+    for db_file in db_files_to_try:
+        try:
+            open(db_file, 'r', encoding='utf-8')
+            break
+        except FileNotFoundError:
+            continue
+    else:
         return None
     # pylint: disable=import-outside-toplevel
     import sqlite3  # lazy import to speed up startup time

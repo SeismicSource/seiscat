@@ -8,6 +8,8 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 
 - Raised minimum required Python version to 3.9, added support for Python
   3.13 and 3.14
+- New default name for the database file: `seiscat_db.sqlite`
+  (instead of `seiscat.sqlite`)
 - `seiscat download` renamed to `seiscat fetchdata`
 - New option for `seiscat fetchdata`: `--sds` to retrieve waveform data from
   a local SDS archive
