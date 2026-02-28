@@ -3,9 +3,10 @@ SeisCat
 
 Keep a local seismic catalog.
 
-:Copyright: 2022-2026 Claudio Satriano satriano@ipgp.fr
+:Copyright: 2022-2026 |copyright|
 :Release: |release|
 :Date:    |release date|
+:Project Page: `GitHub`_
 
 Overview
 --------
@@ -44,3 +45,5 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+.. _GitHub: https://github.com/seismicsource/seiscat

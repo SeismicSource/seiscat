@@ -31,7 +31,10 @@ version = release.split('-')[0]
 release_date = datetime.strptime(
     __release_date__, '%Y-%m-%dT%H:%M:%S%z'
 ).strftime('%b %d, %Y')
-rst_epilog = f'\n.. |release date| replace:: {release_date}'
+copyright_with_email = 'Claudio Satriano satriano@ipgp.fr'
+release_date_line = f'.. |release date| replace:: {release_date}'
+copyright_line = f'.. |copyright| replace:: {copyright_with_email}'
+rst_epilog = f'\n{release_date_line}\n{copyright_line}'
 
 
 # -- General configuration ---------------------------------------------------
