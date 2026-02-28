@@ -11,6 +11,18 @@ seiscat CLI
     :undoc-members:
     :show-inheritance:
 
+.. automodule:: seiscat.run_command
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Export
+======
+.. automodule:: seiscat.export
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Database
 ========
 .. automodule:: seiscat.database.dbfunctions
@@ -94,6 +106,11 @@ parse_arguments
     :undoc-members:
     :show-inheritance:
 
+.. automodule:: seiscat.config.config
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 plot_map
 ========
 .. automodule:: seiscat.plot.plot_map
@@ -139,6 +156,31 @@ print
 utils
 =====
 .. automodule:: seiscat.utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: seiscat.utils.conversion
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: seiscat.utils.exit
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: seiscat.utils.print_logo
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: seiscat.utils.sample_script
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: seiscat.utils.write_ok
     :members:
     :undoc-members:
     :show-inheritance:

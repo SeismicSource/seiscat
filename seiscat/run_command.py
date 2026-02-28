@@ -26,9 +26,10 @@ def run_command(config):
     The command can be a shell script or executable.
     On Windows, the function automatically detects and uses the appropriate
     interpreter based on the file extension:
-      - `.ps1` → PowerShell
-      - `.py`  → Python
-      - `.bat` / `.cmd` → CMD shell
+
+    - `.ps1` → PowerShell
+    - `.py`  → Python
+    - `.bat` / `.cmd` → CMD shell
 
     On Unix-like systems (Linux/macOS), the command is executed directly
     through the system shell. For each event, all event fields are exported

@@ -129,6 +129,8 @@ Options: ``--configfile``, ``--where``, ``--allversions``, ``--reverse``,
 
 See also :ref:`seiscat export` for exporting to files.
 
+.. _seiscat export:
+
 seiscat export
 ~~~~~~~~~~~~~~
 
