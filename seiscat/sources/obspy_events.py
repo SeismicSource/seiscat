@@ -38,10 +38,8 @@ def read_catalog_from_obspy_events(config, filename=None):
     # First, try ObsPy's read_events with format auto-detection
     try:
         cat = read_events(event_filename)
-        # Get format info for display
-        format_info = 'unknown'
-        if cat and cat.events:
-            format_info = cat[0]._format  # pylint: disable=protected-access
+        # pylint: disable=protected-access
+        format_info = cat[0]._format if cat and cat.events else 'unknown'
         print(
             f'Successfully read {len(cat)} events using ObsPy '
             f'(format: {format_info})'
