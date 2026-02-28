@@ -19,6 +19,7 @@ from ..utils import err_exit
 try:
     import plotly.express as px
     import plotly.graph_objects as go
+    import plotly.io as pio
 except ImportError:
     err_exit(
         'Plotly is not installed. '
@@ -349,6 +350,8 @@ def plot_catalog_map_with_plotly(events, config):
     :param config: config object
     :type config: configspec.ConfigObj
     """
+    # Set plotly renderer to browser to avoid notebook-style HTML output
+    pio.renderers.default = "browser"
     out_file = config['args'].out_file
     if out_file:
         if not out_file.endswith('.html'):
