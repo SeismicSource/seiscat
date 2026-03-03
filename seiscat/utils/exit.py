@@ -12,6 +12,7 @@ Exit functions.
 import sys
 import contextlib
 import traceback
+from rich.console import Console
 DEBUG = False
 
 
@@ -29,7 +30,8 @@ def err_exit(msg):
     :param msg: error message
     """
     msg = str(msg)
-    sys.stderr.write(msg + '\n')
+    console = Console(stderr=True)
+    console.print(f'[bold red]ERROR:[/bold red] {msg}')
     sys.exit(1)
 
 

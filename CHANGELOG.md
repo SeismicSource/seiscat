@@ -11,6 +11,7 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - New default name for the database file: `seiscat_db.sqlite`
   (instead of `seiscat.sqlite`)
 - Added colored help output using `rich-argparse`
+- Colorized error messages for improved visibility and consistency
 - New `--where-help` option to display detailed help for the `--where` filter
   expression, including syntax, examples, and notes. Accessible from any
   subcommand that supports the `--where` option (editdb, print, export, plot,
