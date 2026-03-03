@@ -10,6 +10,13 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
   3.13 and 3.14
 - New default name for the database file: `seiscat_db.sqlite`
   (instead of `seiscat.sqlite`)
+- Added colored help output using `rich-argparse`
+- New `--where-help` option to display detailed help for the `--where` filter
+  expression, including syntax, examples, and notes. Accessible from any
+  subcommand that supports the `--where` option (editdb, print, export, plot,
+  fetchdata, run)
+- Improved error messages for `--where` argument to suggest using
+  `--where-help` for more information
 - `seiscat download` renamed to `seiscat fetchdata`
 - New option for `seiscat fetchdata`: `--sds` to retrieve waveform data from
   a local SDS archive

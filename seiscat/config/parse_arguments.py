@@ -14,6 +14,9 @@ import sys
 import textwrap
 import argparse
 import argcomplete
+from rich_argparse import RichHelpFormatter
+from rich.console import Console
+from rich.panel import Panel
 from .._version import get_versions
 
 
@@ -84,9 +87,57 @@ def _evid_completer(prefix, parsed_args, **_kwargs):
 _evid_completer.db_cursor = None  # noqa: E305
 
 
-class NewlineHelpFormatter(argparse.HelpFormatter):
+def print_where_help_and_exit():
+    """Print detailed help for the --where option and exit."""
+    console = Console()
+    help_text = """[bold]WHERE filter expression[/bold]
+
+Filter events based on one or more conditions.
+
+[bold]Syntax[/bold]
+KEY OP VALUE [AND|OR KEY OP VALUE ...]
+
+Where:
+  [cyan]KEY[/cyan]   - attribute name
+  [cyan]OP[/cyan]    - comparison operator (=, <, >, <=, >=, !=)
+  [cyan]VALUE[/cyan] - value to compare to
+
+[bold]Examples[/bold]
+  -w "depth < 10.0 AND mag >= 3.0"
+  -w "depth < 10.0 OR depth > 100.0"
+  -w "evid = aa1234bb"
+
+[bold]Note[/bold]
+Comparison operators must be quoted to avoid shell interpretation."""
+    panel = Panel(help_text, title="--where", expand=False, padding=(1, 2))
+    console.print(panel)
+    sys.exit(0)
+
+
+class WhereHelpAction(argparse.Action):
+    """Custom action for --where-help that displays detailed help and exits."""
+    def __init__(self, option_strings, dest, **kwargs):
+        super().__init__(option_strings, dest, nargs=0, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        print_where_help_and_exit()
+
+
+class CustomArgumentParser(argparse.ArgumentParser):
+    """Custom parser that adds helpful hints to error messages."""
+    def error(self, message):
+        # Add hint about --where-help if it's a --where error
+        if '--where' in message or '-w' in message:
+            message += '\n(see --where-help for details)'
+        super().error(message)
+
+
+class SubcommandHelpFormatter(RichHelpFormatter):
     """
-    Custom help formatter that preserves newlines in help messages.
+    Custom help formatter that removes the list of subcommands from the help
+    message.
+
+    See: https://stackoverflow.com/a/13429281/2021880
     """
     def _split_lines(self, text, width):
         lines = []
@@ -100,18 +151,8 @@ class NewlineHelpFormatter(argparse.HelpFormatter):
                 lines.append(line)
         return lines
 
-
-class SubcommandHelpFormatter(argparse.RawDescriptionHelpFormatter):
-    """
-    Custom help formatter that removes the list of subcommands from the help
-    message.
-
-    See: https://stackoverflow.com/a/13429281/2021880
-    """
     def _format_action(self, action):
-        parts = super(
-            argparse.RawDescriptionHelpFormatter, self
-        )._format_action(action)
+        parts = super()._format_action(action)
         if action.nargs == argparse.PARSER:
             parts = '\n'.join(parts.split('\n')[1:])
         return parts
@@ -174,23 +215,18 @@ def _get_parent_parsers():
         default=False,
         help='consider all versions of each event (default: %(default)s)'
     )
-    where_parser = argparse.ArgumentParser(add_help=False)
+    where_parser = CustomArgumentParser(add_help=False)
     where_parser.add_argument(
         '-w',
         '--where',
         type=str,
-        metavar='KEY OP VALUE [AND|OR KEY OP VALUE ...]',
-        help='filter events based on one or more conditions.\n\n'
-             'KEY is the attribute name, OP is the comparison operator \n'
-             '(=, <, >, <=, >=, !=), and VALUE is the value to compare to.\n'
-             'Multiple KEY OP VALUE pairs can be given, separated by the\n'
-             'logical operators AND or OR (uppercase or lowecase).\n'
-             'Examples:\n'
-             '-w "depth < 10.0 AND mag >= 3.0"\n'
-             '-w "depth < 10.0 OR depth > 100.0"\n'
-             '-w "evid = aa1234bb"\n\n'
-             'Note that the comparison operators must be quoted to avoid\n'
-             'interpretation by the shell.\n'
+        metavar='EXPR',
+        help='filter expression (use --where-help for details)'
+    )
+    where_parser.add_argument(
+        '--where-help',
+        action=WhereHelpAction,
+        help='show detailed help for the --where option and exit'
     )
     reverse_parser = argparse.ArgumentParser(add_help=False)
     reverse_parser.add_argument(
@@ -219,6 +255,7 @@ def _add_initdb_parser(subparser, parents):
             parents['fromfile_parser'],
             parents['unit_parser']
         ],
+        formatter_class=RichHelpFormatter,
         help='initialize database')
 
 
@@ -231,6 +268,7 @@ def _add_updatedb_parser(subparser, parents):
             parents['fromfile_parser'],
             parents['unit_parser']
         ],
+        formatter_class=RichHelpFormatter,
         help='update database')
 
 
@@ -242,6 +280,7 @@ def _add_editdb_parser(subparser, parents):
             parents['configfile_parser'],
             parents['where_parser'],
         ],
+        formatter_class=RichHelpFormatter,
         help='edit database')
     editdb_parser.add_argument(
         'eventid',
@@ -309,7 +348,7 @@ def _add_fetchdata_parser(subparser, parents):
             parents['where_parser']
         ],
         help='fetch full event details and/or waveform data and metadata',
-        formatter_class=NewlineHelpFormatter
+        formatter_class=RichHelpFormatter
     )
     fetchdata_parser.add_argument(
         '-s', '--sds',
@@ -366,7 +405,7 @@ def _add_print_parser(subparser, parents):
             parents['reverse_parser']
         ],
         help='print catalog',
-        formatter_class=NewlineHelpFormatter
+        formatter_class=RichHelpFormatter
     )
     print_parser.add_argument(
         'eventid', nargs='?',
@@ -393,7 +432,7 @@ def _add_export_parser(subparser, parents):
             parents['reverse_parser']
         ],
         help='export catalog to file',
-        formatter_class=NewlineHelpFormatter
+        formatter_class=RichHelpFormatter
     )
     formats = ['csv', 'json', 'kml']
     export_parser.add_argument(
@@ -442,7 +481,7 @@ def _add_plot_parser(subparser, parents):
             parents['reverse_parser']
         ],
         help='plot catalog map',
-        formatter_class=NewlineHelpFormatter
+        formatter_class=RichHelpFormatter
     )
     plot_parser.add_argument(
         '-m',
@@ -484,6 +523,7 @@ def _add_get_parser(subparser, parents):
     get_parser = subparser.add_parser(
         'get',
         parents=[parents['configfile_parser']],
+        formatter_class=RichHelpFormatter,
         help='get the value of a specific event attribute'
     )
     get_parser.add_argument(
@@ -509,6 +549,7 @@ def _add_set_parser(subparser, parents):
     set_parser = subparser.add_parser(
         'set',
         parents=[parents['configfile_parser']],
+        formatter_class=RichHelpFormatter,
         help='set the value of a specific event attribute'
     )
     set_parser.add_argument(
@@ -545,6 +586,7 @@ def _add_run_parser(subparser, parents):
             parents['where_parser'],
             parents['reverse_parser']
         ],
+        formatter_class=RichHelpFormatter,
         help='run a user-defined command on each event'
     )
     run_parser.add_argument(
@@ -567,20 +609,27 @@ def _add_run_parser(subparser, parents):
 
 def _add_sampleconfig_parser(subparser):
     """Add the sampleconfig subparser."""
-    subparser.add_parser('sampleconfig', help='write a sample config file')
+    subparser.add_parser(
+        'sampleconfig',
+        formatter_class=RichHelpFormatter,
+        help='write a sample config file')
 
 
 def _add_samplescript_parser(subparser):
     """Add the samplescript subparser."""
     subparser.add_parser(
         'samplescript',
+        formatter_class=RichHelpFormatter,
         help='write a sample script file to be used with the "run" command'
     )
 
 
 def _add_logo_parser(subparser):
     """Add the logo subparser."""
-    subparser.add_parser('logo', help='print the seiscat logo 🐱')
+    subparser.add_parser(
+        'logo',
+        formatter_class=RichHelpFormatter,
+        help='print the seiscat logo 🐱')
 
 
 def _add_main_arguments(parser):
@@ -597,11 +646,14 @@ def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
         description='Keep a local seismic catalog.',
-        formatter_class=SubcommandHelpFormatter
+        formatter_class=SubcommandHelpFormatter,
+        add_help=True
     )
     _add_main_arguments(parser)
     subparser = parser.add_subparsers(dest='action', title='commands')
     subparser.metavar = '<command> [options]'
+    # Set parser class for subcommands (used for those added after this point)
+    subparser._parser_class = CustomArgumentParser
     parents = _get_parent_parsers()
     _add_initdb_parser(subparser, parents)
     _add_updatedb_parser(subparser, parents)
