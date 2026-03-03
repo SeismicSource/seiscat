@@ -22,6 +22,8 @@ Common options
 
    - ``-w, --where "KEY OP VALUE [AND|OR KEY OP VALUE ...]"``:
      filter events.
+   - ``--where-help``: display detailed help for the ``--where`` syntax
+     with examples (formatted with syntax highlighting).
    - ``-a, --allversions``: consider all versions of each event.
    - ``-r, --reverse``: reverse output order.
 
@@ -32,6 +34,14 @@ Use comparisons like ``=, <, >, <=, >=, !=`` and combine clauses with
 ``AND``/``OR`` (case-insensitive). Quote the whole expression to avoid
 shell interpretation.
 
+For detailed help with the ``--where`` syntax, use ``--where-help``, e.g.:
+
+.. code-block::
+
+   seiscat print --where-help
+
+This displays a formatted guide with field names, operators, and examples.
+
 Examples:
 
 .. code-block::
@@ -39,6 +49,8 @@ Examples:
    seiscat print -w "depth < 10.0 AND mag >= 3.0"
    seiscat print -w "depth < 10.0 OR depth > 100.0"
    seiscat print -w "evid = aa1234bb"
+   seiscat export catalog.csv -w "time >= '2023-01-01' AND time < '2024-01-01'"
+   seicat plot -w "mag >= 4.0"
 
 seiscat initdb
 ~~~~~~~~~~~~~~
