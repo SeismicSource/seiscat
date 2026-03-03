@@ -127,7 +127,30 @@ Print the catalog to the console in various formats.
 Options: ``--configfile``, ``--where``, ``--allversions``, ``--reverse``,
 ``--format {table,stats}``.
 
-See also :ref:`seiscat export` for exporting to files.
+**Interactive Pager**
+
+When outputting a table to a terminal, ``seiscat print`` displays the catalog
+using an interactive pager with the following features:
+
+- **Vertical navigation**: Use ``j``/``↓`` to move down, ``k``/``↑`` to move up
+- **Page navigation**: ``Space``/``f`` for next page, ``b`` for previous page,
+  ``g`` for home, ``G`` for end
+- **Horizontal scrolling**: If the table is wider than your terminal, use
+  ``h``/``←`` and ``l``/``→`` to scroll left and right
+- **Row selection**: The first row is highlighted; use arrow keys to move the
+  selection
+- **Status bar**: Shows the number of visible events and total event count
+- **Quit**: Press ``q`` or ``Esc`` to exit
+
+To disable the pager and output plain text (useful for piping to a file or
+other commands), redirect the output:
+
+.. code-block::
+
+   seiscat print > catalog.txt          # Save to file (no pager)
+   seiscat print | head -10             # Pipe to another command (no pager)
+
+See also :ref:`seiscat export` for exporting to files in specific formats.
 
 .. _seiscat export:
 
