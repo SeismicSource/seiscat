@@ -3,6 +3,9 @@ Commands
 
 Below is a concise reference of all available commands and key options.
 
+For a complete description of all configuration file options,
+see :doc:`configuration_file`.
+
 Common options
 ~~~~~~~~~~~~~~
 
@@ -290,6 +293,9 @@ Write a sample configuration file to the current directory.
 .. code-block::
 
    seiscat sampleconfig
+
+For a complete description of all configuration options,
+see :doc:`configuration_file`.
 
 seiscat samplescript
 ~~~~~~~~~~~~~~~~~~~~

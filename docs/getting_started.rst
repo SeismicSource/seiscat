@@ -30,6 +30,10 @@ and downloaded event data in one place.
 
    seiscat sampleconfig
 
+This creates a ``seiscat.conf`` file with default settings.
+For a complete description of all available configuration options,
+see :doc:`configuration_file`.
+
 4. Edit the configuration file and initialize the database:
 
 .. code-block::
@@ -63,7 +67,8 @@ A typical project directory after initialization looks like this:
 Where:
 
 - ``seiscat.conf`` is your configuration file (created with
-  ``seiscat sampleconfig``).
+  ``seiscat sampleconfig``). See :doc:`configuration_file` for
+  all available options.
 - ``seiscat_db.sqlite`` is your local SQLite catalog database,
   created by ``seiscat initdb``.
 - ``events/`` contains per-event subdirectories when using
@@ -114,4 +119,5 @@ Or add this line to your ``.bashrc`` or ``.zshrc``:
 Next
 ----
 
-See the full command reference in :doc:`commands`.
+See the full command reference in :doc:`commands` and
+configuration options in :doc:`configuration_file`.
