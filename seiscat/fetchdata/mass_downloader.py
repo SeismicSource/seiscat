@@ -20,6 +20,114 @@ from ..utils import ExceptionExit
 mdl_logger = logging.getLogger('obspy.clients.fdsn.mass_downloader')
 
 
+def _parse_magnitude_bins(magnitude, station_radius_max_mag):
+    """
+    Parse magnitude bins and calculate radius using discrete binning.
+
+    Uses the radius from the largest bin magnitude that doesn't exceed
+    the event magnitude.
+
+    :param magnitude: Event magnitude
+    :param station_radius_max_mag: String with format
+        "mag1: radius1, mag2: radius2, ..."
+    :return: Calculated radius
+    :raises ValueError: If parsing fails
+    :raises IndexError: If parsing fails
+    """
+    # Parse magnitude bins
+    bins = [
+        (float(mag_str.strip()), float(rad_str.strip()))
+        for pair in station_radius_max_mag.split(',')
+        for mag_str, rad_str in [pair.split(':')]
+    ]
+    # Sort bins by magnitude
+    bins.sort(key=lambda x: x[0])
+    # Find the appropriate radius using discrete binning
+    # Use the radius from the largest bin magnitude that doesn't exceed
+    # the event magnitude
+    radius = bins[0][1]  # Default to first bin
+    for mag_bin, rad_bin in bins:
+        if magnitude >= mag_bin:
+            radius = rad_bin
+        else:
+            break
+    return radius
+
+
+def _evaluate_magnitude_expression(magnitude, station_radius_max_mag):
+    """
+    Evaluate a mathematical expression to calculate radius.
+
+    :param magnitude: Event magnitude
+    :param station_radius_max_mag: Mathematical expression string
+        (e.g., "2.0 * mag - 3.0")
+    :return: Calculated radius
+    :raises ValueError: If expression is invalid
+    :raises Exception: If evaluation fails
+    """
+    # Create a safe namespace with only allowed operations
+    safe_dict = {
+        'mag': magnitude,
+        '__builtins__': {},
+        'abs': abs,
+        'min': min,
+        'max': max,
+        'pow': pow,
+    }
+    # Evaluate the expression
+    # pylint: disable=eval-used
+    radius = eval(station_radius_max_mag, safe_dict)
+    if not isinstance(radius, (int, float)):
+        raise ValueError('Expression must evaluate to a number')
+    return radius
+
+
+def _calculate_station_radius_max(
+        magnitude, station_radius_max_mag, station_radius_min,
+        station_radius_max):
+    """
+    Calculate the magnitude-dependent maximum station radius.
+
+    :param magnitude: Event magnitude
+    :param station_radius_max_mag: Configuration string for
+        magnitude-dependent radius. Can be either:
+        - Magnitude bins (discrete): "mag1: radius1, mag2: radius2, ..."
+        - Mathematical expression: "2.0 * mag - 3.0"
+    :param station_radius_min: Minimum station radius (lower bound)
+    :param station_radius_max: Maximum station radius (upper bound)
+    :return: Calculated radius, bounded by station_radius_min and
+        station_radius_max
+    """
+    if station_radius_max_mag is None:
+        return station_radius_max
+    # Try to parse as magnitude bins first
+    # (format: "mag1: radius1, mag2: radius2, ...")
+    if ':' in station_radius_max_mag:
+        try:
+            radius = _parse_magnitude_bins(
+                magnitude, station_radius_max_mag)
+        except (ValueError, IndexError) as e:
+            mdl_logger.warning(
+                'Failed to parse station_radius_max_mag as bins: %s. '
+                'Using default station_radius_max.', e
+            )
+            return station_radius_max
+    else:
+        # Try to parse as mathematical expression
+        try:
+            radius = _evaluate_magnitude_expression(
+                magnitude, station_radius_max_mag)
+        except Exception as e:  # pylint: disable=broad-except
+            mdl_logger.warning(
+                'Failed to evaluate station_radius_max_mag expression: '
+                '%s. Using default station_radius_max.', e
+            )
+            return station_radius_max
+    # Apply bounds
+    radius = max(station_radius_min, min(radius, station_radius_max))
+    return radius
+
+
 def _check_fdsn_providers(fdsn_providers):
     """
     Check if the user wants to use all known FDSN providers.
@@ -78,16 +186,17 @@ def mass_download_waveforms(config, event):
     evid = event['evid']
     latitude = event['lat']
     longitude = event['lon']
+    magnitude = event['mag']
     origin_time = event['time']
     providers = config['fdsn_providers']
     station_radius_min = config['station_radius_min']
     station_radius_max = config['station_radius_max']
+    station_radius_max_mag = config.get('station_radius_max_mag', None)
     seconds_before = config['seconds_before_origin']
     seconds_after = config['seconds_after_origin']
     duration_min = config['duration_min']
     interstation_distance_min = config['interstation_distance_min']
     channel_codes = config['channel_codes']
-
     event_dir = pathlib.Path(config['event_dir'])
     evid_dir = event_dir / f'{evid}'
     waveform_dir = pathlib.Path(evid_dir / config['waveform_dir'])
@@ -97,7 +206,16 @@ def mass_download_waveforms(config, event):
 
     _set_mdl_logger(evid)
     mdl_logger.info('Downloading waveforms and station metadata')
-
+    # Calculate magnitude-dependent radius if configured
+    if station_radius_max_mag is not None and magnitude is not None:
+        station_radius_max = _calculate_station_radius_max(
+            magnitude, station_radius_max_mag,
+            station_radius_min, station_radius_max
+        )
+        mdl_logger.info(
+            'Using magnitude-dependent station radius: '
+            '%.2f° (magnitude=%.2f)', station_radius_max, magnitude
+        )
     domain = CircularDomain(
         latitude=latitude, longitude=longitude,
         minradius=station_radius_min, maxradius=station_radius_max
@@ -107,7 +225,9 @@ def mass_download_waveforms(config, event):
         'endtime': origin_time + seconds_after,
         'reject_channels_with_gaps': False,
         'minimum_length': duration_min,
-        'minimum_interstation_distance_in_m': interstation_distance_min * 1e3,
+        'minimum_interstation_distance_in_m': (
+            interstation_distance_min * 1e3
+        ),
     }
     if channel_codes:
         # remove spaces inside channel codes

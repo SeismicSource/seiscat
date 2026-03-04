@@ -30,6 +30,8 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - Configuration option `channel_priorities` replaced by `channel_codes`
 - Removed configuration option `location_priorities`
 - Added configuration option `prefer_high_sampling_rate`
+- New configuration option `station_radius_max_mag` for magnitude-dependent
+  maximum station radius
 - New option for `seiscat initdb` and `seiscat updatedb`: `--fromfile` to
   initialize or update the database from an event file. Supported formats:
   CSV and any format supported by ObsPy (QuakeML, SC3ML, NLLOC, etc.).
