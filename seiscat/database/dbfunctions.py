@@ -405,13 +405,17 @@ def _build_query(
         version = getattr(args, 'event_version', None)
     where = getattr(args, 'where', None) if honor_where_filter else None
     sortby = getattr(args, 'sortby', 'time') if honor_sortby else 'time'
+    # Track which fields were added for sorting purposes only
+    added_fields = []
     if field_list is not None:
         # always query sortby field and version, for sorting
         fields = field_list[:]
         if sortby not in fields:
             fields.append(sortby)
+            added_fields.append(sortby)
         if 'ver' not in fields:
             fields.append('ver')
+            added_fields.append('ver')
         query = f'SELECT {", ".join(fields)} FROM events'
     else:
         # read field names
@@ -430,7 +434,7 @@ def _build_query(
     if version is not None:
         query += ' AND ver = ?' if 'WHERE' in query else ' WHERE ver = ?'
         query_values.append(version)
-    return query, query_values, fields
+    return query, query_values, fields, added_fields
 
 
 def _keep_latest_version(rows, fields):
@@ -456,7 +460,7 @@ def _keep_latest_version(rows, fields):
     return rows_to_keep
 
 
-def _sort_rows(rows, fields, sortby='time', reverse=False):
+def _sort_rows(rows, fields, sortby='time', reverse=False, added_fields=None):
     """
     Sort rows by a given field and version; reverse if needed.
 
@@ -464,9 +468,13 @@ def _sort_rows(rows, fields, sortby='time', reverse=False):
     :param fields: list of fields
     :param sortby: field name to sort by (default: 'time')
     :param reverse: if True, sort in reverse order
+    :param added_fields: list of fields that were added for sorting purposes
+                         and should be removed after sorting
 
     :returns: sorted fields, sorted rows
     """
+    if added_fields is None:
+        added_fields = []
     try:
         sortby_index = fields.index(sortby)
     except ValueError:
@@ -475,11 +483,17 @@ def _sort_rows(rows, fields, sortby='time', reverse=False):
         sortby_index = fields.index(sortby)
     ver_index = fields.index('ver')
     rows.sort(key=lambda r: (r[sortby_index], r[ver_index]), reverse=reverse)
-    # If last two fields are sortby and 'ver', they were added for sorting
-    # purposes by _build_query and should be removed
-    if len(fields) >= 2 and fields[-2] == sortby and fields[-1] == 'ver':
-        fields = fields[:-2]
-        rows = [r[:-2] for r in rows]
+    # Remove fields that were added for sorting purposes only
+    if added_fields:
+        # Count how many fields to remove from the end
+        n_to_remove = 0
+        for field in reversed(added_fields):
+            if not fields or fields[-1] != field:
+                break
+            n_to_remove += 1
+            fields = fields[:-1]
+        if n_to_remove > 0:
+            rows = [r[:-n_to_remove] for r in rows]
     return fields, rows
 
 
@@ -507,7 +521,7 @@ def read_fields_and_rows_from_db(
     """
     conn = _get_db_connection(config)
     cursor = conn.cursor()
-    query, query_values, fields = _build_query(
+    query, query_values, fields, added_fields = _build_query(
         cursor, config, eventid, version, field_list, honor_where_filter,
         honor_sortby)
     try:
@@ -523,7 +537,7 @@ def read_fields_and_rows_from_db(
         if honor_sortby else 'time'
     reverse = getattr(config['args'], 'reverse', False)\
         if honor_reverse else False
-    return _sort_rows(rows, fields, sortby, reverse)
+    return _sort_rows(rows, fields, sortby, reverse, added_fields)
 
 
 def replicate_event_in_db(config, eventid, version=1):
