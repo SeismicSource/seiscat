@@ -5,6 +5,7 @@
 #Sphinx doc build
 docs/_build
 docs/generated
+docs/configuration_file.rst
 
 #Temporary files
 *~
