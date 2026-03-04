@@ -201,8 +201,8 @@ def _plot_events(ax, events, scale):
          e['mag'], radii[n])
         for n, e in enumerate(events)
     ]
-    # Sort events by time, so that the latest event is plotted on top
-    ev_attributes.sort(key=lambda x: x[2])
+    # Events are already sorted according to the --sortby option
+    # (default: time), so no need to sort here
     # Collect all coordinates and sizes for batch plotting
     lons = [attr[3] for attr in ev_attributes]
     lats = [attr[4] for attr in ev_attributes]

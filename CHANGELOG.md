@@ -21,6 +21,9 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
   fetchdata, run)
 - Improved error messages for `--where` argument to suggest using
   `--where-help` for more information
+- New `--sortby` option to sort catalog output by any database field
+  (default: `time`). Available for `seiscat print`, `seiscat export`,
+  `seiscat plot`, and `seiscat run`. Supports tab-completion of field names.
 - `seiscat download` renamed to `seiscat fetchdata`
 - New option for `seiscat fetchdata`: `--sds` to retrieve waveform data from
   a local SDS archive
@@ -44,6 +47,8 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
   plots
 - New command `seiscat logo` to print the beautiful, ascii-art SeisCat logo
 - New option for `seiscat plot`: `--out-file` to save the plot to a file
+- `seiscat plot` now respects the `--sortby` parameter instead of always
+  sorting by time, allowing control over which events are drawn on top
 - Use higher resolution Natural Earth background images for Cartopy maps
 - Fixed an issue in `seiscat editdb` where positional arguments (`eventid` and
   `event_version`) were not parsed correctly due to improper handling of the

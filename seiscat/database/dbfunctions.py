@@ -370,7 +370,7 @@ def _process_where_option(where_str):
 
 def _build_query(
         cursor, config, eventid=None, version=None, field_list=None,
-        honor_where_filter=True):
+        honor_where_filter=True, honor_sortby=True):
     """
     Build a query to read events from the database.
 
@@ -383,11 +383,12 @@ def _build_query(
                     ``config['args']``
     :param field_list: list of fields to read from the database
     :param honor_where_filter: if ``True``, honor the ``where`` option
+    :param honor_sortby: if ``True``, honor the ``sortby`` option
     :param cursor: database cursor
 
     :returns: query, query values, fields
 
-    :note: if a ``field_list`` is provided, a ``time`` field is always added
+    :note: if a ``field_list`` is provided, a ``sortby`` field is always added
     to the query, for sorting purposes.
     """
     args = config['args']
@@ -403,9 +404,14 @@ def _build_query(
     if version is None:
         version = getattr(args, 'event_version', None)
     where = getattr(args, 'where', None) if honor_where_filter else None
+    sortby = getattr(args, 'sortby', 'time') if honor_sortby else 'time'
     if field_list is not None:
-        # always query time and version, for sorting
-        fields = field_list + ['time', 'ver']
+        # always query sortby field and version, for sorting
+        fields = field_list[:]
+        if sortby not in fields:
+            fields.append(sortby)
+        if 'ver' not in fields:
+            fields.append('ver')
         query = f'SELECT {", ".join(fields)} FROM events'
     else:
         # read field names
@@ -450,22 +456,28 @@ def _keep_latest_version(rows, fields):
     return rows_to_keep
 
 
-def _sort_rows_by_time_and_version(rows, fields, reverse=False):
+def _sort_rows(rows, fields, sortby='time', reverse=False):
     """
-    Sort rows by time and version; reverse if needed.
+    Sort rows by a given field and version; reverse if needed.
 
     :param rows: list of rows
     :param fields: list of fields
+    :param sortby: field name to sort by (default: 'time')
     :param reverse: if True, sort in reverse order
 
     :returns: sorted fields, sorted rows
     """
-    time_index = fields.index('time')
+    try:
+        sortby_index = fields.index(sortby)
+    except ValueError:
+        # If sortby field doesn't exist, fall back to time
+        sortby = 'time'
+        sortby_index = fields.index(sortby)
     ver_index = fields.index('ver')
-    rows.sort(key=lambda r: (r[time_index], r[ver_index]), reverse=reverse)
-    # if last two fields are 'time' and 'ver', they were added for sorting
-    # purposes and should be removed
-    if fields[-2] == 'time' and fields[-1] == 'ver':
+    rows.sort(key=lambda r: (r[sortby_index], r[ver_index]), reverse=reverse)
+    # If last two fields are sortby and 'ver', they were added for sorting
+    # purposes by _build_query and should be removed
+    if len(fields) >= 2 and fields[-2] == sortby and fields[-1] == 'ver':
         fields = fields[:-2]
         rows = [r[:-2] for r in rows]
     return fields, rows
@@ -473,7 +485,7 @@ def _sort_rows_by_time_and_version(rows, fields, reverse=False):
 
 def read_fields_and_rows_from_db(
         config, eventid=None, version=None, field_list=None,
-        honor_where_filter=True):
+        honor_where_filter=True, honor_sortby=True, honor_reverse=True):
     """
     Read fields and rows from database. Return a list of fields and a list of
     rows. The rows are sorted by time and version.
@@ -487,6 +499,8 @@ def read_fields_and_rows_from_db(
                     ``config['args']``
     :param field_list: list of fields to read from the database
     :param honor_where_filter: if ``True``, honor the ``where`` option
+    :param honor_sortby: if ``True``, honor the ``sortby`` option
+    :param honor_reverse: if ``True``, honor the ``reverse`` option
 
     :returns: list of fields, list of rows
     :raises ValueError: if field is not found in database
@@ -494,7 +508,8 @@ def read_fields_and_rows_from_db(
     conn = _get_db_connection(config)
     cursor = conn.cursor()
     query, query_values, fields = _build_query(
-        cursor, config, eventid, version, field_list, honor_where_filter)
+        cursor, config, eventid, version, field_list, honor_where_filter,
+        honor_sortby)
     try:
         cursor.execute(query, query_values)
     except sqlite3.OperationalError as e:
@@ -504,8 +519,11 @@ def read_fields_and_rows_from_db(
     conn.close()
     if not getattr(config['args'], 'allversions', True):
         rows = _keep_latest_version(rows, fields)
-    reverse = getattr(config['args'], 'reverse', False)
-    return _sort_rows_by_time_and_version(rows, fields, reverse)
+    sortby = getattr(config['args'], 'sortby', 'time')\
+        if honor_sortby else 'time'
+    reverse = getattr(config['args'], 'reverse', False)\
+        if honor_reverse else False
+    return _sort_rows(rows, fields, sortby, reverse)
 
 
 def replicate_event_in_db(config, eventid, version=1):

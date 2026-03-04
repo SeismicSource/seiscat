@@ -87,6 +87,31 @@ def _evid_completer(prefix, parsed_args, **_kwargs):
 _evid_completer.db_cursor = None  # noqa: E305
 
 
+def _sortby_completer(prefix, parsed_args, **_kwargs):
+    """
+    Completer for sortby field names.
+
+    :param prefix: prefix to complete
+    :param parsed_args: parsed arguments
+    :param kwargs: keyword arguments
+    :return: list of field names
+    """
+    if _sortby_completer.db_cursor is None:
+        _sortby_completer.db_cursor = _get_db_cursor(parsed_args.configfile)
+    if _sortby_completer.db_cursor is None:
+        return []
+    # Get all field names from the events table
+    try:
+        _sortby_completer.db_cursor.execute('PRAGMA table_info(events)')
+        # Field names are in the second column (index 1)
+        all_fields = [row[1] for row in _sortby_completer.db_cursor.fetchall()]
+        # Filter by prefix
+        return [field for field in all_fields if field.startswith(prefix)]
+    except Exception:  # pylint: disable=broad-except
+        return []
+_sortby_completer.db_cursor = None  # noqa: E305
+
+
 def print_where_help_and_exit():
     """Print detailed help for the --where option and exit."""
     console = Console()
@@ -236,13 +261,23 @@ def _get_parent_parsers():
         default=False,
         help='output catalog in reverse order (default: %(default)s)'
     )
+    sortby_parser = argparse.ArgumentParser(add_help=False)
+    sortby_parser.add_argument(
+        '--sortby',
+        type=str,
+        default='time',
+        help='field to sort by (default: %(default)s). '
+             'Common fields: time, lat, lon, depth, mag, evid. '
+             'Use any field name from the database.'
+    ).completer = _sortby_completer
     return {
         'configfile_parser': configfile_parser,
         'fromfile_parser': fromfile_parser,
         'unit_parser': unit_parser,
         'versions_parser': versions_parser,
         'where_parser': where_parser,
-        'reverse_parser': reverse_parser
+        'reverse_parser': reverse_parser,
+        'sortby_parser': sortby_parser
     }
 
 
@@ -402,6 +437,7 @@ def _add_print_parser(subparser, parents):
             parents['configfile_parser'],
             parents['versions_parser'],
             parents['where_parser'],
+            parents['sortby_parser'],
             parents['reverse_parser']
         ],
         help='print catalog',
@@ -429,6 +465,7 @@ def _add_export_parser(subparser, parents):
             parents['configfile_parser'],
             parents['versions_parser'],
             parents['where_parser'],
+            parents['sortby_parser'],
             parents['reverse_parser']
         ],
         help='export catalog to file',
@@ -478,6 +515,7 @@ def _add_plot_parser(subparser, parents):
             parents['configfile_parser'],
             parents['versions_parser'],
             parents['where_parser'],
+            parents['sortby_parser'],
             parents['reverse_parser']
         ],
         help='plot catalog map',
@@ -584,6 +622,7 @@ def _add_run_parser(subparser, parents):
             parents['configfile_parser'],
             parents['versions_parser'],
             parents['where_parser'],
+            parents['sortby_parser'],
             parents['reverse_parser']
         ],
         formatter_class=RichHelpFormatter,

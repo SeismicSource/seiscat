@@ -25,6 +25,9 @@ Common options
    - ``--where-help``: display detailed help for the ``--where`` syntax
      with examples (formatted with syntax highlighting).
    - ``-a, --allversions``: consider all versions of each event.
+   - ``--sortby FIELD``: sort output by any database field (default: ``time``).
+     Common fields: ``time``, ``lat``, ``lon``, ``depth``, ``mag``, ``evid``.
+     Supports tab-completion of available field names.
    - ``-r, --reverse``: reverse output order.
 
 Filtering with ``--where``
@@ -51,6 +54,40 @@ Examples:
    seiscat print -w "evid = aa1234bb"
    seiscat export catalog.csv -w "time >= '2023-01-01' AND time < '2024-01-01'"
    seicat plot -w "mag >= 4.0"
+
+Sorting with ``--sortby``
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Control the order of catalog output by sorting on any database field.
+By default, events are sorted by ``time`` (oldest first). Use ``--reverse``
+to reverse the sort order.
+
+Common sort fields:
+
+- ``time``: origin time (default)
+- ``mag``: magnitude
+- ``depth``: depth
+- ``lat``, ``lon``: latitude, longitude
+- ``evid``: event ID (alphabetical)
+
+You can sort by any field in your database, including custom extra fields
+defined in your configuration.
+
+Examples:
+
+.. code-block::
+
+   seiscat print --sortby mag             # Sort by magnitude (smallest first)
+   seiscat print --sortby mag --reverse   # Largest magnitude first
+   seiscat print --sortby depth           # Sort by depth (shallowest first)
+   seiscat export catalog.csv --sortby lat  # Sort by latitude
+   seiscat plot --sortby time --reverse   # Plot with latest events on top
+
+**Note**: When plotting with ``seiscat plot``, the sort order determines which
+events are drawn on top. Using ``--sortby time`` (default) ensures the most
+recent events appear on top of older ones. You can change this behavior to
+emphasize other characteristics (e.g., ``--sortby mag`` to draw larger
+magnitude events on top).
 
 seiscat initdb
 ~~~~~~~~~~~~~~
@@ -135,9 +172,10 @@ Print the catalog to the console in various formats.
    seiscat print -f stats               # Summary statistics
    seiscat print EVID                   # Print a specific event
    seiscat print -w "mag >= 3.0"        # Filter and print
+   seiscat print --sortby mag -r        # Sort by magnitude (largest first)
 
-Options: ``--configfile``, ``--where``, ``--allversions``, ``--reverse``,
-``--format {table,stats}``.
+Options: ``--configfile``, ``--where``, ``--allversions``, ``--sortby``,
+``--reverse``, ``--format {table,stats}``.
 
 **Interactive Pager**
 
@@ -181,10 +219,11 @@ Export the catalog to a file in CSV, GeoJSON, or KML format.
    seiscat export -f kml map.kml        # Explicit format (KML)
    seiscat export catalog.csv -w "mag >= 3.0"  # Export filtered events
    seiscat export catalog.kml -s 8.0    # KML with custom marker size
+   seiscat export catalog.csv --sortby depth  # Export sorted by depth
 
-Options: ``--configfile``, ``--where``, ``--allversions``, ``--reverse``,
-``--format {csv,json,kml}`` (optional; if omitted, format is inferred from
-the output file extension),
+Options: ``--configfile``, ``--where``, ``--allversions``, ``--sortby``,
+``--reverse``, ``--format {csv,json,kml}`` (optional; if omitted, format is
+inferred from the output file extension),
 ``--scale FLOAT`` (KML only; scale factor for marker size, default: 5.0).
 
 seiscat plot
@@ -198,9 +237,10 @@ Plot a catalog map using Cartopy, Folium, or Plotly.
    seiscat plot -m folium               # Interactive leaflet map
    seiscat plot -m plotly -t            # Interactive Plotly with time slider
    seiscat plot --scale 8               # Marker size scale
+   seiscat plot --sortby mag -r         # Largest magnitudes drawn on top
 
-Options: ``--configfile``, ``--where``, ``--allversions``, ``--reverse``,
-``--maptype {cartopy,folium,plotly}``, ``--scale FLOAT``,
+Options: ``--configfile``, ``--where``, ``--allversions``, ``--sortby``,
+``--reverse``, ``--maptype {cartopy,folium,plotly}``, ``--scale FLOAT``,
 ``--time_slider`` (Plotly only).
 
 seiscat get
@@ -237,8 +277,10 @@ Supports concurrent execution safely against the database.
    seiscat run "/path/to/script.sh"              # All selected events
    seiscat run "python myproc.py" AA123456        # Only this event
    seiscat run "./proc.sh" -w "mag >= 3.0" -r -a
+   seiscat run "./process.sh" --sortby mag        # Process by magnitude order
 
-Options: ``--configfile``, ``--where``, ``--allversions``, ``--reverse``.
+Options: ``--configfile``, ``--where``, ``--allversions``, ``--sortby``,
+``--reverse``.
 
 seiscat sampleconfig
 ~~~~~~~~~~~~~~~~~~~~
