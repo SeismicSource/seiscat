@@ -193,6 +193,16 @@ using an interactive pager with the following features:
 - **Row selection**: The first row is highlighted; use arrow keys to move the
   selection
 - **Status bar**: Shows the number of visible events and total event count
+- **Interactive sorting**:
+
+  - Press ``s`` to open a popup menu to select a column to sort by
+  - Press ``1``–``9`` to quickly sort by the corresponding column number
+  - Press ``0`` to revert to the default sort order (from ``--sortby`` or
+    configuration)
+  - Press the same column again to toggle sort direction (ascending/descending)
+  - The status bar shows the current sort field and direction (↑ for ascending,
+    ↓ for descending)
+
 - **Quit**: Press ``q`` or ``Esc`` to exit
 
 To disable the pager and output plain text (useful for piping to a file or

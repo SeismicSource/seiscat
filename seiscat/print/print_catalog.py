@@ -37,7 +37,7 @@ def _print_table_rows(header, body_rows):
         print(row)
 
 
-def _display_table(header, body_rows):
+def _display_table(header, body_rows, fields=None, rows=None):
     """
     Display table header and rows.
 
@@ -46,13 +46,18 @@ def _display_table(header, body_rows):
 
     :param header: header row string
     :param body_rows: list of body row strings
+    :param fields: optional list of column names for sorting
+    :param rows: optional list of raw row data for sorting
     """
     # Check if output is to a terminal
     if sys.stdout.isatty():
         # Use curses pager with fixed header for terminal output
         from .pager import display_table_pager, PagerException
         try:
-            display_table_pager(header, body_rows)
+            raw_data = None
+            if fields is not None and rows is not None:
+                raw_data = {'fields': fields, 'rows': rows}
+            display_table_pager(header, body_rows, raw_data=raw_data)
         except PagerException:
             # Fallback to simple print if curses fails
             _print_table_rows(header, body_rows)
@@ -90,7 +95,8 @@ def _print_catalog_table(config):
         )
         body_rows.append(row_str)
     # Display table (pager if TTY, plain text otherwise)
-    _display_table(header, body_rows)
+    # Pass raw fields and rows for interactive sorting
+    _display_table(header, body_rows, fields=fields, rows=rows)
 
 
 def print_catalog(config):

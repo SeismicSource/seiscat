@@ -13,7 +13,7 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - Added colored help output using `rich-argparse`
 - Colorized error messages for improved visibility and consistency
 - Interactive table pager for `seiscat print -f table` with fixed header,
-  alternating row colors, row selection, and keyboard navigation
+  alternating row colors, row selection, sorting, and keyboard navigation
   on terminal output
 - New `--where-help` option to display detailed help for the `--where` filter
   expression, including syntax, examples, and notes. Accessible from any
