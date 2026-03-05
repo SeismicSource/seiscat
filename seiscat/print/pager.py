@@ -17,6 +17,50 @@ class PagerException(Exception):
     """Exception raised when the pager fails."""
 
 
+def _copy_to_clipboard(text):
+    """
+    Copy text to system clipboard (cross-platform).
+
+    :param text: text to copy to clipboard
+    :return: True if successful, False otherwise
+    """
+    # Lazy import to avoid slowdown at module load time
+    # pylint: disable=import-outside-toplevel
+    import platform
+    import subprocess
+    system = platform.system()
+    try:
+        if system == 'Darwin':  # macOS
+            subprocess.run(
+                ['pbcopy'],
+                input=text.encode('utf-8'),
+                check=True
+            )
+        elif system == 'Windows':
+            subprocess.run(
+                ['clip'],
+                input=text.encode('utf-16le'),
+                check=True
+            )
+        else:  # Linux and other Unix-like systems
+            # Try xclip first, then xsel
+            try:
+                subprocess.run(
+                    ['xclip', '-selection', 'clipboard'],
+                    input=text.encode('utf-8'),
+                    check=True
+                )
+            except FileNotFoundError:
+                subprocess.run(
+                    ['xsel', '--clipboard', '--input'],
+                    input=text.encode('utf-8'),
+                    check=True
+                )
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return False
+
+
 def _format_rows(fields, rows):
     """
     Format raw data into aligned string rows.
@@ -41,6 +85,60 @@ def _format_rows(fields, rows):
         )
         body_rows.append(row_str)
     return header, body_rows
+
+
+def _display_message_popup(stdscr, message):
+    """
+    Display a message popup and wait for any keypress.
+
+    :param stdscr: curses window
+    :param message: message to display
+    """
+    max_y, max_x = stdscr.getmaxyx()
+    # Calculate popup dimensions based on message length
+    message_len = len(message)
+    popup_width = min(message_len + 6, max_x - 4)
+    popup_height = 5  # Simple popup with just the message
+    popup_y = (max_y - popup_height) // 2
+    popup_x = (max_x - popup_width) // 2
+    
+    try:
+        # Clear popup area with spaces to remove background text
+        for y in range(popup_y, popup_y + popup_height):
+            stdscr.addstr(y, popup_x, ' ' * popup_width)
+        # Draw top border
+        top_border = '╔' + '═' * (popup_width - 2) + '╗'
+        stdscr.addstr(popup_y, popup_x, top_border, curses.A_BOLD)
+        # Draw message centered
+        message_padding = popup_width - 2 - len(message)
+        message_left = message_padding // 2
+        message_right = message_padding - message_left
+        message_line = (
+            '║' + ' ' * message_left + message +
+            ' ' * message_right + '║'
+        )
+        stdscr.addstr(popup_y + 1, popup_x, message_line, curses.A_BOLD)
+        # Draw blank line
+        blank_line = '║' + ' ' * (popup_width - 2) + '║'
+        stdscr.addstr(popup_y + 2, popup_x, blank_line)
+        # Draw instruction
+        instruction = 'Press any key'
+        inst_padding = popup_width - 2 - len(instruction)
+        inst_left = inst_padding // 2
+        inst_right = inst_padding - inst_left
+        inst_line = (
+            '║' + ' ' * inst_left + instruction +
+            ' ' * inst_right + '║'
+        )
+        stdscr.addstr(popup_y + 3, popup_x, inst_line)
+        # Draw bottom border
+        bottom_border = '╚' + '═' * (popup_width - 2) + '╝'
+        stdscr.addstr(popup_y + 4, popup_x, bottom_border, curses.A_BOLD)
+        stdscr.refresh()
+        # Wait for any keypress
+        stdscr.getch()
+    except curses.error:
+        pass
 
 
 def _draw_sort_popup_and_get_input(
@@ -186,6 +284,19 @@ def _handle_pager_input(
         return False
     if key in [ord('q'), 27]:  # q or Esc
         return False
+    # Handle copy event ID with 'c' key
+    if raw_data and key == ord('c'):
+        selected_row_idx = pager_state['selected_row']
+        if 0 <= selected_row_idx < len(raw_data['rows']):
+            if row := raw_data['rows'][selected_row_idx]:
+                # Copy first column (event ID) to clipboard
+                event_id = str(row[0])
+                if _copy_to_clipboard(event_id):
+                    message = f'evid {event_id} copied to clipboard'
+                else:
+                    message = 'Clipboard copy failed'
+                _display_message_popup(stdscr, message)
+        return True
     # Handle sort field selector with 's' key
     if raw_data and key == ord('0'):
         # Revert to default sort order
@@ -319,7 +430,7 @@ def _pager_loop_iteration(
     max_y, max_x = stdscr.getmaxyx()
     # Determine how many help lines we'll need
     # Build help text components (will be reused below)
-    help_line1 = 'q/Esc: quit | j/↓/k/↑: move | h/←/l/→: scroll'
+    help_line1 = 'q/Esc: quit | j/↓/k/↑: move | h/←/l/→: scroll | c: copy evid'
     help_line2 = (
         'Space/f: page↓ | b: page↑ | g: home | G: end | '
         '0: dflt | 1-9: sort | s: sort'

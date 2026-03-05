@@ -201,6 +201,9 @@ using an interactive pager with the following features:
   ``h``/``←`` and ``l``/``→`` to scroll left and right
 - **Row selection**: The first row is highlighted; use arrow keys to move the
   selection
+- **Copy event ID**: Press ``c`` to copy the event ID (evid) of the currently
+  selected row to the system clipboard. A popup will confirm the copy
+  operation.
 - **Status bar**: Shows the number of visible events and total event count
 - **Interactive sorting**:
 
