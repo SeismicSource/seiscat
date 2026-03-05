@@ -63,6 +63,8 @@ autodoc_mock_imports = [
     'pyproj',
     'shapefile',
     'shapely',
+    'rich',
+    'rich_argparse',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
