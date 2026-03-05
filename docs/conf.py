@@ -10,6 +10,8 @@
 import os
 import sys
 from datetime import datetime
+sys.path.insert(0, os.path.abspath('.'))
+from write_configfile import write_configfile  # noqa
 sys.path.insert(0, os.path.abspath('..'))
 sys.path.insert(0, os.path.join(os.path.abspath('..'), 'seiscat'))
 from seiscat._version import get_versions  # NOQA
@@ -80,38 +82,6 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 html_theme = 'sphinx_rtd_theme'
 html_logo = '_static/SeisCat_logo.svg'
 html_static_path = ['_static']
-
-
-# -- Custom functions for SeisCat ---------------------------------------------
-def write_configfile(app):
-    """Write configuration file documentation page."""
-    # pylint: disable=unused-argument
-    with open('configuration_file.rst', 'w', encoding='utf-8') as fp:
-        fp.write('''.. _configuration_file:
-
-##################
-Configuration File
-##################
-
-Configuration file (default name: ``seiscat.conf``) is a plain text file
-with keys and values in the form ``key = value``.
-Comment lines start with ``#``.
-
-Here is the default config file::
-
-''')
-        configspec = os.path.join(
-            '..', 'seiscat', 'config', 'configspec.conf')
-        for line in open(configspec, encoding='utf-8'):
-            if '=' in line and line[0] != '#':
-                key, val = line.split(' = ')
-                val = val.split('default=')[1]
-                # remove the word "list" from val
-                val = val.replace('list', '')
-                # remove single quotes and parentheses from val
-                val = val.replace("'", '').replace('(', '').replace(')', '')
-                line = f'{key} = {val}'
-            fp.write(f'  {line}')
 
 
 def setup(app):
