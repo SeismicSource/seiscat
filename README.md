@@ -105,6 +105,12 @@ You can install it easily through `pip`:
 
     pip install seiscat
 
+Optional plotting backends can be installed with extras:
+
+    pip install seiscat[cartopy]
+    pip install seiscat[plotly]
+    pip install seiscat[cartopy,plotly]
+
 To upgrade from a previously installed version:
 
     pip install --upgrade seiscat
@@ -159,6 +165,12 @@ Then, go into the `seiscat` main directory and install the code in "editable
 mode" by running:
 
     pip install -e .
+
+To install optional plotting backends in editable mode:
+
+    pip install -e .[cartopy]
+    pip install -e .[plotly]
+    pip install -e .[cartopy,plotly]
 
 You can keep your local SeisCat repository updated by running `git pull`
 from times to times. Thanks to `pip`'s "editable mode", you don't need to

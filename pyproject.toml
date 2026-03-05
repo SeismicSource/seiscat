@@ -37,6 +37,14 @@ dependencies = [
     "windows-curses; sys_platform == 'win32'",
 ]
 
+[project.optional-dependencies]
+cartopy = [
+    "cartopy",
+]
+plotly = [
+    "plotly",
+]
+
 [project.urls]
 Homepage = "https://seiscat.seismicsource.org"
 Source = "https://github.com/SeismicSource/seiscat"

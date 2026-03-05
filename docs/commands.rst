@@ -253,6 +253,9 @@ seiscat plot
 
 Plot a catalog map using Cartopy, Folium, or Plotly.
 
+Cartopy and Plotly backends require optional dependencies installed with
+``pip install seiscat[cartopy]`` or ``pip install seiscat[plotly]``.
+
 .. code-block::
 
    seiscat plot -m cartopy              # Static map (default)
