@@ -82,8 +82,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # a list of builtin themes.
 #
 html_theme = 'sphinx_rtd_theme'
-html_logo = '_static/SeisCat_logo.svg'
-html_static_path = ['_static']
+html_logo = '../imgs/SeisCat_logo.svg'
 
 
 def setup(app):
