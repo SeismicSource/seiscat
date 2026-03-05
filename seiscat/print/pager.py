@@ -484,6 +484,9 @@ def display_table_pager(
                 # cyan fg, default bg
                 curses.init_pair(2, curses.COLOR_CYAN, -1)
         stdscr.keypad(True)
+        # Disable mouse events to prevent buffer overflow
+        with suppress(curses.error, AttributeError):
+            curses.mousemask(0)
         # Hide cursor (not supported on all terminals)
         with suppress(curses.error, AttributeError):
             curses.curs_set(0)
