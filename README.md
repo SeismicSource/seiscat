@@ -14,15 +14,17 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 
 ## Overview
 
-SeisCat is a command line tool to keep a local seismic catalog.
-The local catalog can be used as a basis for further analyses.
+SeisCat is a command-line tool to build, maintain, and query a local seismic
+catalog.
 
-The seismic catalog is built and updated by querying a FDSNWS event webservice
-or from a local event file. Supported formats include CSV and any format
-supported by ObsPy (QuakeML, SC3ML, NLLOC, etc.).
-More ways of feeding the catalog will be added in the future.
+It builds and updates the catalog from FDSNWS event web services or local
+event files. Input formats include CSV and any format handled by ObsPy
+(QuakeML, SC3ML, NLLOC, etc.). The catalog is stored in a SQLite
+single-file database and can be used as a basis for further analysis.
 
-The local catalog is stored in a SQLite database (single file database).
+SeisCat also provides tools to plot and export the catalog, fetch waveforms
+and station metadata for catalog events, and run user-defined scripts on those
+events.
 
 👇  See below on how to [install](#installation) and
 [get started](#getting-started).
