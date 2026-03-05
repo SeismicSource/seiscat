@@ -15,12 +15,21 @@ Common options
    - ``-f, --fromfile FILE [FILE ...]``: read events from one or more files.
      Accepts multiple filenames. Tries CSV format first, then falls back to
      ObsPy format auto-detection (QuakeML, SC3ML, NLLOC, etc.).
-   - ``-d, --delimiter DELIM``: CSV delimiter (use ``\t`` for tab,
-     ``" "`` for space). Default: auto. Only used for CSV files.
-   - ``-n, --column_names NAME [NAME ...]``: column names (default:
-     autodetect). Only used for CSV files.
-   - ``-z, --depth_units {m,km}``: depth units (default: autodetect).
+   - **CSV field and delimiter auto-detection**: When reading CSV files,
+     the tool automatically attempts to detect column meanings based on
+     common name patterns (e.g., recognizes ``longitude``, ``lon``, as
+     longitude, or ``evid``, ``event_id``, etc., as event ID).
+     It also tries to infer the correct delimiter (comma, semicolon, tab,
+     space) by analyzing the file. This "best effort" approach handles most
+     CSV formats without additional configuration.
+   - ``-d, --delimiter DELIM``: Override CSV delimiter auto-detection.
+     Use ``\t`` for tab, ``" "`` for space, or any other character.
      Only used for CSV files.
+   - ``-n, --column_names NAME [NAME ...]``: Override auto-detected column
+     names by explicitly specifying the sequence of column meanings
+     (e.g., ``-n time lat lon depth mag``). Only used for CSV files.
+   - ``-z, --depth_units {m,km}``: Specify depth units if auto-detection
+     fails or to override the detected value. Only used for CSV files.
 - Selection and ordering (where supported: see per-command):
 
    - ``-w, --where "KEY OP VALUE [AND|OR KEY OP VALUE ...]"``:
