@@ -11,7 +11,7 @@ Plot events on a map using folium.
 """
 import webbrowser
 import tempfile
-from .plot_map_utils import get_map_extent
+from .plot_map_utils import get_event_popup_html, get_map_extent
 from ..database.dbfunctions import get_catalog_stats
 from ..utils import err_exit
 try:
@@ -94,23 +94,11 @@ def plot_catalog_map_with_folium(events, config):
             continue
         else:
             radius = 1.5**(event['mag'])*marker_scale
-        mag_str = (
-            f"{event['mag_type']} {event['mag']:.1f} <br>"
-            if event['mag'] is not None else ''
-        )
-        depth_str = (
-            f"{event['depth']:.1f} km"
-            if event['depth'] is not None else ''
-        )
         popup_text = folium.Html(
-            f"<b>{event['evid']} v{event['ver']}</b> <br>"
-            f"{mag_str}"
-            f"{event['time']} <br>"
-            f"{event['lat']:.2f} {event['lon']:.2f} "
-            f"{depth_str}",
+            get_event_popup_html(event),
             script=True
         )
-        popup = folium.Popup(popup_text, min_width=200, max_width=200)
+        popup = folium.Popup(popup_text, min_width=260, max_width=260)
         folium.CircleMarker(
             location=[event['lat'], event['lon']],
             radius=radius,

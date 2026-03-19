@@ -14,7 +14,7 @@ import os
 from zipfile import ZipFile
 import requests
 import numpy as np
-from .plot_map_utils import get_map_extent
+from .plot_map_utils import get_event_popup_html, get_map_extent
 from ..utils import err_exit
 try:
     import plotly.express as px
@@ -362,28 +362,10 @@ def plot_catalog_map_with_plotly(events, config):
         print('Building map...')
     events, radii = _get_marker_sizes(events, config['args'].scale)
     xcoords, ycoords, extent, coast = _map_projection(events, config)
-    evids = [e['evid'] for e in events]
     times = [e['time'] for e in events]
-    lons = [e['lon'] for e in events]
-    lats = [e['lat'] for e in events]
     # if depth is None, use 0
     depths = [e['depth'] if e['depth'] is not None else 0 for e in events]
-    hover_data = {
-        'evid': evids, 'time': times,
-        'lon': lons, 'lat': lats, 'depth': depths
-    }
-    hover_template_list = [
-        'Evid: %{customdata[0]}',
-        'Time: %{customdata[1]}',
-        'Lon: %{customdata[2]:.3f}',
-        'Lat: %{customdata[3]:.3f}',
-        'Depth: %{customdata[4]:.1f} km'
-    ]
-    mags = [e['mag'] for e in events]
-    # if not all mags are None, add them to the hover data
-    if any(mags):
-        hover_data['mag'] = mags
-        hover_template_list.append('Mag: %{customdata[5]:.1f}')
+    hover_texts = [get_event_popup_html(event) for event in events]
     if isinstance(radii, (list, np.ndarray)):
         size = radii
         size_max = np.max(radii)
@@ -393,15 +375,17 @@ def plot_catalog_map_with_plotly(events, config):
         x=xcoords, y=ycoords, z=depths,
         labels={'x': 'X (km)', 'y': 'Y (km)', 'z': 'Depth (km)'},
         size=size,
-        size_max=size_max,
-        hover_data=hover_data
+        size_max=size_max
     )
     if size is None:
         fig.update_traces(marker={'size': radii})
     # Remove borders from markers
     fig.update_traces(marker={'line': {'width': 0}})
-    # Update hover to exclude "x", "y", and "size"
-    fig.update_traces(hovertemplate='<br>'.join(hover_template_list))
+    # Replace default hover with all event fields from the database.
+    fig.update_traces(
+        text=hover_texts,
+        hovertemplate='%{text}<extra></extra>'
+    )
     camera = {
         'up': {'x': 0, 'y': 0, 'z': 1},
         'center': {'x': 0, 'y': 0, 'z': 0},
