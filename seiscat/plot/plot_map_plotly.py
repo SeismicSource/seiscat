@@ -47,6 +47,52 @@ except ImportError:
 warnings.filterwarnings('ignore', category=RuntimeWarning, module='shapely')
 
 
+# Safari/WebKit can leave 3D hover spike line artifacts ("ghost spikes")
+# and may freeze when repeatedly redrawing on unhover; this workaround
+# installs a guarded/throttled unhover redraw handler only on Safari.
+# See, for instance: https://stackoverflow.com/q/78696236
+SAFARI_PLOTLY_UNHOVER_REDRAW_SCRIPT = r"""
+(function() {
+    var ua = navigator.userAgent || '';
+    var isSafari = /Safari/.test(ua) &&
+        !/Chrome|Chromium|CriOS|Edg|OPR|Brave/.test(ua);
+    if (!isSafari || typeof Plotly === 'undefined') {
+        return;
+    }
+    var graphDiv = document.getElementById('{plot_id}');
+    if (!graphDiv || typeof graphDiv.on !== 'function') {
+        return;
+    }
+    if (graphDiv.__safariUnhoverRedrawFixInstalled) {
+        return;
+    }
+    graphDiv.__safariUnhoverRedrawFixInstalled = true;
+
+    var redrawScheduled = false;
+    var redrawInProgress = false;
+
+    graphDiv.on('plotly_unhover', function() {
+        if (redrawScheduled || redrawInProgress) {
+            return;
+        }
+        redrawScheduled = true;
+        requestAnimationFrame(function() {
+            redrawScheduled = false;
+            if (redrawInProgress) {
+                return;
+            }
+            redrawInProgress = true;
+            Promise.resolve(Plotly.redraw(graphDiv)).catch(function() {
+                // Ignore redraw failures and keep interaction responsive.
+            }).finally(function() {
+                redrawInProgress = false;
+            });
+        });
+    });
+})();
+"""
+
+
 def _get_marker_sizes(events, scale):
     """
     Get the marker sizes for the events.
@@ -403,7 +449,13 @@ def plot_catalog_map_with_plotly(events, config):
     if config['args'].time_slider:
         _add_time_slider(fig, xcoords, ycoords, depths, radii, times)
     if out_file:
-        fig.write_html(out_file)
+        html = fig.to_html(
+            full_html=True,
+            include_plotlyjs=True,
+            post_script=SAFARI_PLOTLY_UNHOVER_REDRAW_SCRIPT
+        )
+        with open(out_file, 'w', encoding='utf-8') as fp:
+            fp.write(html)
         print(f'Map saved to {out_file}')
     else:
-        fig.show()
+        fig.show(post_script=SAFARI_PLOTLY_UNHOVER_REDRAW_SCRIPT)
