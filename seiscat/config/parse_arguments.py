@@ -136,6 +136,18 @@ def _get_parent_parsers():
         help='column names in the CSV file (default: autodetect). '
              'Only used for CSV files.'
     )
+    fromfile_parser.add_argument(
+        '-x',
+        '--missing-value',
+        dest='no_value',
+        type=str,
+        default=None,
+        nargs='+',
+        metavar='VALUE',
+        help='one or more values/strings to treat as missing in CSV input '
+               '(e.g., --missing-value -999; '
+               '--missing-value -999 N/A). Only used for CSV files.'
+    )
     unit_parser = argparse.ArgumentParser(add_help=False)
     unit_parser.add_argument(
         '-z',

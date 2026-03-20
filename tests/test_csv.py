@@ -33,7 +33,8 @@ from seiscat.sources.csv import (
 
 
 def create_mock_config(
-    filename, depth_units='km', delimiter=None, column_names=None
+    filename, depth_units='km', delimiter=None, column_names=None,
+    no_value=None
 ):
     """Create a mock config object for testing.
 
@@ -45,6 +46,8 @@ def create_mock_config(
     :type delimiter: str or None
     :param column_names: list of column names
     :type column_names: list or None
+    :param no_value: values/strings to consider as missing in CSV input
+    :type no_value: list or None
 
     :return: mock config dictionary
     :rtype: dict
@@ -54,6 +57,7 @@ def create_mock_config(
     args.depth_units = depth_units
     args.delimiter = delimiter
     args.column_names = column_names
+    args.no_value = no_value
     return {'args': args}
 
 
@@ -748,6 +752,19 @@ invalid,invalid,invalid,invalid,invalid
 
         self.assertEqual(cat[0].magnitudes[0].magnitude_type, 'ml')
 
+    def test_applies_no_value_markers(self):
+        """Test configured no-value markers are converted to missing values."""
+        csv_content = """latitude,longitude,depth,magnitude,origin_time
+42.5,13.2,-999.0,N/A,2023-05-15T14:30:45
+"""
+        fp = StringIO(csv_content)
+        with patch('builtins.print'):
+            cat = _read_csv(fp, ',', None, 2, 'm', no_value=['-999', 'N/A'])
+
+        self.assertEqual(len(cat), 1)
+        self.assertIsNone(cat[0].origins[0].depth)
+        self.assertIsNone(cat[0].magnitudes[0].mag)
+
 
 class TestReadCatalogFromCSV(unittest.TestCase):
     """Test read_catalog_from_csv function."""
@@ -892,6 +909,32 @@ class TestReadCatalogFromCSV(unittest.TestCase):
 
             self.assertEqual(len(cat), 2)
             self.assertEqual(cat[0].origins[0].latitude, 42.5)
+        finally:
+            os.unlink(filename)
+
+    def test_uses_no_value_from_args(self):
+        """Test no-value list from args is applied while reading CSV file."""
+        csv_content = """latitude,longitude,depth,magnitude,origin_time
+42.5,13.2,10.0,N/A,2023-05-15T14:30:45
+"""
+        with tempfile.NamedTemporaryFile(
+            mode='w', delete=False, suffix='.csv'
+        ) as f:
+            f.write(csv_content)
+            filename = f.name
+
+        try:
+            config = create_mock_config(
+                filename,
+                depth_units='km',
+                no_value=['N/A']
+            )
+
+            with patch('builtins.print'):
+                cat = read_catalog_from_csv(config)
+
+            self.assertEqual(len(cat), 1)
+            self.assertIsNone(cat[0].magnitudes[0].mag)
         finally:
             os.unlink(filename)
 

@@ -20,6 +20,49 @@ from ..utils import float_or_none, int_or_none
 from .evid import generate_evid
 
 
+def _read_first_lines(fp, max_lines=10):
+    """Read and strip up to max_lines lines from a text file pointer."""
+    first_lines = []
+    for _ in range(max_lines):
+        if not (line := fp.readline()):
+            break
+        first_lines.append(line.strip())
+    return first_lines
+
+
+def _is_csv_text_like(first_lines, delimiter=None):
+    """Check if stripped text lines look like CSV-like tabular data."""
+    try:
+        first_line = first_lines[0]
+    except IndexError:
+        return False
+    if first_line.startswith('<?xml') or first_line.startswith('<'):
+        return False
+    delimiters =\
+        [delimiter] if delimiter is not None else [',', ';', '\t', ' ']
+    has_delimiters = any(
+        any(delim in line for line in first_lines[:5])
+        for delim in delimiters
+    )
+    if not has_delimiters:
+        return False
+    field_counts = []
+    for line in first_lines[:5]:
+        if not line:
+            continue
+        for delim in delimiters:
+            if delim in line:
+                fields = line.split() if delim == ' ' else line.split(delim)
+                if len(fields) > 1:
+                    field_counts.append(len(fields))
+                    break
+    if len(field_counts) < 2:
+        return False
+    min_fields = min(field_counts)
+    max_fields = max(field_counts)
+    return max_fields <= min_fields * 3
+
+
 def _is_csv_like(filename, delimiter=None):
     """
     Check if a file appears to be CSV or CSV-like format.
@@ -44,60 +87,8 @@ def _is_csv_like(filename, delimiter=None):
                 return False
         with open(filename, 'r', encoding='utf8') as fp:
             # Read first few lines
-            first_lines = []
-            for _ in range(10):
-                line = fp.readline()
-                if not line:
-                    break
-                first_lines.append(line.strip())
-            if not first_lines:
-                return False
-            # Check if it looks like XML (QuakeML, SC3ML, etc.)
-            first_line = first_lines[0]
-            if first_line.startswith('<?xml') or first_line.startswith('<'):
-                return False
-            # Check for CSV delimiters
-            # If user provided a delimiter, check specifically for that
-            if delimiter is not None:
-                delimiters = [delimiter]
-            else:
-                # Otherwise check common CSV delimiters
-                delimiters = [',', ';', '\t', ' ']
-            has_delimiters = any(
-                any(delim in line for line in first_lines[:5])
-                for delim in delimiters
-            )
-            if not has_delimiters:
-                return False
-            # Check if lines have consistent number of fields
-            # (at least some of them should)
-            field_counts = []
-            for line in first_lines[:5]:
-                if not line:
-                    continue
-                # Try different delimiters
-                for delim in delimiters:
-                    if delim in line:
-                        # For space delimiter, split on whitespace
-                        if delim == ' ':
-                            fields = line.split()
-                        else:
-                            fields = line.split(delim)
-                        if len(fields) > 1:
-                            field_counts.append(len(fields))
-                            break
-            # If we found multiple lines with fields,
-            # check if they're somewhat consistent
-            if len(field_counts) >= 2:
-                # Allow some variation (e.g., header vs data rows)
-                # but they should be in a reasonable range
-                min_fields = min(field_counts)
-                max_fields = max(field_counts)
-                # If the difference is huge, probably not CSV
-                if max_fields > min_fields * 3:
-                    return False
-                return True
-            return False
+            return _is_csv_text_like(
+                _read_first_lines(fp), delimiter=delimiter)
     except (UnicodeDecodeError, OSError):
         # If we can't read it as text, it's not CSV
         return False
@@ -445,6 +436,57 @@ def _read_orig_time_from_row(row, fields):
     )
 
 
+def _normalize_no_values(no_value):
+    """Normalize user-provided no-value markers for fast lookups."""
+    if no_value is None:
+        return set(), set()
+    values = [no_value] if isinstance(no_value, str) else no_value
+    text_markers = {
+        str(value).strip().lower()
+        for value in values
+        if value is not None and str(value).strip() != ''
+    }
+    numeric_markers = {
+        float_val for float_val in
+        (float_or_none(value) for value in values)
+        if float_val is not None
+    }
+    return text_markers, numeric_markers
+
+
+def _is_no_value(value, text_markers, numeric_markers):
+    """Return True when value matches configured missing-value markers."""
+    if isinstance(value, str):
+        value = value.strip()
+    value_str = str(value).strip().lower()
+    if value_str in text_markers:
+        return True
+    value_float = float_or_none(value)
+    return value_float is not None and value_float in numeric_markers
+
+
+def _apply_no_value_markers(row, text_markers, numeric_markers):
+    """Convert configured no-value markers in a CSV row to None."""
+    if not text_markers and not numeric_markers:
+        return row
+    out_row = {}
+    for key, value in row.items():
+        if isinstance(value, str):
+            stripped = value.strip()
+            out_row[key] = (
+                None
+                if _is_no_value(stripped, text_markers, numeric_markers)
+                else stripped
+            )
+        else:
+            out_row[key] = (
+                None
+                if _is_no_value(value, text_markers, numeric_markers)
+                else value
+            )
+    return out_row
+
+
 def _read_csv_row(row, fields, depth_units, mag_type):
     """
     Read a row from a CSV file.
@@ -472,7 +514,7 @@ def _read_csv_row(row, fields, depth_units, mag_type):
         else str(_evid).strip()
     )
     evtype = row[fields['event_type']]
-    if evtype != 'None':
+    if evtype not in [None, '', 'None']:
         try:
             ev.event_type = row[fields['event_type']]
         except ValueError:
@@ -496,7 +538,7 @@ def _read_csv_row(row, fields, depth_units, mag_type):
     return ev
 
 
-def _read_csv(fp, delimiter, column_names, nrows, depth_units):
+def _read_csv(fp, delimiter, column_names, nrows, depth_units, no_value=None):
     """
     Read a catalog from a CSV file.
 
@@ -510,6 +552,8 @@ def _read_csv(fp, delimiter, column_names, nrows, depth_units):
     :type nrows: int
     :param depth_units: depth units (m or km)
     :type depth_units: str
+    :param no_value: list of values/strings considered missing values
+    :type no_value: list of str or None
 
     :return: an ObsPy catalog object
     :rtype: obspy.Catalog
@@ -526,6 +570,7 @@ def _read_csv(fp, delimiter, column_names, nrows, depth_units):
     reader = csv.DictReader(
         fp, delimiter=delimiter, skipinitialspace=True,
         fieldnames=column_names)
+    text_markers, numeric_markers = _normalize_no_values(no_value)
     fields = _guess_field_names(reader.fieldnames)
     # if magtype is missing, try to guess it from the magnitude field name
     mag_type = None
@@ -538,6 +583,7 @@ def _read_csv(fp, delimiter, column_names, nrows, depth_units):
     cat = Catalog()
     for n, row in enumerate(reader):
         print(f'reading row {n+1}/{nrows}\r', end='')
+        row = _apply_no_value_markers(row, text_markers, numeric_markers)
         try:
             ev = _read_csv_row(row, fields, depth_units, mag_type)
         except (ValueError, TypeError) as e:
@@ -594,7 +640,8 @@ def read_catalog_from_csv(config, filename=None):
     print(f'CSV number of rows: {nrows}')
     with open(csv_filename, 'r', encoding='utf8') as fp:
         cat = _read_csv(
-            fp, delimiter, args.column_names, nrows, args.depth_units)
+            fp, delimiter, args.column_names, nrows,
+            args.depth_units, args.no_value)
     if args.depth_units is None:
         # If catalog's maximum depth is too small, assume it is in kilometers
         # and convert it to meters

@@ -28,6 +28,11 @@ Common options
    - ``-n, --column_names NAME [NAME ...]``: Override auto-detected column
      names by explicitly specifying the sequence of column meanings
      (e.g., ``-n time lat lon depth mag``). Only used for CSV files.
+   - ``-x, --missing-value VALUE [VALUE ...]``: Treat one or more
+     values/strings as missing values in CSV input.
+     Single-value example: ``--missing-value -999``.
+     Multiple-value example: ``--missing-value -999 N/A``.
+     Only used for CSV files.
    - ``-z, --depth_units {m,km}``: Specify depth units if auto-detection
      fails or to override the detected value. Only used for CSV files.
 - Selection and ordering (where supported: see per-command):
@@ -110,12 +115,15 @@ Initialize the database (from configured sources or an event file).
 
    seiscat initdb                           # from config (e.g., FDSN)
    seiscat initdb -f catalog.csv            # from CSV
+   seiscat initdb -f catalog.csv -x -999    # one missing-value marker
+   seiscat initdb -f catalog.csv -x -999 N/A  # two missing-value markers
    seiscat initdb -f catalog.csv -z km      # explicit depth units
    seiscat initdb -f catalog.xml            # QuakeML (ObsPy auto-detect)
    seiscat initdb -f events.quakeml         # QuakeML (ObsPy auto-detect)
    seiscat initdb -f events.sc3ml           # SC3ML format
 
-Options: ``--configfile``, event file input options, ``--depth_units``.
+Options: ``--configfile``, event file input options, ``--missing-value``,
+``--depth_units``.
 
 seiscat updatedb
 ~~~~~~~~~~~~~~~~
@@ -129,7 +137,8 @@ Can also read new events from an event file.
    seiscat updatedb -f catalog.csv
    seiscat updatedb -f events.xml
 
-Options: ``--configfile``, event file input options, ``--depth_units``.
+Options: ``--configfile``, event file input options, ``--missing-value``,
+``--depth_units``.
 
 seiscat editdb
 ~~~~~~~~~~~~~~

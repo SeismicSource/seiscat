@@ -43,6 +43,9 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
   initialize or update the database from an event file. Supported formats:
   CSV and any format supported by ObsPy (QuakeML, SC3ML, NLLOC, etc.).
   CSV format is tried first, then falls back to ObsPy if needed
+- New option for CSV input in `seiscat initdb` and `seiscat updatedb`:
+  `-x, --missing-value` to define one or more markers treated as missing
+  values (e.g., `-999`, `N/A`).
 - New command `seiscat run` to run a user-defined command on each event
 - New command `seiscat samplescript` to write a sample script for the
   `seiscat run` command
