@@ -26,11 +26,11 @@ def get_sds_client(sds_root):
     :rtype: obspy.clients.filesystem.sds.Client
     """
     client = Client(sds_root)
-    all_nslc = client.get_all_nslc()
-    if not all_nslc:
+    if all_nslc := client.get_all_nslc():
+        return client
+    else:
         raise FileNotFoundError(
             f'No SDS archive found in {sds_root}')
-    return client
 
 
 def _check_channel(channel, channel_codes):

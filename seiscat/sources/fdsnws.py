@@ -170,15 +170,13 @@ def _query_box_or_circle(client, config, suffix=None, first_query=True):
     except FDSNNoDataException:
         cat = Catalog()
     # filter in included event types
-    event_type = config[f'event_type{suffix}']
-    if event_type:
+    if event_type := config[f'event_type{suffix}']:
         cat = Catalog([
             ev for ev in cat
             if ev.event_type in event_type
         ])
     # filter out excluded event types
-    event_type_exclude = config[f'event_type_exclude{suffix}']
-    if event_type_exclude:
+    if event_type_exclude := config[f'event_type_exclude{suffix}']:
         cat = Catalog([
             ev for ev in cat
             if ev.event_type not in event_type_exclude

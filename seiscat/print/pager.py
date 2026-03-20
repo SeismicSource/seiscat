@@ -101,35 +101,22 @@ def _display_message_popup(stdscr, message):
     popup_height = 5  # Simple popup with just the message
     popup_y = (max_y - popup_height) // 2
     popup_x = (max_x - popup_width) // 2
-    
-    try:
+
+    with suppress(curses.error):
         # Clear popup area with spaces to remove background text
         for y in range(popup_y, popup_y + popup_height):
             stdscr.addstr(y, popup_x, ' ' * popup_width)
         # Draw top border
         top_border = '╔' + '═' * (popup_width - 2) + '╗'
         stdscr.addstr(popup_y, popup_x, top_border, curses.A_BOLD)
-        # Draw message centered
-        message_padding = popup_width - 2 - len(message)
-        message_left = message_padding // 2
-        message_right = message_padding - message_left
-        message_line = (
-            '║' + ' ' * message_left + message +
-            ' ' * message_right + '║'
-        )
+        message_line = _format_centered_popup_line(popup_width, message)
         stdscr.addstr(popup_y + 1, popup_x, message_line, curses.A_BOLD)
         # Draw blank line
         blank_line = '║' + ' ' * (popup_width - 2) + '║'
         stdscr.addstr(popup_y + 2, popup_x, blank_line)
         # Draw instruction
         instruction = 'Press any key'
-        inst_padding = popup_width - 2 - len(instruction)
-        inst_left = inst_padding // 2
-        inst_right = inst_padding - inst_left
-        inst_line = (
-            '║' + ' ' * inst_left + instruction +
-            ' ' * inst_right + '║'
-        )
+        inst_line = _format_centered_popup_line(popup_width, instruction)
         stdscr.addstr(popup_y + 3, popup_x, inst_line)
         # Draw bottom border
         bottom_border = '╚' + '═' * (popup_width - 2) + '╝'
@@ -137,8 +124,14 @@ def _display_message_popup(stdscr, message):
         stdscr.refresh()
         # Wait for any keypress
         stdscr.getch()
-    except curses.error:
-        pass
+
+
+def _format_centered_popup_line(popup_width, text):
+    """Return a popup line with text centered between vertical borders."""
+    message_padding = popup_width - 2 - len(text)
+    message_left = message_padding // 2
+    message_right = message_padding - message_left
+    return '║' + ' ' * message_left + text + ' ' * message_right + '║'
 
 
 def _draw_sort_popup_and_get_input(

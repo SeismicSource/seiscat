@@ -59,8 +59,7 @@ def read_config(config_file, configspec=None):
     kwargs = dict(
         configspec=configspec, file_error=True, default_encoding='utf8')
     if configspec is None:
-        kwargs.update(
-            dict(interpolation=False, list_values=False, _inspec=True))
+        kwargs |= dict(interpolation=False, list_values=False, _inspec=True)
     with ExceptionExit(additional_msg=f'Unable to read "{config_file}"'):
         config_obj = ConfigObj(config_file, **kwargs)
     for k, v in config_obj.items():
