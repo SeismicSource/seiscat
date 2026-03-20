@@ -358,13 +358,22 @@ def _process_where_option(where_str):
     # with optional spaces around operators. Possible operators are
     # =, <, >, <=, >=, !=
     pattern = re.compile(r'(\w+)\s*([><!=]+)\s*([\w\d.]+)')
-    # Find all the matches in the `where` string
-    matches = pattern.findall(where_str)
-    # Extract values
-    values = [match[2] for match in matches]
+    values = []
+
+    def _replace(match):
+        key, op, value = match.groups()
+        val_lower = value.lower()
+        if val_lower in ('none', 'null'):
+            if op in ('=', '=='):
+                return f'{key} IS NULL'
+            if op in ('!=', '<>'):
+                return f'{key} IS NOT NULL'
+        values.append(value)
+        return f'{key}{op}?'
+
     # Create the where filter by replacing the key-op-value pattern with
     # key-op-? to create a placeholder for the value.
-    where_filter = pattern.sub(r'\1\2?', where_str)
+    where_filter = pattern.sub(_replace, where_str)
     return where_filter, values
 
 

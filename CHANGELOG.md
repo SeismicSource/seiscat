@@ -21,6 +21,9 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
   fetchdata, run)
 - Improved error messages for `--where` argument to suggest using
   `--where-help` for more information
+- Improved `--where` handling of missing values: expressions like
+  `mag=None`, `mag==None`, and `mag!=None` are now translated to SQL
+  `IS NULL` / `IS NOT NULL` semantics
 - New `--sortby` option to sort catalog output by any database field
   (default: `time`). Available for `seiscat print`, `seiscat export`,
   `seiscat plot`, and `seiscat run`. Supports tab-completion of field names.

@@ -54,6 +54,12 @@ Use comparisons like ``=, <, >, <=, >=, !=`` and combine clauses with
 ``AND``/``OR`` (case-insensitive). Quote the whole expression to avoid
 shell interpretation.
 
+For missing values (SQL ``NULL``), use either SQL syntax or the shorthand
+``None`` form:
+
+- ``mag IS NULL`` (equivalent to ``mag=None`` or ``mag==None``)
+- ``mag IS NOT NULL`` (equivalent to ``mag!=None``)
+
 For detailed help with the ``--where`` syntax, use ``--where-help``, e.g.:
 
 .. code-block::
@@ -69,6 +75,9 @@ Examples:
    seiscat print -w "depth < 10.0 AND mag >= 3.0"
    seiscat print -w "depth < 10.0 OR depth > 100.0"
    seiscat print -w "evid = aa1234bb"
+   seiscat print -w "mag IS NULL"
+   seiscat print -w "mag==None"
+   seiscat print -w "mag!=None"
    seiscat export catalog.csv -w "time >= '2023-01-01' AND time < '2024-01-01'"
    seiscat plot -w "mag >= 4.0"
 
