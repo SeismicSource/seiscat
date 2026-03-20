@@ -30,16 +30,16 @@ def plot_catalog_map(config):
     except (FileNotFoundError, ValueError) as msg:
         err_exit(msg)
     # pylint: disable=import-outside-toplevel
-    if args.maptype == 'folium':
+    if args.backend == 'folium':
         from .plot_map_folium import plot_catalog_map_with_folium
         plot_catalog_map_with_folium(events, config)
         return
-    if args.maptype == 'cartopy':
+    if args.backend == 'cartopy':
         from .plot_map_cartopy import plot_catalog_map_with_cartopy
         plot_catalog_map_with_cartopy(events, config)
         return
-    if args.maptype == 'plotly':
+    if args.backend == 'plotly':
         from .plot_map_plotly import plot_catalog_map_with_plotly
         plot_catalog_map_with_plotly(events, config)
         return
-    err_exit(f'Invalid map type "{args.maptype}"')
+    err_exit(f'Invalid map backend "{args.backend}"')

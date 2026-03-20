@@ -457,12 +457,12 @@ def _add_plot_parser(subparser, parents):
         formatter_class=RichHelpFormatter
     )
     plot_parser.add_argument(
-        '-m',
-        '--maptype',
+        '-b',
+        '--backend',
         type=str,
         default='cartopy',
         choices=['cartopy', 'folium', 'plotly'],
-        help='map type (default: %(default)s)'
+        help='map backend (default: %(default)s)'
     )
     plot_parser.add_argument(
         '-s',
@@ -523,7 +523,7 @@ def _add_timeline_parser(subparser, parents):
              'attribute (default: %(default)s)'
     )
     timeline_parser.add_argument(
-        '-b',
+        '-B',
         '--bins',
         type=str,
         default=None,
@@ -534,7 +534,7 @@ def _add_timeline_parser(subparser, parents):
              '"1m" (months), "1y" (years). Only used when --count is set.'
     )
     timeline_parser.add_argument(
-        '-m',
+        '-b',
         '--backend',
         type=str,
         default='matplotlib',

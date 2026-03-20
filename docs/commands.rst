@@ -261,16 +261,16 @@ Cartopy and Plotly backends require optional dependencies installed with
 
 .. code-block::
 
-   seiscat plot -m cartopy              # Static map (default)
-   seiscat plot -m folium               # Interactive leaflet map
-   seiscat plot -m plotly -t            # Interactive Plotly with time slider
+   seiscat plot -b cartopy              # Static map (default)
+   seiscat plot -b folium               # Interactive leaflet map
+   seiscat plot -b plotly -t            # Interactive Plotly with time slider
    seiscat plot --scale 8               # Marker size scale
    seiscat plot --colorby depth         # Color markers by a numeric field
    seiscat plot --colorby depth --colormap inferno
    seiscat plot --sortby mag -r         # Largest magnitudes drawn on top
 
 Options: ``--configfile``, ``--where``, ``--allversions``, ``--sortby``,
-``--reverse``, ``--maptype {cartopy,folium,plotly}``, ``--scale FLOAT``,
+``--reverse``, ``-b/--backend {cartopy,folium,plotly}``, ``--scale FLOAT``,
 ``--time_slider`` (Plotly only), ``--colorby FIELD``,
 ``--colormap NAME`` (Matplotlib colormap name; defaults to ``viridis``).
 
@@ -305,9 +305,9 @@ Backends:
 
    # Event count with auto/custom bins
    seiscat timeline -C
-   seiscat timeline -C -b 20
-   seiscat timeline -C -b 7d
-   seiscat timeline -C -b 1m
+   seiscat timeline -C -B 20
+   seiscat timeline -C -B 7d
+   seiscat timeline -C -B 1m
 
    # Backend and output examples
    seiscat timeline -A mag -m matplotlib -o timeline.png
@@ -318,14 +318,14 @@ Options: ``--configfile``, ``--where``, ``--allversions``,
 ``--attribute FIELD`` (default: ``mag``), ``--count``,
 ``--colorby FIELD`` (attribute mode only),
 ``--colormap NAME`` (attribute mode only; Matplotlib colormap name),
-``--bins SPEC`` (count mode only),
+``-B/--bins SPEC`` (count mode only),
 ``--backend {matplotlib,plotly,terminal}``,
 ``--out-file FILE``.
 
 A list of Matplotlib colormaps is available at this link:
 `Matplotlib colormaps`_.
 
-Bin specification for ``--bins``:
+Bin specification for ``-B/--bins``:
 
 - integer ``N``: use ``N`` equal-width bins
 - duration string: ``Nd`` (days), ``Nw`` (weeks), ``Nm`` (months),
