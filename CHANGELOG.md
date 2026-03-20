@@ -27,6 +27,8 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - New `seiscat timeline` command with matplotlib/plotly/terminal backends,
   attribute or count mode (`--count`, `--bins`), optional `--colorby`, and
   time-formatted axis/colorbar when using `time`
+- Added `--colorby` support to map plots, as well as `--colormap` support
+  (with autocompletion) for `seiscat plot` and `seiscat timeline`
 - `seiscat download` renamed to `seiscat fetchdata`
 - New option for `seiscat fetchdata`: `--sds` to retrieve waveform data from
   a local SDS archive

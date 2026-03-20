@@ -75,18 +75,6 @@ def get_event_times_values_and_events(events, attribute):
     return result
 
 
-def get_label_for_attribute(attribute):
-    """Return a human-readable axis label for a known event attribute."""
-    labels = {
-        'time': 'Time',
-        'mag': 'Magnitude',
-        'depth': 'Depth (km)',
-        'lat': 'Latitude (°)',
-        'lon': 'Longitude (°)',
-    }
-    return labels.get(attribute, attribute)
-
-
 # ---------------------------------------------------------------------------
 # Binning helpers
 # ---------------------------------------------------------------------------

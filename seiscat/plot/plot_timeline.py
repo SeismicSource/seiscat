@@ -11,6 +11,7 @@ Plot catalog timeline — backend dispatcher.
 """
 from ..utils import err_exit
 from ..database.dbfunctions import read_events_from_db
+from .plot_utils import get_matplotlib_colormap
 
 
 def plot_catalog_timeline(config):
@@ -23,6 +24,10 @@ def plot_catalog_timeline(config):
     :param config: config object
     """
     args = config['args']
+    if not args.count and args.backend != 'terminal':
+        # Validate the colormap before loading events or importing a backend
+        # so invalid names fail immediately for scatter plots.
+        get_matplotlib_colormap(getattr(args, 'colormap', None))
     try:
         events = read_events_from_db(config)
     except (FileNotFoundError, ValueError) as msg:

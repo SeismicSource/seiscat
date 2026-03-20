@@ -14,7 +14,11 @@ import os
 from zipfile import ZipFile
 import requests
 import numpy as np
-from .plot_map_utils import get_event_popup_html, get_map_extent
+from .plot_map_utils import get_map_extent
+from .plot_utils import (
+    get_event_popup_html, get_event_color_values, get_label_for_attribute,
+    get_plotly_colorscale,
+)
 from ..utils import err_exit
 try:
     import plotly.express as px
@@ -407,6 +411,8 @@ def plot_catalog_map_with_plotly(events, config):
     else:
         print('Building map...')
     events, radii = _get_marker_sizes(events, config['args'].scale)
+    colorby = getattr(config['args'], 'colorby', None)
+    color_values = get_event_color_values(events, colorby)
     xcoords, ycoords, extent, coast = _map_projection(events, config)
     times = [e['time'] for e in events]
     # if depth is None, use 0
@@ -417,12 +423,20 @@ def plot_catalog_map_with_plotly(events, config):
         size_max = np.max(radii)
     else:
         size = size_max = None
-    fig = px.scatter_3d(
+    scatter_kwargs = dict(
         x=xcoords, y=ycoords, z=depths,
         labels={'x': 'X (km)', 'y': 'Y (km)', 'z': 'Depth (km)'},
         size=size,
         size_max=size_max
     )
+    if color_values is not None:
+        scatter_kwargs['color'] = color_values
+        scatter_kwargs['color_continuous_scale'] = get_plotly_colorscale(
+            getattr(config['args'], 'colormap', None)
+        )
+    fig = px.scatter_3d(**scatter_kwargs)
+    if color_values is not None:
+        fig.update_coloraxes(colorbar_title_text=get_label_for_attribute(colorby))
     if size is None:
         fig.update_traces(marker={'size': radii})
     # Remove borders from markers
@@ -441,6 +455,15 @@ def plot_catalog_map_with_plotly(events, config):
         scene={
             'zaxis': {'autorange': 'reversed'},
             'aspectmode': 'data'
+        },
+        legend={
+            # Keep layer toggles away from the right-side colorbar.
+            'title': {'text': 'Layers'},
+            'x': 0.01,
+            'y': 0.99,
+            'xanchor': 'left',
+            'yanchor': 'top',
+            'bgcolor': 'rgba(255, 255, 255, 0.7)',
         },
         width=1200, height=800,
         scene_camera=camera

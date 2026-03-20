@@ -16,8 +16,9 @@ from matplotlib.ticker import FuncFormatter
 from datetime import datetime, timezone
 from .plot_timeline_utils import (
     get_event_times_values_and_events, bin_events_by_time,
-    get_label_for_attribute, get_bin_size_label, ONE_DAY_SECONDS,
+    get_bin_size_label, ONE_DAY_SECONDS,
 )
+from .plot_utils import get_label_for_attribute, get_matplotlib_colormap
 from ..database.dbfunctions import get_catalog_stats
 from ..utils import err_exit
 
@@ -74,10 +75,12 @@ def _plot_attribute(events, args, ax):
             color_values.append(cval)
         color_values = np.array(color_values)
 
+    _, cmap = get_matplotlib_colormap(getattr(args, 'colormap', None))
+
     sc = ax.scatter(
         times, values,
         s=20, alpha=0.7,
-        c=color_values, cmap='viridis',
+        c=color_values, cmap=cmap,
         zorder=3,
     )
     cbar = plt.colorbar(sc, ax=ax, label=get_label_for_attribute(color_attr))

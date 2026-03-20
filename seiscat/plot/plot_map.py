@@ -11,6 +11,7 @@ Plot events on a map.
 """
 from ..utils import err_exit
 from ..database.dbfunctions import read_events_from_db
+from .plot_utils import get_matplotlib_colormap
 
 
 def plot_catalog_map(config):
@@ -20,6 +21,10 @@ def plot_catalog_map(config):
     :param config: config object
     """
     args = config['args']
+    if getattr(args, 'colorby', None) is not None:
+        # Validate the colormap before loading events or importing a backend
+        # so invalid names fail immediately at command entry.
+        get_matplotlib_colormap(getattr(args, 'colormap', None))
     try:
         events = read_events_from_db(config)
     except (FileNotFoundError, ValueError) as msg:

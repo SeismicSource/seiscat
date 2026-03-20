@@ -11,7 +11,11 @@ Plot events on a map using folium.
 """
 import webbrowser
 import tempfile
-from .plot_map_utils import get_event_popup_html, get_map_extent
+from .plot_map_utils import get_map_extent
+from .plot_utils import (
+    get_event_popup_html, get_event_color_values, get_label_for_attribute,
+    get_colormap_hex_colors,
+)
 from ..database.dbfunctions import get_catalog_stats
 from ..utils import err_exit
 try:
@@ -25,16 +29,8 @@ except ImportError:
     )
 
 
-def plot_catalog_map_with_folium(events, config):
-    """
-    Plot the catalog map with folium.
-
-    :param events: list of events, each event is a dictionary
-    :type events: list
-    :param config: config object
-    :type config: configspec.ConfigObj
-    """
-    out_file = config['args'].out_file
+def _validate_output_file(out_file):
+    """Validate output target and print an operation banner."""
     if out_file:
         if not out_file.endswith('.html'):
             err_exit(
@@ -42,15 +38,20 @@ def plot_catalog_map_with_folium(events, config):
         print(f'Saving map to {out_file}...')
     else:
         print('Building map...')
-    # Get map extent
-    lon_min, lon_max, lat_min, lat_max = get_map_extent(events, config)
-    # Plot map
-    m = folium.Map(
+
+
+def _create_map(extent):
+    """Create a folium map centered on the requested extent."""
+    lon_min, lon_max, lat_min, lat_max = extent
+    return folium.Map(
         location=[(lat_min + lat_max) / 2, (lon_min + lon_max) / 2],
         zoom_start=5,
-        tiles=None
+        tiles=None,
     )
-    # Add tiles and layer control
+
+
+def _add_tile_layers(m):
+    """Add base tiles and controls."""
     folium.TileLayer(
         name='CartoDB Positron',
         tiles='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
@@ -76,16 +77,73 @@ def plot_catalog_map_with_folium(events, config):
              'and the GIS User Community'
     ).add_to(m)
     folium.LayerControl().add_to(m)
-    m.fit_bounds([[lat_min, lon_min], [lat_max, lon_max]])
-    # Add catalog stats to the map
+
+
+def _add_catalog_stats(m, config):
+    """Render catalog stats in the map HTML container."""
     catalog_stats = get_catalog_stats(config)
     branca_element = branca.element.Element(catalog_stats)
     m.get_root().html.add_child(branca_element)
-    # Add events to the map
+
+
+def _build_colorbar_css():
+    """Return CSS that improves colorbar readability."""
+    return (
+        '<style>'
+        '#legend text { '
+        'font-size: 14px !important; '
+        'paint-order: stroke; '
+        'stroke: #ffffff; '
+        'stroke-width: 2.5px; '
+        'stroke-linejoin: round; '
+        '} '
+        '#legend .caption { '
+        'font-size: 16px !important; '
+        'font-weight: 600; '
+        'paint-order: stroke; '
+        'stroke: #ffffff; '
+        'stroke-width: 3px; '
+        'stroke-linejoin: round; '
+        'transform: translateX(8px); '
+        '} '
+        '</style>'
+    )
+
+
+def _build_colormap(m, events, args):
+    """Build and attach a folium colormap if --colorby is enabled."""
+    colorby = getattr(args, 'colorby', None)
+    if colorby is None:
+        return colorby, None
+
+    color_values_list = get_event_color_values(events, colorby)
+    if color_values_list is None:
+        return colorby, None
+
+    vmin = min(color_values_list)
+    vmax = max(color_values_list)
+    if vmin == vmax:
+        vmax = vmin + 1
+    colors = get_colormap_hex_colors(getattr(args, 'colormap', None))
+    folium_colormap = branca.colormap.LinearColormap(
+        colors,
+        vmin=vmin, vmax=vmax,
+        caption=get_label_for_attribute(colorby)
+    )
+    # Make the legend bar thicker than the branca defaults.
+    folium_colormap.width = 520
+    folium_colormap.height = 64
+    folium_colormap.add_to(m)
+    m.get_root().header.add_child(
+        branca.element.Element(_build_colorbar_css())
+    )
+    return colorby, folium_colormap
+
+
+def _add_events(m, events, scale, colorby, folium_colormap):
+    """Add event markers to the map."""
     mags = [event['mag'] for event in events if event['mag'] is not None]
-    # If no magnitudes are available, use a fixed marker radius
     fixed_radius = not mags
-    scale = config['args'].scale
     marker_scale = 0.2 * scale
     for event in events:
         if fixed_radius:
@@ -93,32 +151,74 @@ def plot_catalog_map_with_folium(events, config):
         elif event['mag'] is None:
             continue
         else:
-            radius = 1.5**(event['mag'])*marker_scale
+            radius = 1.5**(event['mag']) * marker_scale
         popup_text = folium.Html(
             get_event_popup_html(event),
             script=True
         )
         popup = folium.Popup(popup_text, min_width=260, max_width=260)
+        if folium_colormap is not None:
+            val = event.get(colorby)
+            event_color = (
+                folium_colormap(val)
+                if isinstance(val, (int, float))
+                else folium_colormap(folium_colormap.vmin)
+            )
+        else:
+            event_color = 'red'
         folium.CircleMarker(
             location=[event['lat'], event['lon']],
             radius=radius,
-            color='red',
+            color=event_color,
             fill=True,
-            fill_color='red',
+            fill_color=event_color,
             popup=popup
         ).add_to(m)
-    # Add map extent
+
+
+def _add_map_extent_rectangle(m, extent):
+    """Draw extent rectangle on top of the map."""
+    lon_min, lon_max, lat_min, lat_max = extent
     folium.Rectangle(
         bounds=[[lat_min, lon_min], [lat_max, lon_max]],
         color='gray',
         fill=False
     ).add_to(m)
+
+
+def _save_or_open_map(m, out_file):
+    """Write the HTML map file or open a temporary browser page."""
     if out_file:
         m.save(out_file)
         print(f'Map saved to {out_file}')
     else:
-        # Save map to temporary file and open it in the browser
         with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as f:
             m.save(f.name)
             file_uri = f'file://{f.name}'
             webbrowser.open_new(file_uri)
+
+
+def plot_catalog_map_with_folium(events, config):
+    """
+    Plot the catalog map with folium.
+
+    :param events: list of events, each event is a dictionary
+    :type events: list
+    :param config: config object
+    :type config: configspec.ConfigObj
+    """
+    args = config['args']
+    out_file = args.out_file
+    _validate_output_file(out_file)
+
+    extent = get_map_extent(events, config)
+    m = _create_map(extent)
+    _add_tile_layers(m)
+    lon_min, lon_max, lat_min, lat_max = extent
+    m.fit_bounds([[lat_min, lon_min], [lat_max, lon_max]])
+
+    _add_catalog_stats(m, config)
+    colorby, folium_colormap = _build_colormap(m, events, args)
+    _add_events(m, events, args.scale, colorby, folium_colormap)
+    _add_map_extent_rectangle(m, extent)
+    _save_or_open_map(m, out_file)

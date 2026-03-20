@@ -20,6 +20,31 @@ from rich.panel import Panel
 from .._version import get_versions
 
 
+# Curated fallback names used when Matplotlib cannot be imported at
+# completion time. Keep only canonical names here (no _r variants).
+_FALLBACK_MATPLOTLIB_COLORMAP_BASE_NAMES = (
+    'Accent', 'Blues', 'BrBG', 'BuGn', 'BuPu', 'CMRmap', 'Dark2', 'GnBu',
+    'Grays', 'Greens', 'Greys', 'OrRd', 'Oranges', 'PRGn', 'Paired',
+    'Pastel1', 'Pastel2', 'PiYG', 'PuBu', 'PuBuGn', 'PuOr', 'PuRd',
+    'Purples', 'RdBu', 'RdGy', 'RdPu', 'RdYlBu', 'RdYlGn', 'Reds', 'Set1',
+    'Set2', 'Set3', 'Spectral', 'Wistia', 'YlGn', 'YlGnBu', 'YlOrBr',
+    'YlOrRd', 'afmhot', 'autumn', 'berlin', 'binary', 'bone', 'brg',
+    'bwr', 'cividis', 'cool', 'coolwarm', 'copper', 'cubehelix', 'flag',
+    'gist_earth', 'gist_gray', 'gist_grey', 'gist_heat', 'gist_ncar',
+    'gist_rainbow', 'gist_stern', 'gist_yarg', 'gist_yerg', 'gnuplot',
+    'gnuplot2', 'gray', 'grey', 'hot', 'hsv', 'inferno', 'jet', 'magma',
+    'managua', 'nipy_spectral', 'ocean', 'pink', 'plasma', 'prism',
+    'rainbow', 'seismic', 'spring', 'summer', 'tab10', 'tab20', 'tab20b',
+    'tab20c', 'terrain', 'turbo', 'twilight', 'twilight_shifted',
+    'vanimo', 'viridis', 'winter'
+)
+# Full fallback completion set: base names plus generated reversed variants.
+_FALLBACK_MATPLOTLIB_COLORMAPS = tuple(sorted(
+    set(_FALLBACK_MATPLOTLIB_COLORMAP_BASE_NAMES)
+    | {f'{name}_r' for name in _FALLBACK_MATPLOTLIB_COLORMAP_BASE_NAMES}
+))
+
+
 def _get_db_cursor(configfile):
     """
     Get a cursor to the database.
@@ -110,6 +135,20 @@ def _sortby_completer(prefix, parsed_args, **_kwargs):
     except Exception:  # pylint: disable=broad-except
         return []
 _sortby_completer.db_cursor = None  # noqa: E305
+
+
+def _get_matplotlib_colormap_names():
+    """Return the exhaustive Matplotlib colormap registry when available."""
+    try:
+        from matplotlib import colormaps  # lazy import to keep startup fast
+        return sorted(colormaps.keys())
+    except Exception:  # pylint: disable=broad-except
+        return list(_FALLBACK_MATPLOTLIB_COLORMAPS)
+
+
+_colormap_completer = argcomplete.completers.ChoicesCompleter(
+    _get_matplotlib_colormap_names()
+)
 
 
 def print_where_help_and_exit():
@@ -270,6 +309,26 @@ def _get_parent_parsers():
              'Common fields: time, lat, lon, depth, mag, evid. '
              'Use any field name from the database.'
     ).completer = _sortby_completer
+    color_parser = argparse.ArgumentParser(add_help=False)
+    color_parser.add_argument(
+        '--colorby',
+        type=str,
+        default=None,
+        metavar='FIELD',
+        help='attribute used to color markers. '
+             'Use any numeric field from the database.'
+    ).completer = _sortby_completer
+    color_parser.add_argument(
+        '--colormap',
+        type=str,
+        default='viridis',
+        metavar='NAME',
+        help='Matplotlib colormap name used for marker colors '
+             '(default: %(default)s). '
+             'Examples: viridis, plasma, inferno, cividis. '
+             'See https://matplotlib.org/'
+             'stable/users/explain/colors/colormaps.html'
+    ).completer = _colormap_completer
     return {
         'configfile_parser': configfile_parser,
         'fromfile_parser': fromfile_parser,
@@ -277,7 +336,8 @@ def _get_parent_parsers():
         'versions_parser': versions_parser,
         'where_parser': where_parser,
         'reverse_parser': reverse_parser,
-        'sortby_parser': sortby_parser
+        'sortby_parser': sortby_parser,
+        'color_parser': color_parser
     }
 
 
@@ -516,7 +576,8 @@ def _add_plot_parser(subparser, parents):
             parents['versions_parser'],
             parents['where_parser'],
             parents['sortby_parser'],
-            parents['reverse_parser']
+            parents['reverse_parser'],
+            parents['color_parser']
         ],
         help='plot catalog map',
         formatter_class=RichHelpFormatter
@@ -564,6 +625,7 @@ def _add_timeline_parser(subparser, parents):
             parents['configfile_parser'],
             parents['versions_parser'],
             parents['where_parser'],
+            parents['color_parser'],
         ],
         help='plot a timeline of the earthquake catalog',
         formatter_class=RichHelpFormatter
@@ -586,15 +648,6 @@ def _add_timeline_parser(subparser, parents):
         help='plot event count per time bin instead of a scatter of an '
              'attribute (default: %(default)s)'
     )
-    timeline_parser.add_argument(
-        '--colorby',
-        type=str,
-        default=None,
-        metavar='FIELD',
-        help='attribute used to color markers in attribute mode. '
-             'By default, marker color uses --attribute. '
-             'Use any numeric field from the database.'
-    ).completer = _sortby_completer
     timeline_parser.add_argument(
         '-b',
         '--bins',

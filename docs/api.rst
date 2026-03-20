@@ -118,6 +118,13 @@ plot_map
     :undoc-members:
     :show-inheritance:
 
+plot_utils
+==========
+.. automodule:: seiscat.plot.plot_utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 plot_map_utils
 ==============
 .. automodule:: seiscat.plot.plot_map_utils

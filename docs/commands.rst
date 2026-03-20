@@ -265,11 +265,17 @@ Cartopy and Plotly backends require optional dependencies installed with
    seiscat plot -m folium               # Interactive leaflet map
    seiscat plot -m plotly -t            # Interactive Plotly with time slider
    seiscat plot --scale 8               # Marker size scale
+   seiscat plot --colorby depth         # Color markers by a numeric field
+   seiscat plot --colorby depth --colormap inferno
    seiscat plot --sortby mag -r         # Largest magnitudes drawn on top
 
 Options: ``--configfile``, ``--where``, ``--allversions``, ``--sortby``,
 ``--reverse``, ``--maptype {cartopy,folium,plotly}``, ``--scale FLOAT``,
-``--time_slider`` (Plotly only).
+``--time_slider`` (Plotly only), ``--colorby FIELD``,
+``--colormap NAME`` (Matplotlib colormap name; defaults to ``viridis``).
+
+A list of Matplotlib colormaps is available at this link:
+`Matplotlib colormaps`_.
 
 seiscat timeline
 ~~~~~~~~~~~~~~~~
@@ -291,6 +297,7 @@ Backends:
 
    # Color markers by a second numeric attribute
    seiscat timeline -A depth --colorby mag
+   seiscat timeline -A depth --colorby mag --colormap plasma
 
    # Use time as Y axis and/or colorbar attribute
    seiscat timeline -A time
@@ -310,9 +317,13 @@ Backends:
 Options: ``--configfile``, ``--where``, ``--allversions``,
 ``--attribute FIELD`` (default: ``mag``), ``--count``,
 ``--colorby FIELD`` (attribute mode only),
+``--colormap NAME`` (attribute mode only; Matplotlib colormap name),
 ``--bins SPEC`` (count mode only),
 ``--backend {matplotlib,plotly,terminal}``,
 ``--out-file FILE``.
+
+A list of Matplotlib colormaps is available at this link:
+`Matplotlib colormaps`_.
 
 Bin specification for ``--bins``:
 
@@ -395,3 +406,7 @@ Print the SeisCat logo.
 .. code-block::
 
    seiscat logo
+
+
+.. Links ---
+.. _Matplotlib colormaps: https://matplotlib.org/stable/users/explain/colors/colormaps.html

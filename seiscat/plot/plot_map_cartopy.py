@@ -17,6 +17,9 @@ from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
 from .plot_map_utils import get_map_extent
+from .plot_utils import (
+    get_event_color_values, get_label_for_attribute, get_matplotlib_colormap,
+)
 from ..database.dbfunctions import get_catalog_stats
 from ..utils import err_exit
 try:
@@ -178,13 +181,27 @@ def _add_natural_earth_background(ax, extent):
         _add_simple_background(ax)
 
 
-def _plot_events(ax, events, scale):
+def _add_gridlines(ax):
+    """Add gridlines with labels on both left and right sides."""
+    gridliner = ax.gridlines(
+        draw_labels=True,
+        dms=True,
+        x_inline=False,
+        y_inline=False,
+    )
+    gridliner.top_labels = False
+    return gridliner
+
+
+def _plot_events(ax, events, scale, colorby=None, colormap=None):
     """
     Plot events on a map.
 
     :param events: list of events, each event is a dictionary
     :param scale: scale for event markers
     :param ax: matplotlib axes object
+    :param colorby: event attribute to use for marker color, or None
+    :param colormap: Matplotlib colormap name, or None
     """
     mags = [e['mag'] for e in events if e['mag'] is not None]
     # use fixed radius if no magnitudes are available
@@ -207,14 +224,41 @@ def _plot_events(ax, events, scale):
     lons = [attr[3] for attr in ev_attributes]
     lats = [attr[4] for attr in ev_attributes]
     sizes = [attr[7] for attr in ev_attributes]
-    # Plot all events at once
-    ax.scatter(
-        lons, lats,
-        s=sizes,
-        facecolor='red', edgecolor='black',
-        zorder=10,
-        transform=ccrs.PlateCarree(),
-    )
+    # Resolve color values (after any magnitude-based event filtering)
+    color_values = get_event_color_values(events, colorby)
+    if color_values is not None:
+        ax.figure.subplots_adjust(right=0.8)
+        _, cmap = get_matplotlib_colormap(colormap)
+        sc = ax.scatter(
+            lons, lats,
+            s=sizes,
+            c=color_values,
+            cmap=cmap,
+            edgecolor='black',
+            zorder=10,
+            transform=ccrs.PlateCarree(),
+        )
+        axes_pos = ax.get_position()
+        cax = ax.figure.add_axes([
+            axes_pos.x1 + 0.08,
+            axes_pos.y0 + axes_pos.height * 0.2,
+            0.02,
+            axes_pos.height * 0.6,
+        ])
+        plt.colorbar(
+            sc,
+            cax=cax,
+            label=get_label_for_attribute(colorby),
+        )
+    else:
+        # Plot all events at once
+        ax.scatter(
+            lons, lats,
+            s=sizes,
+            facecolor='red', edgecolor='black',
+            zorder=10,
+            transform=ccrs.PlateCarree(),
+        )
 
 
 def plot_catalog_map_with_cartopy(events, config):
@@ -246,14 +290,15 @@ def plot_catalog_map_with_cartopy(events, config):
     ax.coastlines(resolution='10m', edgecolor='black', linewidth=1)
     ax.add_feature(
         ccrs.cartopy.feature.BORDERS, edgecolor='black', linewidth=1)
-    g_kwargs = dict(draw_labels=True, dms=True, x_inline=False, y_inline=False)
-    ax.gridlines(**g_kwargs)
+    _add_gridlines(ax)
 
     def redraw_gridlines(ax):
-        ax.gridlines(**g_kwargs)
+        _add_gridlines(ax)
     ax.callbacks.connect('xlim_changed', redraw_gridlines)
     scale = config['args'].scale
-    _plot_events(ax, events, scale)
+    colorby = getattr(config['args'], 'colorby', None)
+    colormap = getattr(config['args'], 'colormap', None)
+    _plot_events(ax, events, scale, colorby=colorby, colormap=colormap)
     ax.set_title(get_catalog_stats(config))
     if out_file:
         plt.savefig(out_file, bbox_inches='tight')

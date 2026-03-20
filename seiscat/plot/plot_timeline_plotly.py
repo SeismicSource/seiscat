@@ -24,9 +24,11 @@ except ImportError:
     )
 from .plot_timeline_utils import (
     get_event_times_values_and_events, bin_events_by_time,
-    get_label_for_attribute, bin_label, get_bin_size_label,
+    bin_label, get_bin_size_label,
 )
-from .plot_map_utils import get_event_popup_html
+from .plot_utils import (
+    get_label_for_attribute, get_event_popup_html, get_plotly_colorscale,
+)
 from ..database.dbfunctions import get_catalog_stats
 from ..utils import err_exit
 
@@ -114,6 +116,7 @@ def _build_attribute_figure(events, args):
     colorbar_kwargs = {'title': color_label}
     if color_attr == 'time':
         colorbar_kwargs |= _time_colorbar_kwargs(color_values)
+    colorscale = get_plotly_colorscale(getattr(args, 'colormap', None))
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -123,7 +126,7 @@ def _build_attribute_figure(events, args):
         marker=dict(
             size=8,
             color=list(color_values),
-            colorscale='Viridis',
+            colorscale=colorscale,
             showscale=True,
             colorbar=colorbar_kwargs,
             opacity=0.8,

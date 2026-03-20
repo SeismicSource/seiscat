@@ -9,7 +9,6 @@ Utility functions for the map modules.
     GNU General Public License v3.0 or later
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
-from html import escape
 import numpy as np
 
 
@@ -106,31 +105,3 @@ def get_map_extent(events, config):
         lon_min, lon_max, lat_min, lat_max = get_map_extent_from_events(
             events)
     return lon_min, lon_max, lat_min, lat_max
-
-
-def _format_event_field_value(field_name, field_value):
-    """Format one event field value for map popups/hover labels."""
-    if field_value is None:
-        return 'None'
-    if isinstance(field_value, float):
-        if field_name in ('lat', 'lon'):
-            return f'{field_value:.4f}'
-        if field_name == 'depth':
-            return f'{field_value:.2f} km'
-        precision = 1 if field_name == 'mag' else None
-        return (
-            f'{field_value:.{precision}f}'
-            if precision is not None else f'{field_value:.6g}'
-        )
-    return str(field_value)
-
-
-def get_event_popup_html(event):
-    """Build a popup/hover HTML string with all event fields."""
-    lines = []
-    for field_name, field_value in event.items():
-        value = _format_event_field_value(field_name, field_value)
-        lines.append(
-            f'<b>{escape(str(field_name))}</b>: {escape(value)}'
-        )
-    return '<br>'.join(lines)

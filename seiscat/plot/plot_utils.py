@@ -1,0 +1,135 @@
+# -*- coding: utf8 -*-
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""
+Utility functions shared by map and timeline plot modules.
+
+:copyright:
+    2022-2026 Claudio Satriano <satriano@ipgp.fr>
+:license:
+    GNU General Public License v3.0 or later
+    (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
+"""
+from html import escape
+
+DEFAULT_COLORMAP = 'viridis'
+
+
+def get_label_for_attribute(attribute):
+    """Return a human-readable label for a known event attribute."""
+    labels = {
+        'time': 'Time',
+        'mag': 'Magnitude',
+        'depth': 'Depth (km)',
+        'lat': 'Latitude (°)',
+        'lon': 'Longitude (°)',
+    }
+    return labels.get(attribute, attribute)
+
+
+def _format_event_field_value(field_name, field_value):
+    """Format one event field value for popups/hover labels."""
+    if field_value is None:
+        return 'None'
+    if isinstance(field_value, float):
+        if field_name in ('lat', 'lon'):
+            return f'{field_value:.4f}'
+        if field_name == 'depth':
+            return f'{field_value:.2f} km'
+        precision = 1 if field_name == 'mag' else None
+        return (
+            f'{field_value:.{precision}f}'
+            if precision is not None else f'{field_value:.6g}'
+        )
+    return str(field_value)
+
+
+def get_event_popup_html(event):
+    """Build a popup/hover HTML string with all event fields."""
+    lines = []
+    for field_name, field_value in event.items():
+        value = _format_event_field_value(field_name, field_value)
+        lines.append(
+            f'<b>{escape(str(field_name))}</b>: {escape(value)}'
+        )
+    return '<br>'.join(lines)
+
+
+def get_event_color_values(events, colorby):
+    """
+    Get numeric color values for events based on a named attribute.
+
+    :param events: list of events, each event is a dictionary
+    :type events: list
+    :param colorby: attribute name to use for color, or None
+    :type colorby: str or None
+
+    :returns: list of floats (one per event) or None if colorby is None,
+        not found in events, or has no numeric values
+    :rtype: list of float or None
+    """
+    if colorby is None:
+        return None
+    raw = [e.get(colorby) for e in events]
+    valid = [v for v in raw if isinstance(v, (int, float))]
+    if not valid:
+        print(
+            f'Warning: attribute "{colorby}" has no numeric values. '
+            'Using default color.'
+        )
+        return None
+    if len(valid) < len(raw):
+        print(
+            f'Warning: some events have missing "{colorby}" values. '
+            'Those markers will use the minimum color value.'
+        )
+    vmin = min(valid)
+    return [float(v) if isinstance(v, (int, float)) else vmin for v in raw]
+
+
+def get_matplotlib_colormap(colormap_name=None):
+    """
+    Return a validated Matplotlib colormap object.
+
+    :param colormap_name: Matplotlib colormap name, or ``None``
+    :type colormap_name: str or None
+    :returns: ``(name, cmap)`` tuple
+    :rtype: tuple
+    """
+    cmap_name = colormap_name or DEFAULT_COLORMAP
+    try:
+        from matplotlib import colormaps
+    except ImportError:
+        from ..utils import err_exit
+        err_exit(
+            'Matplotlib is required to use named colormaps. '
+            'Please install it or omit --colormap.'
+        )
+    try:
+        return cmap_name, colormaps[cmap_name]
+    except KeyError:
+        from ..utils import err_exit
+        err_exit(
+            f'Unknown Matplotlib colormap "{cmap_name}". '
+            'Use a valid Matplotlib colormap name such as '
+            '"viridis", "plasma", or "inferno".'
+        )
+
+
+def get_colormap_hex_colors(colormap_name=None, samples=16):
+    """Return evenly sampled hex colors from a Matplotlib colormap."""
+    _, cmap = get_matplotlib_colormap(colormap_name)
+    from matplotlib.colors import to_hex
+    samples = max(samples, 2)
+    values = [i / (samples - 1) for i in range(samples)]
+    return [to_hex(cmap(value), keep_alpha=False) for value in values]
+
+
+def get_plotly_colorscale(colormap_name=None, samples=16):
+    """Return a Plotly colorscale sampled from a Matplotlib colormap."""
+    colors = get_colormap_hex_colors(colormap_name, samples=samples)
+    if len(colors) == 1:
+        return [[0.0, colors[0]], [1.0, colors[0]]]
+    return [
+        [index / (len(colors) - 1), color]
+        for index, color in enumerate(colors)
+    ]
