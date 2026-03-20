@@ -11,10 +11,11 @@ Plot events on a map using folium.
 """
 import webbrowser
 import tempfile
+import math
 from .plot_map_utils import get_map_extent
 from .plot_utils import (
     get_event_popup_html, get_event_color_values, get_label_for_attribute,
-    get_colormap_hex_colors,
+    get_colormap_hex_colors, get_time_colorbar_ticks,
 )
 from ..database.dbfunctions import get_catalog_stats
 from ..utils import err_exit
@@ -90,6 +91,13 @@ def _build_colorbar_css():
     """Return CSS that improves colorbar readability."""
     return (
         '<style>'
+        '.legend.leaflet-control { '
+        'overflow: visible !important; '
+        'padding-bottom: 26px; '
+        '} '
+        '.legend.leaflet-control svg { '
+        'overflow: visible !important; '
+        '} '
         '#legend text { '
         'font-size: 14px !important; '
         'paint-order: stroke; '
@@ -107,6 +115,57 @@ def _build_colorbar_css():
         'transform: translateX(8px); '
         '} '
         '</style>'
+    )
+
+
+def _build_time_colorbar_label_script():
+    """Return JS that formats numeric legend ticks as UTC datetimes."""
+    return (
+        '<script>'
+        '(function () {'
+        'function pad(v) { return String(v).padStart(2, "0"); }'
+        'function formatUtc(sec) {'
+        '  var d = new Date(sec * 1000);'
+        '  return d.getUTCFullYear() + "-" + pad(d.getUTCMonth() + 1) + "-" + '
+        '    pad(d.getUTCDate());'
+        '}'
+        'function relabel() {'
+        '  var legend = document.getElementById("legend");'
+        '  if (!legend) { return false; }'
+        '  var ticks = legend.querySelectorAll(".tick text");'
+        '  if (!ticks.length) { return false; }'
+        '  ticks.forEach(function (node) {'
+        '    var txt = (node.textContent || "").trim();'
+        '    var val = Number(txt.replace(/,/g, ""));'
+        '    if (Number.isFinite(val)) {'
+        '      node.textContent = formatUtc(val);'
+        '      var x = Number(node.getAttribute("x") || 0);'
+        '      var y = Number(node.getAttribute("y") || 0);'
+        '      node.setAttribute("transform", "rotate(-28 " + x + " " + y + ")");'
+        '      node.setAttribute("text-anchor", "end");'
+        '    }'
+        '  });'
+        '  return true;'
+        '}'
+        'function scheduleRelabel() {'
+        '  var attempts = 0;'
+        '  var timer = setInterval(function () {'
+        '    attempts += 1;'
+        '    if (relabel() || attempts > 40) { clearInterval(timer); }'
+        '  }, 100);'
+        '}'
+        'if (document.readyState === "loading") {'
+        '  document.addEventListener("DOMContentLoaded", scheduleRelabel);'
+        '} else {'
+        '  scheduleRelabel();'
+        '}'
+        'if (typeof MutationObserver !== "undefined") {'
+        '  var obs = new MutationObserver(function () { relabel(); });'
+        '  obs.observe(document.documentElement, { childList: true, subtree: true });'
+        '  setTimeout(function () { obs.disconnect(); }, 10000);'
+        '}'
+        '})();'
+        '</script>'
     )
 
 
@@ -130,13 +189,25 @@ def _build_colormap(m, events, args):
         vmin=vmin, vmax=vmax,
         caption=get_label_for_attribute(colorby)
     )
+    if colorby == 'time':
+        # Branca expects numeric tick labels for axis placement.
+        # Keep numeric ticks, then rewrite displayed text with JS.
+        tickvals, _ticktext = get_time_colorbar_ticks(
+            color_values_list,
+            multiline=False,
+        )
+        folium_colormap.tick_labels = tickvals
     # Make the legend bar thicker than the branca defaults.
     folium_colormap.width = 520
-    folium_colormap.height = 64
+    folium_colormap.height = 96 if colorby == 'time' else 64
     folium_colormap.add_to(m)
     m.get_root().header.add_child(
         branca.element.Element(_build_colorbar_css())
     )
+    if colorby == 'time':
+        m.get_root().header.add_child(
+            branca.element.Element(_build_time_colorbar_label_script())
+        )
     return colorby, folium_colormap
 
 
@@ -159,11 +230,13 @@ def _add_events(m, events, scale, colorby, folium_colormap):
         popup = folium.Popup(popup_text, min_width=260, max_width=260)
         if folium_colormap is not None:
             val = event.get(colorby)
-            event_color = (
-                folium_colormap(val)
-                if isinstance(val, (int, float))
-                else folium_colormap(folium_colormap.vmin)
-            )
+            try:
+                numeric_val = float(val)
+                if math.isnan(numeric_val):
+                    raise ValueError('NaN color value')
+            except (TypeError, ValueError):
+                numeric_val = folium_colormap.vmin
+            event_color = folium_colormap(numeric_val)
         else:
             event_color = 'red'
         folium.CircleMarker(

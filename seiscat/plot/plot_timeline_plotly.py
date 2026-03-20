@@ -28,31 +28,10 @@ from .plot_timeline_utils import (
 )
 from .plot_utils import (
     get_label_for_attribute, get_event_popup_html, get_plotly_colorscale,
+    get_plotly_time_colorbar_kwargs,
 )
 from ..database.dbfunctions import get_catalog_stats
 from ..utils import err_exit
-
-
-def _format_epoch_seconds(value):
-    """Format Unix seconds to a compact UTC datetime label."""
-    dt = datetime.fromtimestamp(value, tz=timezone.utc)
-    return dt.strftime('%Y-%m-%d %H:%M')
-
-
-def _time_colorbar_kwargs(values):
-    """Return plotly colorbar kwargs to display numeric seconds as datetimes."""
-    v_min = min(values)
-    v_max = max(values)
-    if v_min == v_max:
-        tickvals = [v_min]
-    else:
-        tickvals = [v_min + i * (v_max - v_min) / 4 for i in range(5)]
-    ticktext = [_format_epoch_seconds(v) for v in tickvals]
-    return {
-        'tickmode': 'array',
-        'tickvals': tickvals,
-        'ticktext': ticktext,
-    }
 
 
 def _build_attribute_figure(events, args):
@@ -115,7 +94,7 @@ def _build_attribute_figure(events, args):
 
     colorbar_kwargs = {'title': color_label}
     if color_attr == 'time':
-        colorbar_kwargs |= _time_colorbar_kwargs(color_values)
+        colorbar_kwargs |= get_plotly_time_colorbar_kwargs(color_values)
     colorscale = get_plotly_colorscale(getattr(args, 'colormap', None))
 
     fig = go.Figure()

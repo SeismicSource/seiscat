@@ -10,8 +10,42 @@ Utility functions shared by map and timeline plot modules.
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
 from html import escape
+import math
+from datetime import datetime, timezone
 
 DEFAULT_COLORMAP = 'viridis'
+
+
+def format_epoch_seconds(value, multiline=False):
+    """Format Unix seconds to a compact UTC datetime label."""
+    dt = datetime.fromtimestamp(value, tz=timezone.utc)
+    fmt = '%Y-%m-%d\n%H:%M' if multiline else '%Y-%m-%d %H:%M'
+    return dt.strftime(fmt)
+
+
+def get_time_colorbar_ticks(values, multiline=False):
+    """Return evenly spaced tick values and datetime labels for time scales."""
+    v_min = min(values)
+    v_max = max(values)
+    if v_min == v_max:
+        tickvals = [v_min]
+    else:
+        tickvals = [v_min + i * (v_max - v_min) / 4 for i in range(5)]
+    ticktext = [
+        format_epoch_seconds(value, multiline=multiline)
+        for value in tickvals
+    ]
+    return tickvals, ticktext
+
+
+def get_plotly_time_colorbar_kwargs(values):
+    """Return Plotly colorbar kwargs for numeric epoch-second values."""
+    tickvals, ticktext = get_time_colorbar_ticks(values, multiline=False)
+    return {
+        'tickmode': 'array',
+        'tickvals': tickvals,
+        'ticktext': ticktext,
+    }
 
 
 def get_label_for_attribute(attribute):
@@ -70,20 +104,31 @@ def get_event_color_values(events, colorby):
     if colorby is None:
         return None
     raw = [e.get(colorby) for e in events]
-    valid = [v for v in raw if isinstance(v, (int, float))]
+
+    def _to_finite_float(value):
+        if value is None:
+            return None
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError):
+            return None
+        return None if math.isnan(numeric) else numeric
+
+    converted = [_to_finite_float(value) for value in raw]
+    valid = [value for value in converted if value is not None]
     if not valid:
         print(
             f'Warning: attribute "{colorby}" has no numeric values. '
             'Using default color.'
         )
         return None
-    if len(valid) < len(raw):
+    if len(valid) < len(converted):
         print(
             f'Warning: some events have missing "{colorby}" values. '
             'Those markers will use the minimum color value.'
         )
     vmin = min(valid)
-    return [float(v) if isinstance(v, (int, float)) else vmin for v in raw]
+    return [value if value is not None else vmin for value in converted]
 
 
 def get_matplotlib_colormap(colormap_name=None):

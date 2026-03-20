@@ -17,7 +17,7 @@ import numpy as np
 from .plot_map_utils import get_map_extent
 from .plot_utils import (
     get_event_popup_html, get_event_color_values, get_label_for_attribute,
-    get_plotly_colorscale,
+    get_plotly_colorscale, get_plotly_time_colorbar_kwargs,
 )
 from ..utils import err_exit
 try:
@@ -436,7 +436,10 @@ def plot_catalog_map_with_plotly(events, config):
         )
     fig = px.scatter_3d(**scatter_kwargs)
     if color_values is not None:
-        fig.update_coloraxes(colorbar_title_text=get_label_for_attribute(colorby))
+        colorbar_kwargs = {'title': {'text': get_label_for_attribute(colorby)}}
+        if colorby == 'time':
+            colorbar_kwargs |= get_plotly_time_colorbar_kwargs(color_values)
+        fig.update_coloraxes(colorbar=colorbar_kwargs)
     if size is None:
         fig.update_traces(marker={'size': radii})
     # Remove borders from markers

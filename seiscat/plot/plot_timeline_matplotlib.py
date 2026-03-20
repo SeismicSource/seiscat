@@ -13,20 +13,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.ticker import FuncFormatter
-from datetime import datetime, timezone
 from .plot_timeline_utils import (
     get_event_times_values_and_events, bin_events_by_time,
     get_bin_size_label, ONE_DAY_SECONDS,
 )
-from .plot_utils import get_label_for_attribute, get_matplotlib_colormap
+from .plot_utils import (
+    get_label_for_attribute, get_matplotlib_colormap, format_epoch_seconds,
+)
 from ..database.dbfunctions import get_catalog_stats
 from ..utils import err_exit
-
-
-def _format_epoch_seconds(value, _pos=None):
-    """Format Unix seconds to a compact UTC datetime label."""
-    dt = datetime.fromtimestamp(value, tz=timezone.utc)
-    return dt.strftime('%Y-%m-%d\n%H:%M')
 
 
 def _plot_attribute(events, args, ax):
@@ -85,11 +80,15 @@ def _plot_attribute(events, args, ax):
     )
     cbar = plt.colorbar(sc, ax=ax, label=get_label_for_attribute(color_attr))
     if color_attr == 'time':
-        cbar.formatter = FuncFormatter(_format_epoch_seconds)
+        cbar.formatter = FuncFormatter(
+            lambda value, _pos: format_epoch_seconds(value, multiline=True)
+        )
         cbar.update_ticks()
 
     if attribute == 'time':
-        ax.yaxis.set_major_formatter(FuncFormatter(_format_epoch_seconds))
+        ax.yaxis.set_major_formatter(FuncFormatter(
+            lambda value, _pos: format_epoch_seconds(value, multiline=True)
+        ))
 
     ax.set_ylabel(get_label_for_attribute(attribute))
     ax.set_title(

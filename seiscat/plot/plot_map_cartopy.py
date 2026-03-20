@@ -16,9 +16,11 @@ import zipfile
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter
 from .plot_map_utils import get_map_extent
 from .plot_utils import (
     get_event_color_values, get_label_for_attribute, get_matplotlib_colormap,
+    format_epoch_seconds,
 )
 from ..database.dbfunctions import get_catalog_stats
 from ..utils import err_exit
@@ -245,11 +247,16 @@ def _plot_events(ax, events, scale, colorby=None, colormap=None):
             0.02,
             axes_pos.height * 0.6,
         ])
-        plt.colorbar(
+        cbar = plt.colorbar(
             sc,
             cax=cax,
             label=get_label_for_attribute(colorby),
         )
+        if colorby == 'time':
+            cbar.formatter = FuncFormatter(
+                lambda value, _pos: format_epoch_seconds(value, multiline=True)
+            )
+            cbar.update_ticks()
     else:
         # Plot all events at once
         ax.scatter(
