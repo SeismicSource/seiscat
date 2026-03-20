@@ -8,6 +8,7 @@ Keep a local seismic catalog.
 [![PyPI-badge]][PyPI-link]
 [![license-badge]][license-link]
 [![docs-badge]][docs-link]
+[![DeepWiki-badge]][DeepWiki-link]
 [![codecov-badge]][codecov-link]
 
 Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
@@ -204,3 +205,5 @@ Don't hesitate sending me pull requests with new features and/or bugfixes!
 [Issues]: https://github.com/SeismicSource/seiscat/issues
 [codecov-badge]: https://codecov.io/github/SeismicSource/seiscat/graph/badge.svg?token=X0Z60185PC
 [codecov-link]: https://codecov.io/github/SeismicSource/seiscat
+[DeepWiki-badge]: https://deepwiki.com/badge.svg
+[DeepWiki-link]: https://deepwiki.com/SeismicSource/seiscat
