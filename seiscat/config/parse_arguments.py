@@ -18,136 +18,10 @@ from rich_argparse import RichHelpFormatter
 from rich.console import Console
 from rich.panel import Panel
 from .._version import get_versions
-
-
-# Curated fallback names used when Matplotlib cannot be imported at
-# completion time. Keep only canonical names here (no _r variants).
-_FALLBACK_MATPLOTLIB_COLORMAP_BASE_NAMES = (
-    'Accent', 'Blues', 'BrBG', 'BuGn', 'BuPu', 'CMRmap', 'Dark2', 'GnBu',
-    'Grays', 'Greens', 'Greys', 'OrRd', 'Oranges', 'PRGn', 'Paired',
-    'Pastel1', 'Pastel2', 'PiYG', 'PuBu', 'PuBuGn', 'PuOr', 'PuRd',
-    'Purples', 'RdBu', 'RdGy', 'RdPu', 'RdYlBu', 'RdYlGn', 'Reds', 'Set1',
-    'Set2', 'Set3', 'Spectral', 'Wistia', 'YlGn', 'YlGnBu', 'YlOrBr',
-    'YlOrRd', 'afmhot', 'autumn', 'berlin', 'binary', 'bone', 'brg',
-    'bwr', 'cividis', 'cool', 'coolwarm', 'copper', 'cubehelix', 'flag',
-    'gist_earth', 'gist_gray', 'gist_grey', 'gist_heat', 'gist_ncar',
-    'gist_rainbow', 'gist_stern', 'gist_yarg', 'gist_yerg', 'gnuplot',
-    'gnuplot2', 'gray', 'grey', 'hot', 'hsv', 'inferno', 'jet', 'magma',
-    'managua', 'nipy_spectral', 'ocean', 'pink', 'plasma', 'prism',
-    'rainbow', 'seismic', 'spring', 'summer', 'tab10', 'tab20', 'tab20b',
-    'tab20c', 'terrain', 'turbo', 'twilight', 'twilight_shifted',
-    'vanimo', 'viridis', 'winter'
-)
-# Full fallback completion set: base names plus generated reversed variants.
-_FALLBACK_MATPLOTLIB_COLORMAPS = tuple(sorted(
-    set(_FALLBACK_MATPLOTLIB_COLORMAP_BASE_NAMES)
-    | {f'{name}_r' for name in _FALLBACK_MATPLOTLIB_COLORMAP_BASE_NAMES}
-))
-
-
-def _get_db_cursor(configfile):
-    """
-    Get a cursor to the database.
-
-    :param configfile: path to config file
-    :return: cursor to the database
-    """
-    try:
-        fp = open(configfile, 'r', encoding='utf-8')
-    except FileNotFoundError:
-        return None
-    try:
-        db_file = [
-            line.split('=')[1].strip() for line in fp
-            if line.startswith('db_file')][0]
-    except IndexError:
-        db_file = None
-    db_files_to_try = (
-        [db_file]
-        if db_file is not None
-        else ['seiscat_db.sqlite', 'seiscat.sqlite']
-    )
-    for db_file in db_files_to_try:
-        try:
-            open(db_file, 'r', encoding='utf-8')
-            break
-        except FileNotFoundError:
-            continue
-    else:
-        return None
-    # pylint: disable=import-outside-toplevel
-    import sqlite3  # lazy import to speed up startup time
-    conn = sqlite3.connect(db_file)
-    return conn.cursor()
-
-
-def _evid_completer(prefix, parsed_args, **_kwargs):
-    """
-    Completer for event IDs.
-
-    :param prefix: prefix to complete
-    :param parsed_args: parsed arguments
-    :param kwargs: keyword arguments
-    :return: list of event IDs
-    """
-    if _evid_completer.db_cursor is None:
-        _evid_completer.db_cursor = _get_db_cursor(parsed_args.configfile)
-    if _evid_completer.db_cursor is None:
-        return []
-    # Count matching evids first to avoid overwhelming completion
-    _evid_completer.db_cursor.execute(
-        'SELECT COUNT(*) FROM events WHERE evid LIKE ?', (f'{prefix}%',)
-    )
-    count = _evid_completer.db_cursor.fetchone()[0]
-    max_completions = 100
-    if count > max_completions:
-        return [
-            f'[Too many events ({count}) for autocompletion'
-            '\nUse exact EVID or --where to filter]'
-        ]
-    _evid_completer.db_cursor.execute(
-        'SELECT evid FROM events WHERE evid LIKE ?', (f'{prefix}%',)
-    )
-    return [row[0] for row in _evid_completer.db_cursor.fetchall()]
-_evid_completer.db_cursor = None  # noqa: E305
-
-
-def _sortby_completer(prefix, parsed_args, **_kwargs):
-    """
-    Completer for sortby field names.
-
-    :param prefix: prefix to complete
-    :param parsed_args: parsed arguments
-    :param kwargs: keyword arguments
-    :return: list of field names
-    """
-    if _sortby_completer.db_cursor is None:
-        _sortby_completer.db_cursor = _get_db_cursor(parsed_args.configfile)
-    if _sortby_completer.db_cursor is None:
-        return []
-    # Get all field names from the events table
-    try:
-        _sortby_completer.db_cursor.execute('PRAGMA table_info(events)')
-        # Field names are in the second column (index 1)
-        all_fields = [row[1] for row in _sortby_completer.db_cursor.fetchall()]
-        # Filter by prefix
-        return [field for field in all_fields if field.startswith(prefix)]
-    except Exception:  # pylint: disable=broad-except
-        return []
-_sortby_completer.db_cursor = None  # noqa: E305
-
-
-def _get_matplotlib_colormap_names():
-    """Return the exhaustive Matplotlib colormap registry when available."""
-    try:
-        from matplotlib import colormaps  # lazy import to keep startup fast
-        return sorted(colormaps.keys())
-    except Exception:  # pylint: disable=broad-except
-        return list(_FALLBACK_MATPLOTLIB_COLORMAPS)
-
-
-_colormap_completer = argcomplete.completers.ChoicesCompleter(
-    _get_matplotlib_colormap_names()
+from .autocompletion import (
+    evid_completer,
+    sortby_completer,
+    colormap_completer,
 )
 
 
@@ -308,7 +182,7 @@ def _get_parent_parsers():
         help='field to sort by (default: %(default)s). '
              'Common fields: time, lat, lon, depth, mag, evid. '
              'Use any field name from the database.'
-    ).completer = _sortby_completer
+    ).completer = sortby_completer
     color_parser = argparse.ArgumentParser(add_help=False)
     color_parser.add_argument(
         '--colorby',
@@ -317,7 +191,7 @@ def _get_parent_parsers():
         metavar='FIELD',
         help='attribute used to color markers. '
              'Use any numeric field from the database.'
-    ).completer = _sortby_completer
+    ).completer = sortby_completer
     color_parser.add_argument(
         '--colormap',
         type=str,
@@ -328,7 +202,7 @@ def _get_parent_parsers():
              'Examples: viridis, plasma, inferno, cividis. '
              'See https://matplotlib.org/'
              'stable/users/explain/colors/colormaps.html'
-    ).completer = _colormap_completer
+    ).completer = colormap_completer
     return {
         'configfile_parser': configfile_parser,
         'fromfile_parser': fromfile_parser,
@@ -381,7 +255,7 @@ def _add_editdb_parser(subparser, parents):
         'eventid',
         nargs='?',
         help='event ID to edit. Use ALL to edit all events'
-    ).completer = _evid_completer
+    ).completer = evid_completer
     editdb_parser.add_argument(
         'event_version',
         nargs='?',
@@ -454,7 +328,7 @@ def _add_fetchdata_parser(subparser, parents):
     fetchdata_parser.add_argument(
         'eventid', nargs='?',
         help='event ID to download (default: all events)'
-    ).completer = _evid_completer
+    ).completer = evid_completer
     group = fetchdata_parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
         '-e',
@@ -506,7 +380,7 @@ def _add_print_parser(subparser, parents):
     print_parser.add_argument(
         'eventid', nargs='?',
         help='event ID to print'
-    ).completer = _evid_completer
+    ).completer = evid_completer
     print_parser.add_argument(
         '-f',
         '--format',
@@ -639,7 +513,7 @@ def _add_timeline_parser(subparser, parents):
         metavar='FIELD',
         help='event attribute to plot on the Y axis (default: %(default)s). '
              'Use any numeric field from the database (e.g., depth, lat, lon).'
-    ).completer = _sortby_completer
+    ).completer = sortby_completer
     mode_group.add_argument(
         '-C',
         '--count',
@@ -697,7 +571,7 @@ def _add_get_parser(subparser, parents):
     get_parser.add_argument(
         'eventid',
         help='event ID to get'
-    ).completer = _evid_completer
+    ).completer = evid_completer
     get_parser.add_argument(
         'event_version',
         nargs='?',
@@ -729,7 +603,7 @@ def _add_set_parser(subparser, parents):
         'eventid',
         type=str,
         help='event ID to set'
-    ).completer = _evid_completer
+    ).completer = evid_completer
     set_parser.add_argument(
         'event_version',
         nargs='?',
@@ -763,7 +637,7 @@ def _add_run_parser(subparser, parents):
     run_parser.add_argument(
         'eventid', nargs='?',
         help='only run the command on this eventid'
-    ).completer = _evid_completer
+    ).completer = evid_completer
     run_parser.epilog = (
         'Note: this command supports concurrent processes, all modifying the '
         'database. It is therefore safe to run multiple instances of this '

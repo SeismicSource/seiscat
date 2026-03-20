@@ -106,6 +106,13 @@ parse_arguments
     :undoc-members:
     :show-inheritance:
 
+autocompletion
+==============
+.. automodule:: seiscat.config.autocompletion
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 .. automodule:: seiscat.config.config
     :members:
     :undoc-members:
