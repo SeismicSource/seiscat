@@ -24,6 +24,9 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - New `--sortby` option to sort catalog output by any database field
   (default: `time`). Available for `seiscat print`, `seiscat export`,
   `seiscat plot`, and `seiscat run`. Supports tab-completion of field names.
+- New `seiscat timeline` command with matplotlib/plotly/terminal backends,
+  attribute or count mode (`--count`, `--bins`), optional `--colorby`, and
+  time-formatted axis/colorbar when using `time`
 - `seiscat download` renamed to `seiscat fetchdata`
 - New option for `seiscat fetchdata`: `--sds` to retrieve waveform data from
   a local SDS archive

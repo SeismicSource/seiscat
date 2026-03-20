@@ -556,6 +556,78 @@ def _add_plot_parser(subparser, parents):
     )
 
 
+def _add_timeline_parser(subparser, parents):
+    """Add the timeline subparser."""
+    timeline_parser = subparser.add_parser(
+        'timeline',
+        parents=[
+            parents['configfile_parser'],
+            parents['versions_parser'],
+            parents['where_parser'],
+        ],
+        help='plot a timeline of the earthquake catalog',
+        formatter_class=RichHelpFormatter
+    )
+    mode_group = timeline_parser.add_mutually_exclusive_group()
+    mode_group.add_argument(
+        '-A',
+        '--attribute',
+        type=str,
+        default='mag',
+        metavar='FIELD',
+        help='event attribute to plot on the Y axis (default: %(default)s). '
+             'Use any numeric field from the database (e.g., depth, lat, lon).'
+    ).completer = _sortby_completer
+    mode_group.add_argument(
+        '-C',
+        '--count',
+        action='store_true',
+        default=False,
+        help='plot event count per time bin instead of a scatter of an '
+             'attribute (default: %(default)s)'
+    )
+    timeline_parser.add_argument(
+        '--colorby',
+        type=str,
+        default=None,
+        metavar='FIELD',
+        help='attribute used to color markers in attribute mode. '
+             'By default, marker color uses --attribute. '
+             'Use any numeric field from the database.'
+    ).completer = _sortby_completer
+    timeline_parser.add_argument(
+        '-b',
+        '--bins',
+        type=str,
+        default=None,
+        metavar='SPEC',
+        help='bin width for count mode (default: auto). '
+             'Accepted formats: integer N (N equal-width bins), '
+             'or a duration string such as "1d" (days), "1w" (weeks), '
+             '"1m" (months), "1y" (years). Only used when --count is set.'
+    )
+    timeline_parser.add_argument(
+        '-m',
+        '--backend',
+        type=str,
+        default='matplotlib',
+        choices=['matplotlib', 'plotly', 'terminal'],
+        help='plotting backend (default: %(default)s). '
+             '"terminal" only supports count mode.'
+    )
+    timeline_parser.add_argument(
+        '-o',
+        '--out-file',
+        type=str,
+        default=None,
+        metavar='FILE',
+        help='output file (default: show on screen / open in browser). '
+             'For matplotlib, the format is determined by the file extension '
+             '(e.g., .png, .pdf, .svg). '
+             'For plotly, the file should have a .html extension.'
+    )
+
+
 def _add_get_parser(subparser, parents):
     """Add the get subparser."""
     get_parser = subparser.add_parser(
@@ -701,6 +773,7 @@ def parse_arguments():
     _add_export_parser(subparser, parents)
     _add_plot_parser(subparser, parents)
     _add_get_parser(subparser, parents)
+    _add_timeline_parser(subparser, parents)
     _add_set_parser(subparser, parents)
     _add_run_parser(subparser, parents)
     _add_fetchdata_parser(subparser, parents)

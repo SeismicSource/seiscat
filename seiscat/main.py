@@ -73,6 +73,9 @@ def run():
     elif args.action == 'plot':
         from .plot.plot_map import plot_catalog_map
         plot_catalog_map(config)
+    elif args.action == 'timeline':
+        from .plot.plot_timeline import plot_catalog_timeline
+        plot_catalog_timeline(config)
     elif args.action == 'run':
         from .run_command import run_command
         run_command(config)

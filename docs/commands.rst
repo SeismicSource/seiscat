@@ -65,7 +65,7 @@ Examples:
    seiscat print -w "depth < 10.0 OR depth > 100.0"
    seiscat print -w "evid = aa1234bb"
    seiscat export catalog.csv -w "time >= '2023-01-01' AND time < '2024-01-01'"
-   seicat plot -w "mag >= 4.0"
+   seiscat plot -w "mag >= 4.0"
 
 Sorting with ``--sortby``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -270,6 +270,62 @@ Cartopy and Plotly backends require optional dependencies installed with
 Options: ``--configfile``, ``--where``, ``--allversions``, ``--sortby``,
 ``--reverse``, ``--maptype {cartopy,folium,plotly}``, ``--scale FLOAT``,
 ``--time_slider`` (Plotly only).
+
+seiscat timeline
+~~~~~~~~~~~~~~~~
+
+Plot a timeline of the catalog either as attribute-vs-time scatter or
+event-count-vs-time histogram.
+
+Backends:
+
+- ``matplotlib``: static figure on screen or file
+- ``plotly``: interactive web figure on screen or HTML file
+- ``terminal``: text chart of event counts over time
+
+.. code-block::
+
+   # Attribute vs time (default: magnitude)
+   seiscat timeline
+   seiscat timeline -A depth
+
+   # Color markers by a second numeric attribute
+   seiscat timeline -A depth --colorby mag
+
+   # Use time as Y axis and/or colorbar attribute
+   seiscat timeline -A time
+   seiscat timeline -A mag --colorby time
+
+   # Event count with auto/custom bins
+   seiscat timeline -C
+   seiscat timeline -C -b 20
+   seiscat timeline -C -b 7d
+   seiscat timeline -C -b 1m
+
+   # Backend and output examples
+   seiscat timeline -A mag -m matplotlib -o timeline.png
+   seiscat timeline -A mag -m plotly -o timeline.html
+   seiscat timeline -C -m terminal
+
+Options: ``--configfile``, ``--where``, ``--allversions``,
+``--attribute FIELD`` (default: ``mag``), ``--count``,
+``--colorby FIELD`` (attribute mode only),
+``--bins SPEC`` (count mode only),
+``--backend {matplotlib,plotly,terminal}``,
+``--out-file FILE``.
+
+Bin specification for ``--bins``:
+
+- integer ``N``: use ``N`` equal-width bins
+- duration string: ``Nd`` (days), ``Nw`` (weeks), ``Nm`` (months),
+  ``Ny`` (years)
+- omitted: automatic bin width
+
+Time formatting behavior:
+
+- If ``--attribute time`` is used, Y-axis labels are formatted as time.
+- If ``--colorby time`` is used, colorbar labels are formatted as time.
+- This applies to both matplotlib and plotly backends.
 
 seiscat get
 ~~~~~~~~~~~

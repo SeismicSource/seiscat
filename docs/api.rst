@@ -146,6 +146,41 @@ plot_map_plotly
     :undoc-members:
     :show-inheritance:
 
+plot_timeline
+=============
+.. automodule:: seiscat.plot.plot_timeline
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+plot_timeline_utils
+===================
+.. automodule:: seiscat.plot.plot_timeline_utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+plot_timeline_matplotlib
+========================
+.. automodule:: seiscat.plot.plot_timeline_matplotlib
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+plot_timeline_plotly
+====================
+.. automodule:: seiscat.plot.plot_timeline_plotly
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+plot_timeline_terminal
+======================
+.. automodule:: seiscat.plot.plot_timeline_terminal
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 print
 =====
 .. automodule:: seiscat.print
