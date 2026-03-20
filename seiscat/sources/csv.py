@@ -208,8 +208,8 @@ def _guess_field_names(input_fields):
     duplicated_fields = [
         (key, value, output_field_scores[key])
         for key, value in output_fields.items() if
-        value is not None and
-        list(output_fields.values()).count(value) > 1
+        value is not None
+        and list(output_fields.values()).count(value) > 1
     ]
     # if there are duplicated fields, keep the one with the highest score
     for _key, value, score in duplicated_fields:
@@ -582,12 +582,12 @@ def _read_csv(fp, delimiter, column_names, nrows, depth_units, no_value=None):
         nrows -= 1  # first row is the header
     cat = Catalog()
     for n, row in enumerate(reader):
-        print(f'reading row {n+1}/{nrows}\r', end='')
+        print(f'reading row {n + 1}/{nrows}\r', end='')
         row = _apply_no_value_markers(row, text_markers, numeric_markers)
         try:
             ev = _read_csv_row(row, fields, depth_units, mag_type)
         except (ValueError, TypeError) as e:
-            print(f'Error at row {n+1}: {e}')
+            print(f'Error at row {n + 1}: {e}')
             continue
         cat.append(ev)
     print()  # needed to add a newline after the last "reading row" message

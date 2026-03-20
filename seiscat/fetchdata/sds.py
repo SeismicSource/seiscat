@@ -26,7 +26,8 @@ def get_sds_client(sds_root):
     :rtype: obspy.clients.filesystem.sds.Client
     """
     client = Client(sds_root)
-    if all_nslc := client.get_all_nslc():
+    # Ensure the archive has at least one NSLC entry before accepting it.
+    if client.get_all_nslc():
         return client
     else:
         raise FileNotFoundError(

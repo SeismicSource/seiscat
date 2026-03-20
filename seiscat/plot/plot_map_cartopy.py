@@ -214,7 +214,7 @@ def _plot_events(ax, events, scale, colorby=None, colormap=None):
         events = [e for e in events if e['mag'] is not None]
         radii = [np.exp(e['mag']) * marker_scale for e in events]
     else:
-        radii = [3*marker_scale] * len(events)
+        radii = [3 * marker_scale] * len(events)
     ev_attributes = [
         (e['evid'], e['ver'], e['time'], e['lon'], e['lat'], e['depth'],
          e['mag'], radii[n])

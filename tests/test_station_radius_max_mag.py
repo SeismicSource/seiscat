@@ -109,7 +109,8 @@ class TestStationRadiusMaxMag(unittest.TestCase):
         """Test handling of invalid mathematical expression."""
         station_radius_max_mag = "invalid_var * 2"
         # Should return default station_radius_max
-        result = _calculate_station_radius_max(3.0, station_radius_max_mag, 0, 5.0)
+        result = _calculate_station_radius_max(
+            3.0, station_radius_max_mag, 0, 5.0)
         self.assertEqual(result, 5.0)
 
     def test_complex_expression(self):

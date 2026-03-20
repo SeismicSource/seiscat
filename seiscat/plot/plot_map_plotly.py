@@ -117,9 +117,9 @@ def _get_marker_sizes(events, scale):
         # remove events with no magnitude
         events = [e for e in events if e['mag'] is not None]
         radii = [np.exp(e['mag']) for e in events]
-        radii = np.array(radii)/np.max(radii) * scale * 3
+        radii = np.array(radii) / np.max(radii) * scale * 3
     else:
-        radii = scale/3
+        radii = scale / 3
     return events, radii
 
 
@@ -316,8 +316,9 @@ def _add_time_slider(fig, xcoords, ycoords, depths, radii, times):
     frames = [
         go.Frame(
             data=[_scatter3d(
-                xcoords[:i+1], ycoords[:i+1], depths[:i+1],
-                radii[:i+1] if isinstance(radii, (list, np.ndarray)) else radii
+                xcoords[:i + 1], ycoords[:i + 1], depths[:i + 1],
+                radii[:i + 1] if isinstance(radii, (list, np.ndarray))
+                else radii
             )],
             name=f'frame{i}'
         )
@@ -341,11 +342,12 @@ def _add_time_slider(fig, xcoords, ycoords, depths, radii, times):
                     },
                     {
                         'args': [
-                            [None], {
+                            [None],
+                            {
                                 'frame': {'duration': 0, 'redraw': True},
                                 'mode': 'immediate',
                                 'transition': {'duration': 0}
-                                }
+                            }
                         ],
                         'label': 'Pause',
                         'method': 'animate'

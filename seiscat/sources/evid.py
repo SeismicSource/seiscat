@@ -23,9 +23,9 @@ def _base26(val):
     :rtype: str
     """
     chars = [
-      'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
-      'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
-      'u', 'v', 'w', 'x', 'y', 'z'
+        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
+        'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
+        'u', 'v', 'w', 'x', 'y', 'z'
     ]
     base = len(chars)
     ret = ''
@@ -52,7 +52,7 @@ def generate_evid(orig_time):
     orig_year = UTCDateTime(year=year, month=1, day=1)
     val = int(orig_time - orig_year)
     # normalize val between 0 (aaaaaa) and 26**6-1 (zzzzzz)
-    maxval = 366*24*3600  # max number of seconds in leap year
-    normval = int(val/maxval * (26**6-1))
+    maxval = 366 * 24 * 3600  # max number of seconds in leap year
+    normval = int(val / maxval * (26**6 - 1))
     ret = _base26(normval)
     return f'{prefix}{year}{ret}'

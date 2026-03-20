@@ -145,8 +145,8 @@ def _get_parent_parsers():
         nargs='+',
         metavar='VALUE',
         help='one or more values/strings to treat as missing in CSV input '
-               '(e.g., --missing-value -999; '
-               '--missing-value -999 N/A). Only used for CSV files.'
+             '(e.g., --missing-value -999; '
+             '--missing-value -999 N/A). Only used for CSV files.'
     )
     unit_parser = argparse.ArgumentParser(add_help=False)
     unit_parser.add_argument(

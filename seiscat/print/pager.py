@@ -164,8 +164,8 @@ def _draw_sort_popup_and_get_input(
         title_left = title_padding // 2
         title_right = title_padding - title_left
         title_line = (
-            '║' + ' ' * title_left + title +
-            ' ' * title_right + '║'
+            '║' + ' ' * title_left + title
+            + ' ' * title_right + '║'
         )
         stdscr.addstr(popup_y + 1, popup_x, title_line, curses.A_BOLD)
         # Draw separator
@@ -188,8 +188,8 @@ def _draw_sort_popup_and_get_input(
             padding = ' ' * (popup_width - 4)
             content = (content + padding)[:popup_width - 4]
             is_selected = (
-                start_idx + i < len(fields) and
-                start_idx + i == selected_idx
+                start_idx + i < len(fields)
+                and start_idx + i == selected_idx
             )
             option_line = f'║ {content} ║'
             if is_selected:
@@ -200,8 +200,8 @@ def _draw_sort_popup_and_get_input(
         # Draw bottom border
         bottom_border = '╚' + '═' * (popup_width - 2) + '╝'
         bottom_y = popup_y + popup_height - 1
-        stdscr.addstr(bottom_y, popup_x, bottom_border,
-                     curses.A_BOLD)
+        stdscr.addstr(
+            bottom_y, popup_x, bottom_border, curses.A_BOLD)
         stdscr.refresh()
         # Handle input
         key = stdscr.getch()

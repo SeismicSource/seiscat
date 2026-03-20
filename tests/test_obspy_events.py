@@ -50,7 +50,8 @@ class TestReadCatalogFromObspyEvents(unittest.TestCase):
         for i in range(num_events):
             event = Event()
             origin = Origin()
-            origin.time = UTCDateTime(f'2023-05-{15+i:02d}T{10+i:02d}:30:00')
+            origin.time = UTCDateTime(
+                f'2023-05-{15 + i:02d}T{10 + i:02d}:30:00')
             origin.latitude = 42.5 + i * 0.5
             origin.longitude = 13.2 + i * 0.8
             origin.depth = 10000.0 + i * 5000.0

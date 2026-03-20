@@ -10,6 +10,7 @@ Event data types for seiscat.
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
 
+
 class Event(dict):
     """
     A custom dictionary class that supports sorting events based on keys
