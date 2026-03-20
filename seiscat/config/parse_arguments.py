@@ -44,9 +44,13 @@ Where:
   -w "depth < 10.0 AND mag >= 3.0"
   -w "depth < 10.0 OR depth > 100.0"
   -w "evid = aa1234bb"
+  -w "mag"         (shorthand for [italic]mag IS NOT NULL AND mag != 0[/italic])
+  -w "mag != None" (matches non-null values, including 0)
 
 [bold]Note[/bold]
-Comparison operators must be quoted to avoid shell interpretation."""
+Comparison operators must be quoted to avoid shell interpretation.
+A bare key (e.g., [cyan]mag[/cyan]) uses SQL truthiness, so it means
+[italic]non-null and non-zero[/italic]."""  # noqa: E501 (ignore long line)
     panel = Panel(help_text, title="--where", expand=False, padding=(1, 2))
     console.print(panel)
     sys.exit(0)

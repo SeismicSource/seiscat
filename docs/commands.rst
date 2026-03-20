@@ -60,6 +60,13 @@ For missing values (SQL ``NULL``), use either SQL syntax or the shorthand
 - ``mag IS NULL`` (equivalent to ``mag=None`` or ``mag==None``)
 - ``mag IS NOT NULL`` (equivalent to ``mag!=None``)
 
+A bare field name is also accepted and uses SQL truthiness. For numeric
+fields this means "non-null and non-zero":
+
+- ``mag`` is equivalent to ``mag IS NOT NULL AND mag != 0``
+- ``mag`` is not equivalent to ``mag!=None`` (because ``mag!=None`` keeps
+  zero magnitudes)
+
 For detailed help with the ``--where`` syntax, use ``--where-help``, e.g.:
 
 .. code-block::
