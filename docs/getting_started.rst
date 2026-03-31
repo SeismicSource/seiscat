@@ -47,6 +47,11 @@ You can also initialize the database from local event files
 
    seiscat initdb -f /path/to/your/catalog.csv
    seiscat initdb -f /path/to/your/events.xml
+   seiscat initdb -f /path/to/your/catalog.csv -C
+
+Use ``-C/--crop`` to apply the geographic/depth/magnitude/event-type
+selection criteria from your configuration file when importing from local
+files.
 
 
 Typical SeisCat working directory
@@ -92,6 +97,13 @@ To update an existing database from an FDSN event webservice, run:
 .. code-block::
 
    seiscat updatedb
+
+You can also crop an existing local database to the configured selection
+criteria (a backup is created first):
+
+.. code-block::
+
+   seiscat cropdb
 
 If ``end_time`` is ``None``, SeisCat uses ``recheck_period`` to recheck the
 last *n* days/hours/minutes/seconds.

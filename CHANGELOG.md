@@ -46,6 +46,12 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
   initialize or update the database from an event file. Supported formats:
   CSV and any format supported by ObsPy (QuakeML, SC3ML, NLLOC, etc.).
   CSV format is tried first, then falls back to ObsPy if needed
+- New option for file-based import in `seiscat initdb` and
+  `seiscat updatedb`: `-C, --crop` to crop imported events to the
+  geographic/depth/magnitude/event-type selection criteria defined
+  in the configuration file
+- New command `seiscat cropdb` to crop an existing database to the
+  configured selection criteria
 - New option for CSV input in `seiscat initdb` and `seiscat updatedb`:
   `-x, --missing-value` to define one or more markers treated as missing
   values (e.g., `-999`, `N/A`).

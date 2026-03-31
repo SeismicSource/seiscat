@@ -219,6 +219,17 @@ def _get_parent_parsers():
              'See https://matplotlib.org/'
              'stable/users/explain/colors/colormaps.html'
     ).completer = colormap_completer
+    crop_parser = argparse.ArgumentParser(add_help=False)
+    crop_parser.add_argument(
+        '-C', '--crop',
+        action='store_true',
+        default=False,
+        help='when reading from file, crop the catalog to the geographic, '
+             'depth and magnitude selection criteria defined in the '
+             'configuration file (default: %(default)s). '
+             'Has no effect when importing from FDSN, where the bounding '
+             'box is already applied during the query.'
+    )
     return {
         'configfile_parser': configfile_parser,
         'fromfile_parser': fromfile_parser,
@@ -227,7 +238,8 @@ def _get_parent_parsers():
         'where_parser': where_parser,
         'reverse_parser': reverse_parser,
         'sortby_parser': sortby_parser,
-        'color_parser': color_parser
+        'color_parser': color_parser,
+        'crop_parser': crop_parser,
     }
 
 
@@ -238,7 +250,8 @@ def _add_initdb_parser(subparser, parents):
         parents=[
             parents['configfile_parser'],
             parents['fromfile_parser'],
-            parents['unit_parser']
+            parents['unit_parser'],
+            parents['crop_parser'],
         ],
         formatter_class=RichHelpFormatter,
         help='initialize database')
@@ -251,7 +264,8 @@ def _add_updatedb_parser(subparser, parents):
         parents=[
             parents['configfile_parser'],
             parents['fromfile_parser'],
-            parents['unit_parser']
+            parents['unit_parser'],
+            parents['crop_parser'],
         ],
         formatter_class=RichHelpFormatter,
         help='update database')
@@ -320,6 +334,18 @@ def _add_editdb_parser(subparser, parents):
         action='store_true',
         default=False,
         help='force edit (skip confirmation)'
+    )
+
+
+def _add_cropdb_parser(subparser, parents):
+    """Add the cropdb subparser."""
+    subparser.add_parser(
+        'cropdb',
+        parents=[
+            parents['configfile_parser'],
+        ],
+        formatter_class=RichHelpFormatter,
+        help='crop the database to the selection criteria in the config file'
     )
 
 
@@ -712,6 +738,7 @@ def parse_arguments():
     _add_initdb_parser(subparser, parents)
     _add_updatedb_parser(subparser, parents)
     _add_editdb_parser(subparser, parents)
+    _add_cropdb_parser(subparser, parents)
     _add_print_parser(subparser, parents)
     _add_export_parser(subparser, parents)
     _add_plot_parser(subparser, parents)

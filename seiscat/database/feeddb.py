@@ -10,6 +10,7 @@ Feed the database with events from a file or FDSN web services.
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
 from .dbfunctions import check_db_exists, write_catalog_to_db
+from .cropdb import filter_catalog_by_config
 from ..sources.fdsnws import open_fdsn_connection, query_events
 from ..sources.obspy_events import read_catalog_from_obspy_events
 from ..sources.csv import read_catalog_from_csv
@@ -77,6 +78,8 @@ def feeddb(config, initdb):
     args = config['args']
     if args.fromfile:
         cat = _feed_from_file(config)
+        if getattr(args, 'crop', False):
+            cat = filter_catalog_by_config(cat, config)
     else:
         with ExceptionExit(additional_msg='Error connecting to FDSN server'):
             client = open_fdsn_connection(config)

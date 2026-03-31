@@ -11,6 +11,7 @@ Database functions for seiscat.
 """
 import os
 import re
+import shutil
 import sqlite3
 import numpy as np
 from .data_types import Event, EventList
@@ -72,6 +73,34 @@ def _set_db_version(cursor):
     cursor.execute(f'PRAGMA user_version = {DB_VERSION:d}')
 
 
+def backup_db(config, move=False):
+    """
+    Create a backup of the current database file.
+
+    :param config: config object
+    :param move: if True, move db file to backup path. If False, copy it.
+    :returns: backup file path
+
+    :raises ValueError: if db_file is not set in config file
+    :raises FileNotFoundError: if database file does not exist
+    """
+    db_file = config.get('db_file', None)
+    if db_file is None:
+        raise ValueError('db_file not set in config file')
+    if not os.path.exists(db_file):
+        raise FileNotFoundError(
+            f'Database file "{db_file}" does not exist.\n'
+            'Run "seiscat initdb" first.'
+        )
+    bak_file = f'{db_file}.bak'
+    if move:
+        os.rename(db_file, bak_file)
+    else:
+        shutil.copy2(db_file, bak_file)
+    print(f'Backup of "{db_file}" saved to "{bak_file}"')
+    return bak_file
+
+
 def check_db_exists(config, initdb):
     """
     Check if database file exists.
@@ -95,11 +124,7 @@ def check_db_exists(config, initdb):
         if ans not in ['y', 'Y']:
             raise RuntimeError(
                 'Existing database file will not be overwritten. Exiting.')
-        os.rename(
-            db_file, f'{db_file}.bak')
-        print(
-            f'Backup of "{db_file}" saved to '
-            f'"{db_file}.bak"')
+        backup_db(config, move=True)
     if not initdb and not os.path.exists(db_file):
         raise FileNotFoundError(
             f'Database file "{db_file}" does not exist.\n'

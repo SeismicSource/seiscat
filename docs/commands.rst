@@ -35,6 +35,10 @@ Common options
      Only used for CSV files.
    - ``-z, --depth_units {m,km}``: Specify depth units if auto-detection
      fails or to override the detected value. Only used for CSV files.
+   - ``-C, --crop``: when reading from file, crop events to the geographic,
+      depth, magnitude, and event-type selection criteria from the config.
+      Has no effect when importing from FDSN (criteria are already applied
+      at query time).
 - Selection and ordering (where supported: see per-command):
 
    - ``-w, --where "KEY OP VALUE [AND|OR KEY OP VALUE ...]"``:
@@ -137,9 +141,10 @@ Initialize the database (from configured sources or an event file).
    seiscat initdb -f catalog.xml            # QuakeML (ObsPy auto-detect)
    seiscat initdb -f events.quakeml         # QuakeML (ObsPy auto-detect)
    seiscat initdb -f events.sc3ml           # SC3ML format
+   seiscat initdb -f catalog.csv -C         # crop to config criteria
 
 Options: ``--configfile``, event file input options, ``--missing-value``,
-``--depth_units``.
+``--depth_units``, ``--crop``.
 
 seiscat updatedb
 ~~~~~~~~~~~~~~~~
@@ -152,9 +157,23 @@ Can also read new events from an event file.
    seiscat updatedb
    seiscat updatedb -f catalog.csv
    seiscat updatedb -f events.xml
+   seiscat updatedb -f catalog.csv -C
 
 Options: ``--configfile``, event file input options, ``--missing-value``,
-``--depth_units``.
+``--depth_units``, ``--crop``.
+
+seiscat cropdb
+~~~~~~~~~~~~~~
+
+Crop an existing database to the selection criteria defined in the
+configuration file. A backup file (``<db_file>.bak``) is created first.
+
+.. code-block::
+
+   seiscat cropdb
+   seiscat cropdb -c custom.conf
+
+Options: ``--configfile``.
 
 seiscat editdb
 ~~~~~~~~~~~~~~

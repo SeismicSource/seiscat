@@ -46,6 +46,9 @@ def run():
     elif args.action == 'updatedb':
         from .database.feeddb import feeddb
         feeddb(config, initdb=False)
+    elif args.action == 'cropdb':
+        from .database.cropdb import cropdb
+        cropdb(config)
     elif args.action == 'editdb':
         from .database.editdb import editdb
         editdb(config)

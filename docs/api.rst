@@ -35,6 +35,11 @@ Database
     :undoc-members:
     :show-inheritance:
 
+.. automodule:: seiscat.database.cropdb
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 .. automodule:: seiscat.database.editdb
     :members:
     :undoc-members:
