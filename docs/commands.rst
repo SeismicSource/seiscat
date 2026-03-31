@@ -36,9 +36,9 @@ Common options
    - ``-z, --depth_units {m,km}``: Specify depth units if auto-detection
      fails or to override the detected value. Only used for CSV files.
    - ``-C, --crop``: when reading from file, crop events to the geographic,
-      depth, magnitude, and event-type selection criteria from the config.
-      Has no effect when importing from FDSN (criteria are already applied
-      at query time).
+     depth, magnitude, and event-type selection criteria from the config.
+     Has no effect when importing from FDSN (criteria are already applied
+     at query time).
 - Selection and ordering (where supported: see per-command):
 
    - ``-w, --where "KEY OP VALUE [AND|OR KEY OP VALUE ...]"``:
