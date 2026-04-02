@@ -438,14 +438,16 @@ def _read_orig_time_from_row(row, fields):
 
 def _normalize_no_values(no_value):
     """Normalize user-provided no-value markers for fast lookups."""
-    if no_value is None:
-        return set(), set()
-    values = [no_value] if isinstance(no_value, str) else no_value
+    values = []
+    if no_value is not None:
+        values = [no_value] if isinstance(no_value, str) else no_value
     text_markers = {
         str(value).strip().lower()
         for value in values
         if value is not None and str(value).strip() != ''
     }
+    # Always treat these case-insensitive tokens as missing values.
+    text_markers.update({'none', 'null'})
     numeric_markers = {
         float_val for float_val in
         (float_or_none(value) for value in values)
@@ -514,7 +516,7 @@ def _read_csv_row(row, fields, depth_units, mag_type):
         else str(_evid).strip()
     )
     evtype = row[fields['event_type']]
-    if evtype not in [None, '', 'None']:
+    if evtype not in [None, '']:
         try:
             ev.event_type = row[fields['event_type']]
         except ValueError:

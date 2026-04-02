@@ -32,6 +32,69 @@ from seiscat.sources.csv import (
 )
 
 
+CSV_CONTENT_TWO_EVENTS = """\
+latitude,longitude,depth,magnitude,origin_time
+42.5,13.2,10.0,3.5,2023-05-15T14:30:45
+43.0,14.0,15.0,4.0,2023-05-16T10:00:00
+"""
+
+CSV_CONTENT_NO_HEADER_TWO_EVENTS = """\
+42.5,13.2,10.0,3.5,2023-05-15T14:30:45
+43.0,14.0,15.0,4.0,2023-05-16T10:00:00
+"""
+
+CSV_CONTENT_SPACE_DELIMITER_TWO_EVENTS = """\
+latitude  longitude  depth  magnitude  origin_time
+42.5  13.2  10.0  3.5  2023-05-15T14:30:45
+43.0  14.0  15.0  4.0  2023-05-16T10:00:00
+"""
+
+CSV_CONTENT_WITH_INVALID_ROW = """\
+latitude,longitude,depth,magnitude,origin_time
+42.5,13.2,10.0,3.5,2023-05-15T14:30:45
+invalid,invalid,invalid,invalid,invalid
+43.0,14.0,15.0,4.0,2023-05-16T10:00:00
+"""
+
+CSV_CONTENT_WITH_ML_FIELD = """\
+latitude,longitude,depth,ml,origin_time
+42.5,13.2,10.0,3.5,2023-05-15T14:30:45
+"""
+
+CSV_CONTENT_WITH_NO_VALUE_MARKERS = """\
+latitude,longitude,depth,magnitude,origin_time
+42.5,13.2,-999.0,N/A,2023-05-15T14:30:45
+"""
+
+CSV_CONTENT_WITH_NONE_NULL_MARKERS = """\
+latitude,longitude,depth,magnitude,origin_time
+42.5,13.2,NULL,NoNe,2023-05-15T14:30:45
+"""
+
+CSV_CONTENT_LAT_LON_TWO_EVENTS = """\
+lat,lon,depth,mag,time
+42.5,13.2,10.0,3.5,2023-05-15T14:30:45
+43.0,14.0,15.0,4.0,2023-05-16T10:00:00
+"""
+
+CSV_CONTENT_LARGE_DEPTH_METERS = """\
+latitude,longitude,depth,magnitude,origin_time
+42.5,13.2,10000.0,3.5,2023-05-15T14:30:45
+43.0,14.0,15000.0,4.0,2023-05-16T10:00:00
+"""
+
+CSV_CONTENT_SEMICOLON_TWO_EVENTS = """\
+latitude;longitude;depth;magnitude;origin_time
+42.5;13.2;10.0;3.5;2023-05-15T14:30:45
+43.0;14.0;15.0;4.0;2023-05-16T10:00:00
+"""
+
+CSV_CONTENT_SINGLE_EVENT_NA_MAG = """\
+latitude,longitude,depth,magnitude,origin_time
+42.5,13.2,10.0,N/A,2023-05-15T14:30:45
+"""
+
+
 def create_mock_config(
     filename, depth_units='km', delimiter=None, column_names=None,
     no_value=None
@@ -685,15 +748,22 @@ class TestReadCSVRow(unittest.TestCase):
 class TestReadCSV(unittest.TestCase):
     """Test _read_csv function."""
 
-    def test_reads_csv_with_header(self):
-        """Test reading CSV with header row."""
-        csv_content = """latitude,longitude,depth,magnitude,origin_time
-42.5,13.2,10.0,3.5,2023-05-15T14:30:45
-43.0,14.0,15.0,4.0,2023-05-16T10:00:00
-"""
+    def _read_catalog(
+        self, csv_content, delimiter=',', column_names=None,
+        nrows=2, depth_units='km', no_value=None
+    ):
+        """Helper to read CSV test content into a Catalog."""
         fp = StringIO(csv_content)
         with patch('builtins.print'):
-            cat = _read_csv(fp, ',', None, 3, 'km')
+            return _read_csv(
+                fp, delimiter, column_names, nrows, depth_units,
+                no_value=no_value
+            )
+
+    def test_reads_csv_with_header(self):
+        """Test reading CSV with header row."""
+        csv_content = CSV_CONTENT_TWO_EVENTS
+        cat = self._read_catalog(csv_content, nrows=3)
 
         self.assertIsInstance(cat, Catalog)
         self.assertEqual(len(cat), 2)
@@ -702,64 +772,52 @@ class TestReadCSV(unittest.TestCase):
 
     def test_reads_csv_without_header(self):
         """Test reading CSV without header row."""
-        csv_content = """42.5,13.2,10.0,3.5,2023-05-15T14:30:45
-43.0,14.0,15.0,4.0,2023-05-16T10:00:00
-"""
-        fp = StringIO(csv_content)
+        csv_content = CSV_CONTENT_NO_HEADER_TWO_EVENTS
         column_names = ['latitude', 'longitude', 'depth', 'magnitude',
                         'origin_time']
-        with patch('builtins.print'):
-            cat = _read_csv(fp, ',', column_names, 2, 'km')
+        cat = self._read_catalog(csv_content, column_names=column_names)
 
         self.assertIsInstance(cat, Catalog)
         self.assertEqual(len(cat), 2)
 
     def test_handles_space_delimiter(self):
         """Test handles space delimiter with multiple spaces."""
-        csv_content = """latitude  longitude  depth  magnitude  origin_time
-42.5  13.2  10.0  3.5  2023-05-15T14:30:45
-43.0  14.0  15.0  4.0  2023-05-16T10:00:00
-"""
-        fp = StringIO(csv_content)
-        with patch('builtins.print'):
-            cat = _read_csv(fp, ' ', None, 3, 'km')
+        csv_content = CSV_CONTENT_SPACE_DELIMITER_TWO_EVENTS
+        cat = self._read_catalog(csv_content, delimiter=' ', nrows=3)
 
         self.assertIsInstance(cat, Catalog)
         self.assertEqual(len(cat), 2)
 
     def test_skips_invalid_rows(self):
         """Test skips rows with invalid data."""
-        csv_content = """latitude,longitude,depth,magnitude,origin_time
-42.5,13.2,10.0,3.5,2023-05-15T14:30:45
-invalid,invalid,invalid,invalid,invalid
-43.0,14.0,15.0,4.0,2023-05-16T10:00:00
-"""
-        fp = StringIO(csv_content)
-        with patch('builtins.print'):
-            cat = _read_csv(fp, ',', None, 4, 'km')
+        csv_content = CSV_CONTENT_WITH_INVALID_ROW
+        cat = self._read_catalog(csv_content, nrows=4)
 
         # Should skip the invalid row
         self.assertEqual(len(cat), 2)
 
     def test_guesses_mag_type_from_field_name(self):
         """Test guesses magnitude type from field name."""
-        csv_content = """latitude,longitude,depth,ml,origin_time
-42.5,13.2,10.0,3.5,2023-05-15T14:30:45
-"""
-        fp = StringIO(csv_content)
-        with patch('builtins.print'):
-            cat = _read_csv(fp, ',', None, 2, 'km')
+        csv_content = CSV_CONTENT_WITH_ML_FIELD
+        cat = self._read_catalog(csv_content)
 
         self.assertEqual(cat[0].magnitudes[0].magnitude_type, 'ml')
 
     def test_applies_no_value_markers(self):
         """Test configured no-value markers are converted to missing values."""
-        csv_content = """latitude,longitude,depth,magnitude,origin_time
-42.5,13.2,-999.0,N/A,2023-05-15T14:30:45
-"""
-        fp = StringIO(csv_content)
-        with patch('builtins.print'):
-            cat = _read_csv(fp, ',', None, 2, 'm', no_value=['-999', 'N/A'])
+        csv_content = CSV_CONTENT_WITH_NO_VALUE_MARKERS
+        cat = self._read_catalog(
+            csv_content, depth_units='m', no_value=['-999', 'N/A']
+        )
+
+        self.assertEqual(len(cat), 1)
+        self.assertIsNone(cat[0].origins[0].depth)
+        self.assertIsNone(cat[0].magnitudes[0].mag)
+
+    def test_treats_none_and_null_as_missing_by_default(self):
+        """Test none/null markers are always treated as missing values."""
+        csv_content = CSV_CONTENT_WITH_NONE_NULL_MARKERS
+        cat = self._read_catalog(csv_content, depth_units='m')
 
         self.assertEqual(len(cat), 1)
         self.assertIsNone(cat[0].origins[0].depth)
@@ -771,10 +829,7 @@ class TestReadCatalogFromCSV(unittest.TestCase):
 
     def test_reads_catalog_from_csv_file(self):
         """Test reading catalog from CSV file."""
-        csv_content = """latitude,longitude,depth,magnitude,origin_time
-42.5,13.2,10.0,3.5,2023-05-15T14:30:45
-43.0,14.0,15.0,4.0,2023-05-16T10:00:00
-"""
+        csv_content = CSV_CONTENT_TWO_EVENTS
         with tempfile.NamedTemporaryFile(
             mode='w', delete=False, suffix='.csv'
         ) as f:
@@ -794,10 +849,7 @@ class TestReadCatalogFromCSV(unittest.TestCase):
 
     def test_raises_error_for_invalid_depth_units(self):
         """Test raises error for invalid depth units."""
-        csv_content = """lat,lon,depth,mag,time
-42.5,13.2,10.0,3.5,2023-05-15T14:30:45
-43.0,14.0,15.0,4.0,2023-05-16T10:00:00
-"""
+        csv_content = CSV_CONTENT_LAT_LON_TWO_EVENTS
         with tempfile.NamedTemporaryFile(
             mode='w', delete=False, suffix='.csv'
         ) as f:
@@ -814,10 +866,7 @@ class TestReadCatalogFromCSV(unittest.TestCase):
 
     def test_auto_detects_depth_units(self):
         """Test auto-detects depth units when not specified."""
-        csv_content = """latitude,longitude,depth,magnitude,origin_time
-42.5,13.2,10.0,3.5,2023-05-15T14:30:45
-43.0,14.0,15.0,4.0,2023-05-16T10:00:00
-"""
+        csv_content = CSV_CONTENT_TWO_EVENTS
         with tempfile.NamedTemporaryFile(
             mode='w', delete=False, suffix='.csv'
         ) as f:
@@ -837,10 +886,7 @@ class TestReadCatalogFromCSV(unittest.TestCase):
 
     def test_handles_large_depth_as_meters(self):
         """Test treats large depth values as meters."""
-        csv_content = """latitude,longitude,depth,magnitude,origin_time
-42.5,13.2,10000.0,3.5,2023-05-15T14:30:45
-43.0,14.0,15000.0,4.0,2023-05-16T10:00:00
-"""
+        csv_content = CSV_CONTENT_LARGE_DEPTH_METERS
         with tempfile.NamedTemporaryFile(
             mode='w', delete=False, suffix='.csv'
         ) as f:
@@ -860,10 +906,7 @@ class TestReadCatalogFromCSV(unittest.TestCase):
 
     def test_uses_custom_delimiter(self):
         """Test uses custom delimiter when specified."""
-        csv_content = """latitude;longitude;depth;magnitude;origin_time
-42.5;13.2;10.0;3.5;2023-05-15T14:30:45
-43.0;14.0;15.0;4.0;2023-05-16T10:00:00
-"""
+        csv_content = CSV_CONTENT_SEMICOLON_TWO_EVENTS
         with tempfile.NamedTemporaryFile(
             mode='w', delete=False, suffix='.csv'
         ) as f:
@@ -884,9 +927,7 @@ class TestReadCatalogFromCSV(unittest.TestCase):
 
     def test_uses_custom_column_names(self):
         """Test uses custom column names when specified."""
-        csv_content = """42.5,13.2,10.0,3.5,2023-05-15T14:30:45
-43.0,14.0,15.0,4.0,2023-05-16T10:00:00
-"""
+        csv_content = CSV_CONTENT_NO_HEADER_TWO_EVENTS
         with tempfile.NamedTemporaryFile(
             mode='w', delete=False, suffix='.csv'
         ) as f:
@@ -914,9 +955,7 @@ class TestReadCatalogFromCSV(unittest.TestCase):
 
     def test_uses_no_value_from_args(self):
         """Test no-value list from args is applied while reading CSV file."""
-        csv_content = """latitude,longitude,depth,magnitude,origin_time
-42.5,13.2,10.0,N/A,2023-05-15T14:30:45
-"""
+        csv_content = CSV_CONTENT_SINGLE_EVENT_NA_MAG
         with tempfile.NamedTemporaryFile(
             mode='w', delete=False, suffix='.csv'
         ) as f:
