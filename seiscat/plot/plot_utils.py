@@ -26,16 +26,24 @@ def _is_missing_plot_value(value):
         return False
 
 
-def _get_event_identifier(event):
+def get_event_identifier(event):
     """Return a compact identifier for skip messages."""
     if event.get('evid') not in (None, ''):
         return str(event['evid'])
     if event.get('ver') not in (None, ''):
         return str(event['ver'])
-    if event.get('time') is not None:
-        return str(event['time'])
-    # sourcery skip: reintroduce-else
-    return '?'
+    return str(event['time']) if event.get('time') is not None else '?'
+
+
+def to_finite_float(value):
+    """Convert value to float, returning None for missing/non-finite values."""
+    if value is None:
+        return None
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+    return None if math.isnan(numeric) else numeric
 
 
 def filter_events_for_plotting(events, backend_name=None, require_depth=False):
@@ -66,7 +74,7 @@ def filter_events_for_plotting(events, backend_name=None, require_depth=False):
         if require_depth and _is_missing_plot_value(event.get('depth')):
             reasons.append('depth is not defined')
         if reasons:
-            event_id = _get_event_identifier(event)
+            event_id = get_event_identifier(event)
             print(
                 f'Skipping event "{event_id}"{backend_suffix}: '
                 f'{" and ".join(reasons)}.'
@@ -165,16 +173,7 @@ def get_event_color_values(events, colorby):
         return None
     raw = [e.get(colorby) for e in events]
 
-    def _to_finite_float(value):
-        if value is None:
-            return None
-        try:
-            numeric = float(value)
-        except (TypeError, ValueError):
-            return None
-        return None if math.isnan(numeric) else numeric
-
-    converted = [_to_finite_float(value) for value in raw]
+    converted = [to_finite_float(value) for value in raw]
     valid = [value for value in converted if value is not None]
     if not valid:
         print(

@@ -43,45 +43,25 @@ def _build_attribute_figure(events, args):
     :returns: plotly Figure
     """
     attribute = args.attribute
-    data = get_event_times_values_and_events(events, attribute)
+    color_attr = getattr(args, 'colorby', None) or attribute
+    data = get_event_times_values_and_events(events, attribute, color_attr)
     if not data:
         err_exit(
-            f'No events with a valid numeric value for attribute '
-            f'"{attribute}".'
+            f'No events with valid values for attribute "{attribute}" '
+            f'and color attribute "{color_attr}".'
         )
     times = [item[0] for item in data]
     values = [item[1] for item in data]
     source_events = [item[2] for item in data]
     hover_texts = [get_event_popup_html(event) for event in source_events]
 
-    color_attr = getattr(args, 'colorby', None) or attribute
     label = get_label_for_attribute(attribute)
     color_label = get_label_for_attribute(color_attr)
 
     if color_attr == attribute:
         color_values = values
     else:
-        color_values = []
-        for event in source_events:
-            cval = event.get(color_attr)
-            if cval is None:
-                err_exit(
-                    f'Color attribute "{color_attr}" is missing for event '
-                    f'"{event.get("evid", "?")}".'
-                )
-            try:
-                cval = float(cval)
-            except (ValueError, TypeError):
-                err_exit(
-                    f'Color attribute "{color_attr}" must be numeric. '
-                    f'Invalid value for event "{event.get("evid", "?")}".'
-                )
-            if cval != cval:
-                err_exit(
-                    f'Color attribute "{color_attr}" has NaN value for '
-                    f'event "{event.get("evid", "?")}".'
-                )
-            color_values.append(cval)
+        color_values = [float(event[color_attr]) for event in source_events]
 
     y_values = values
     yaxis_kwargs = {}

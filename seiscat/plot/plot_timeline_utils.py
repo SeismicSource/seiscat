@@ -12,6 +12,7 @@ Common utility functions for timeline plotting.
 import re
 import numpy as np
 from datetime import datetime, timezone
+from .plot_utils import get_event_identifier, to_finite_float
 
 # time constants in seconds
 ONE_MINUTE_SECONDS = 60.0
@@ -48,29 +49,41 @@ def get_event_times_and_values(events, attribute):
     ]
 
 
-def get_event_times_values_and_events(events, attribute):
+def get_event_times_values_and_events(events, attribute, colorby=None):
     """
     Extract event times, numeric attribute values, and source events.
 
-    Events for which the attribute is missing or non-numeric are silently
-    skipped.
+    Events for which the plotted attribute is undefined/non-numeric are
+    skipped. If ``colorby`` is provided and differs from ``attribute``,
+    events with undefined/non-numeric color values are also skipped.
 
     :param events: EventList of Event dicts
     :param attribute: name of the event attribute to extract
+    :param colorby: optional name of the color attribute
     :returns: list of (datetime, float, event) tuples, sorted by time
     """
     result = []
     for event in events:
-        val = event.get(attribute)
-        if val is None:
+        attr_val = to_finite_float(event.get(attribute))
+        if attr_val is None:
+            event_id = get_event_identifier(event)
+            print(
+                f'Skipping event "{event_id}" for timeline plot: '
+                f'attribute "{attribute}" is not defined.'
+            )
             continue
-        try:
-            val = float(val)
-        except (ValueError, TypeError):
-            continue
-        if np.isnan(val):
-            continue
-        result.append((_utcdatetime_to_datetime(event['time']), val, event))
+        if colorby is not None and colorby != attribute:
+            color_val = to_finite_float(event.get(colorby))
+            if color_val is None:
+                event_id = get_event_identifier(event)
+                print(
+                    f'Skipping event "{event_id}" for timeline plot: '
+                    f'color attribute "{colorby}" is not defined.'
+                )
+                continue
+        result.append(
+            (_utcdatetime_to_datetime(event['time']), attr_val, event)
+        )
     result.sort(key=lambda x: x[0])
     return result
 

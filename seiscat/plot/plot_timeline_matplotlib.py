@@ -33,42 +33,23 @@ def _plot_attribute(events, args, ax):
     :param ax: matplotlib Axes
     """
     attribute = args.attribute
-    data = get_event_times_values_and_events(events, attribute)
+    color_attr = getattr(args, 'colorby', None) or attribute
+    data = get_event_times_values_and_events(events, attribute, color_attr)
     if not data:
         err_exit(
-            f'No events with a valid numeric value for attribute '
-            f'"{attribute}".'
+            f'No events with valid values for attribute "{attribute}" '
+            f'and color attribute "{color_attr}".'
         )
     times = [item[0] for item in data]
     values = np.array([item[1] for item in data])
     source_events = [item[2] for item in data]
 
-    color_attr = getattr(args, 'colorby', None) or attribute
     if color_attr == attribute:
         color_values = values
     else:
-        color_values = []
-        for event in source_events:
-            cval = event.get(color_attr)
-            if cval is None:
-                err_exit(
-                    f'Color attribute "{color_attr}" is missing for event '
-                    f'"{event.get("evid", "?")}".'
-                )
-            try:
-                cval = float(cval)
-            except (ValueError, TypeError):
-                err_exit(
-                    f'Color attribute "{color_attr}" must be numeric. '
-                    f'Invalid value for event "{event.get("evid", "?")}".'
-                )
-            if np.isnan(cval):
-                err_exit(
-                    f'Color attribute "{color_attr}" has NaN value for '
-                    f'event "{event.get("evid", "?")}".'
-                )
-            color_values.append(cval)
-        color_values = np.array(color_values)
+        color_values = np.array([
+            float(event[color_attr]) for event in source_events
+        ])
 
     _, cmap = get_matplotlib_colormap(getattr(args, 'colormap', None))
 
