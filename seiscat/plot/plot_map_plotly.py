@@ -278,7 +278,9 @@ def _add_coastline_and_extent(fig, extent, coast):
         z=[0, 0, 0, 0, 0],
         mode='lines',
         line={'color': 'gray', 'width': 2},
-        name='bounding box'
+        name='bounding box',
+        hoverinfo='skip',
+        hovertemplate=None
     ))
     # Combine all coastline segments into a single trace
     x_coast = []
@@ -297,7 +299,9 @@ def _add_coastline_and_extent(fig, extent, coast):
         x=x_coast, y=y_coast, z=z_coast,
         mode='lines',
         line={'color': 'black', 'width': 1},
-        name='coastline'
+        name='coastline',
+        hoverinfo='skip',
+        hovertemplate=None
     ))
 
 
