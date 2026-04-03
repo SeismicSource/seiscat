@@ -83,6 +83,12 @@ latitude,longitude,depth,magnitude,origin_time
 43.0,14.0,15000.0,4.0,2023-05-16T10:00:00
 """
 
+CSV_CONTENT_MISSING_DEPTH_AUTO_DETECT = """\
+latitude,longitude,depth,magnitude,origin_time
+42.5,13.2,,3.5,2023-05-15T14:30:45
+43.0,14.0,15.0,4.0,2023-05-16T10:00:00
+"""
+
 CSV_CONTENT_SEMICOLON_TWO_EVENTS = """\
 latitude;longitude;depth;magnitude;origin_time
 42.5;13.2;10.0;3.5;2023-05-15T14:30:45
@@ -901,6 +907,27 @@ class TestReadCatalogFromCSV(unittest.TestCase):
 
             # Depth should stay as is (already in meters)
             self.assertEqual(cat[0].origins[0].depth, 10000.0)
+        finally:
+            os.unlink(filename)
+
+    def test_auto_detect_depth_units_with_missing_depth(self):
+        """Test auto depth conversion ignores events with missing depth."""
+        csv_content = CSV_CONTENT_MISSING_DEPTH_AUTO_DETECT
+        with tempfile.NamedTemporaryFile(
+            mode='w', delete=False, suffix='.csv'
+        ) as f:
+            f.write(csv_content)
+            filename = f.name
+
+        try:
+            config = create_mock_config(filename, depth_units=None)
+
+            with patch('builtins.print'):
+                cat = read_catalog_from_csv(config)
+
+            self.assertEqual(len(cat), 2)
+            self.assertIsNone(cat[0].origins[0].depth)
+            self.assertEqual(cat[1].origins[0].depth, 15000.0)
         finally:
             os.unlink(filename)
 

@@ -12,6 +12,7 @@ This code is modified from Requake (https://github.com/SeismicSource/requake)
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
 import csv
+import contextlib
 from io import StringIO
 import numpy as np
 from obspy import UTCDateTime
@@ -661,7 +662,9 @@ def read_catalog_from_csv(config, filename=None):
                 'Assuming depths are in kilometers, you can specify '
                 '--depth_units in the command line to avoid this check')
             for ev in cat:
-                ev.origins[0].depth *= 1000
+                # suppress errors in case depth is missing or not a number
+                with contextlib.suppress(AttributeError, TypeError):
+                    ev.origins[0].depth *= 1000
         else:
             print(
                 'Assuming depths are in meters, you can specify '
