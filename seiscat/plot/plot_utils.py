@@ -16,6 +16,66 @@ from datetime import datetime, timezone
 DEFAULT_COLORMAP = 'viridis'
 
 
+def _is_missing_plot_value(value):
+    """Return True when a plot-critical numeric field is undefined."""
+    if value is None:
+        return True
+    try:
+        return math.isnan(float(value))
+    except (TypeError, ValueError):
+        return False
+
+
+def _get_event_identifier(event):
+    """Return a compact identifier for skip messages."""
+    if event.get('evid') not in (None, ''):
+        return str(event['evid'])
+    if event.get('ver') not in (None, ''):
+        return str(event['ver'])
+    if event.get('time') is not None:
+        return str(event['time'])
+    # sourcery skip: reintroduce-else
+    return '?'
+
+
+def filter_events_for_plotting(events, backend_name=None, require_depth=False):
+    """
+    Filter out events with missing plot-critical coordinates or depth.
+
+    :param events: list of events, each event is a dictionary
+    :type events: list
+    :param backend_name: backend label to include in skip messages
+    :type backend_name: str or None
+    :param require_depth: if True, also require a defined depth value
+    :type require_depth: bool
+
+    :returns: filtered events
+    :rtype: list
+    """
+    filtered_events = []
+    backend_suffix = (
+        f' for {backend_name} backend' if backend_name is not None else ''
+    )
+    for event in events:
+        reasons = []
+        if any(
+            _is_missing_plot_value(event.get(field_name))
+            for field_name in ('lat', 'lon')
+        ):
+            reasons.append('latitude/longitude are not both defined')
+        if require_depth and _is_missing_plot_value(event.get('depth')):
+            reasons.append('depth is not defined')
+        if reasons:
+            event_id = _get_event_identifier(event)
+            print(
+                f'Skipping event "{event_id}"{backend_suffix}: '
+                f'{" and ".join(reasons)}.'
+            )
+            continue
+        filtered_events.append(event)
+    return filtered_events
+
+
 def format_epoch_seconds(value, multiline=False):
     """Format Unix seconds to a compact UTC datetime label."""
     dt = datetime.fromtimestamp(value, tz=timezone.utc)

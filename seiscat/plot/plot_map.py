@@ -11,7 +11,7 @@ Plot events on a map.
 """
 from ..utils import err_exit
 from ..database.dbfunctions import read_events_from_db
-from .plot_utils import get_matplotlib_colormap
+from .plot_utils import get_matplotlib_colormap, filter_events_for_plotting
 
 
 def plot_catalog_map(config):
@@ -29,6 +29,16 @@ def plot_catalog_map(config):
         events = read_events_from_db(config)
     except (FileNotFoundError, ValueError) as msg:
         err_exit(msg)
+    require_depth = args.backend == 'plotly'
+    events = filter_events_for_plotting(
+        events,
+        backend_name=args.backend,
+        require_depth=require_depth,
+    )
+    if not events:
+        if require_depth:
+            err_exit('No events with valid coordinates and depth to plot.')
+        err_exit('No events with valid coordinates to plot.')
     # pylint: disable=import-outside-toplevel
     if args.backend == 'folium':
         from .plot_map_folium import plot_catalog_map_with_folium
