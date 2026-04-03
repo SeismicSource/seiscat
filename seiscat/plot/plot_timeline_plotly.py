@@ -29,6 +29,7 @@ from .plot_timeline_utils import (
 from .plot_utils import (
     get_label_for_attribute, get_event_popup_html, get_plotly_colorscale,
     get_plotly_time_colorbar_kwargs,
+    LARGE_N_PLOTLY_THRESHOLD, is_large_n_plotly_mode,
 )
 from ..database.dbfunctions import get_catalog_stats
 from ..utils import err_exit
@@ -53,7 +54,16 @@ def _build_attribute_figure(events, args):
     times = [item[0] for item in data]
     values = [item[1] for item in data]
     source_events = [item[2] for item in data]
-    hover_texts = [get_event_popup_html(event) for event in source_events]
+    large_n_mode = is_large_n_plotly_mode(len(source_events))
+    if large_n_mode:
+        print(
+            f'Large-N mode enabled for plotly backend '
+            f'({len(source_events)} events > {LARGE_N_PLOTLY_THRESHOLD}): '
+            'disabling hover popups and using WebGL rendering.'
+        )
+    hover_texts = None
+    if not large_n_mode:
+        hover_texts = [get_event_popup_html(event) for event in source_events]
 
     label = get_label_for_attribute(attribute)
     color_label = get_label_for_attribute(color_attr)
@@ -78,7 +88,12 @@ def _build_attribute_figure(events, args):
     colorscale = get_plotly_colorscale(getattr(args, 'colormap', None))
 
     fig = go.Figure()
-    fig.add_trace(go.Scatter(
+    # Scattergl (WebGL) is much faster for very large point clouds, but it
+    # can have slightly lower visual quality/compatibility than Scatter
+    # (SVG) for smaller datasets. Keep Scatter by default and switch to
+    # Scattergl only in large-N mode.
+    trace_cls = go.Scattergl if large_n_mode else go.Scatter
+    trace_kwargs = dict(
         x=list(times),
         y=list(y_values),
         mode='markers',
@@ -90,9 +105,14 @@ def _build_attribute_figure(events, args):
             colorbar=colorbar_kwargs,
             opacity=0.8,
         ),
-        text=hover_texts,
-        hovertemplate='%{text}<extra></extra>',
-    ))
+    )
+    if large_n_mode:
+        trace_kwargs['hoverinfo'] = 'skip'
+        trace_kwargs['hovertemplate'] = None
+    else:
+        trace_kwargs['text'] = hover_texts
+        trace_kwargs['hovertemplate'] = '%{text}<extra></extra>'
+    fig.add_trace(trace_cls(**trace_kwargs))
     fig.update_layout(
         xaxis_title='Time',
         yaxis_title=label,

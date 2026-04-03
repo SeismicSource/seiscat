@@ -14,6 +14,12 @@ import math
 from datetime import datetime, timezone
 
 DEFAULT_COLORMAP = 'viridis'
+LARGE_N_PLOTLY_THRESHOLD = 10000
+
+
+def is_large_n_plotly_mode(n_events, threshold=LARGE_N_PLOTLY_THRESHOLD):
+    """Return True when plotly should use large-N optimizations."""
+    return n_events > threshold
 
 
 def _is_missing_plot_value(value):

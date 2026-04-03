@@ -19,7 +19,9 @@ from unittest.mock import MagicMock, patch
 
 from seiscat.plot.plot_map import plot_catalog_map
 from seiscat.plot.plot_timeline import plot_catalog_timeline
-from seiscat.plot.plot_utils import filter_events_for_plotting
+from seiscat.plot.plot_utils import (
+    filter_events_for_plotting, is_large_n_plotly_mode,
+)
 from seiscat.plot.plot_timeline_utils import get_event_times_values_and_events
 
 
@@ -68,6 +70,15 @@ class TestFilterEventsForPlotting(unittest.TestCase):
             'depth is not defined.',
             output.getvalue(),
         )
+
+
+class TestLargeNPlotlyMode(unittest.TestCase):
+    """Test large-N threshold helper for plotly optimizations."""
+
+    def test_threshold_boundary(self):
+        """Large-N mode should trigger only above the threshold."""
+        self.assertFalse(is_large_n_plotly_mode(10000))
+        self.assertTrue(is_large_n_plotly_mode(10001))
 
 
 class TestPlotDispatchersFiltering(unittest.TestCase):

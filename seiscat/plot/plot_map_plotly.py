@@ -18,6 +18,7 @@ from .plot_map_utils import get_map_extent
 from .plot_utils import (
     get_event_popup_html, get_event_color_values, get_label_for_attribute,
     get_plotly_colorscale, get_plotly_time_colorbar_kwargs,
+    LARGE_N_PLOTLY_THRESHOLD, is_large_n_plotly_mode,
 )
 from ..utils import err_exit
 try:
@@ -413,13 +414,22 @@ def plot_catalog_map_with_plotly(events, config):
     else:
         print('Building map...')
     events, radii = _get_marker_sizes(events, config['args'].scale)
+    large_n_mode = is_large_n_plotly_mode(len(events))
+    if large_n_mode:
+        print(
+            f'Large-N mode enabled for plotly backend '
+            f'({len(events)} events > {LARGE_N_PLOTLY_THRESHOLD}): '
+            'disabling hover popups.'
+        )
     colorby = getattr(config['args'], 'colorby', None)
     color_values = get_event_color_values(events, colorby)
     xcoords, ycoords, extent, coast = _map_projection(events, config)
-    times = [e['time'] for e in events]
+    times = [e['time'] for e in events] if config['args'].time_slider else None
     # if depth is None, use 0
     depths = [e['depth'] if e['depth'] is not None else 0 for e in events]
-    hover_texts = [get_event_popup_html(event) for event in events]
+    hover_texts = None
+    if not large_n_mode:
+        hover_texts = [get_event_popup_html(event) for event in events]
     if isinstance(radii, (list, np.ndarray)):
         size = radii
         size_max = np.max(radii)
@@ -446,11 +456,14 @@ def plot_catalog_map_with_plotly(events, config):
         fig.update_traces(marker={'size': radii})
     # Remove borders from markers
     fig.update_traces(marker={'line': {'width': 0}})
-    # Replace default hover with all event fields from the database.
-    fig.update_traces(
-        text=hover_texts,
-        hovertemplate='%{text}<extra></extra>'
-    )
+    if large_n_mode:
+        fig.update_traces(hoverinfo='skip', hovertemplate=None)
+    else:
+        # Replace default hover with all event fields from the database.
+        fig.update_traces(
+            text=hover_texts,
+            hovertemplate='%{text}<extra></extra>'
+        )
     camera = {
         'up': {'x': 0, 'y': 0, 'z': 1},
         'center': {'x': 0, 'y': 0, 'z': 0},
@@ -475,7 +488,12 @@ def plot_catalog_map_with_plotly(events, config):
     )
     _add_coastline_and_extent(fig, extent, coast)
     if config['args'].time_slider:
-        _add_time_slider(fig, xcoords, ycoords, depths, radii, times)
+        if large_n_mode:
+            print(
+                'Large-N mode: time slider disabled for better performance.'
+            )
+        else:
+            _add_time_slider(fig, xcoords, ycoords, depths, radii, times)
     if out_file:
         html = fig.to_html(
             full_html=True,
