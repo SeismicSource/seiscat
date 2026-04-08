@@ -311,12 +311,22 @@ Cartopy and Plotly backends require optional dependencies installed with
    seiscat plot --scale 8               # Marker size scale
    seiscat plot --colorby depth         # Color markers by a numeric field
    seiscat plot --colorby depth --colormap inferno
+   seiscat plot --colorby depth --threshold 10
+   seiscat plot --colorby time --threshold 2026-04-08T12:00:00Z
    seiscat plot --sortby mag -r         # Largest magnitudes drawn on top
 
 Options: ``--configfile``, ``--where``, ``--allversions``, ``--sortby``,
 ``--reverse``, ``-b/--backend {cartopy,folium,plotly}``, ``--scale FLOAT``,
 ``--time_slider`` (Plotly only), ``--colorby FIELD``,
-``--colormap NAME`` (Matplotlib colormap name; defaults to ``viridis``).
+``--colormap NAME`` (Matplotlib colormap name; defaults to ``viridis``),
+``--threshold VALUE`` (Cartopy + ``--colorby`` only).
+
+``--threshold`` sets the value above which markers have a black outline.
+Default is ``None``, meaning all markers have an outline.
+When used with ``--colorby time``, ``VALUE`` can be either epoch seconds
+or an ISO datetime string (for example, ``2026-04-08T12:00:00Z``).
+When defined, the threshold is shown as a horizontal black line on the
+colorbar.
 
 A list of Matplotlib colormaps is available at this link:
 `Matplotlib colormaps`_.

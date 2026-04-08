@@ -13,6 +13,8 @@ import os
 import json
 import urllib.request
 import zipfile
+from contextlib import suppress
+from obspy import UTCDateTime
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
@@ -195,7 +197,39 @@ def _add_gridlines(ax):
     return gridliner
 
 
-def _plot_events(ax, events, scale, colorby=None, colormap=None):
+def _parse_threshold_value(threshold, colorby):
+    """
+    Parse threshold into a numeric value compatible with color_values.
+
+    :param threshold: threshold string or None
+    :param colorby: attribute used to color markers
+    :returns: numeric threshold or None
+    """
+    if threshold is None:
+        return None
+    threshold = str(threshold).strip()
+    if not threshold:
+        return None
+    with suppress(ValueError):
+        return float(threshold)
+    if colorby != 'time':
+        err_exit(
+            f'Invalid --threshold "{threshold}" for --colorby {colorby}. '
+            'Provide a numeric value.'
+        )
+    try:
+        return float(UTCDateTime(threshold).timestamp)
+    except (TypeError, ValueError):
+        err_exit(
+            f'Invalid --threshold "{threshold}" for --colorby time. '
+            'Use epoch seconds or ISO datetime '
+            '(e.g., 2026-04-08T12:00:00Z).'
+        )
+
+
+def _plot_events(
+    ax, events, scale, colorby=None, colormap=None, threshold=None
+):
     """
     Plot events on a map.
 
@@ -204,6 +238,7 @@ def _plot_events(ax, events, scale, colorby=None, colormap=None):
     :param ax: matplotlib axes object
     :param colorby: event attribute to use for marker color, or None
     :param colormap: Matplotlib colormap name, or None
+    :param threshold: threshold above which markers have outline, or None
     """
     mags = [e['mag'] for e in events if e['mag'] is not None]
     # use fixed radius if no magnitudes are available
@@ -231,12 +266,22 @@ def _plot_events(ax, events, scale, colorby=None, colormap=None):
     if color_values is not None:
         ax.figure.subplots_adjust(right=0.8)
         _, cmap = get_matplotlib_colormap(colormap)
+        threshold_value = _parse_threshold_value(threshold, colorby)
+        if threshold_value is None:
+            linewidths = 0.6
+        else:
+            linewidths = np.where(
+                np.asarray(color_values) >= threshold_value,
+                0.6,
+                0.0,
+            )
         sc = ax.scatter(
             lons, lats,
             s=sizes,
             c=color_values,
             cmap=cmap,
-            edgecolor='black',
+            edgecolors='black',
+            linewidths=linewidths,
             zorder=10,
             transform=ccrs.PlateCarree(),
         )
@@ -252,6 +297,13 @@ def _plot_events(ax, events, scale, colorby=None, colormap=None):
             cax=cax,
             label=get_label_for_attribute(colorby),
         )
+        if threshold_value is not None:
+            cbar.ax.axhline(
+                y=threshold_value,
+                color='black',
+                linewidth=1,
+                alpha=0.9,
+            )
         if colorby == 'time':
             cbar.formatter = FuncFormatter(
                 lambda value, _pos: format_epoch_seconds(value, multiline=True)
@@ -305,7 +357,13 @@ def plot_catalog_map_with_cartopy(events, config):
     scale = config['args'].scale
     colorby = getattr(config['args'], 'colorby', None)
     colormap = getattr(config['args'], 'colormap', None)
-    _plot_events(ax, events, scale, colorby=colorby, colormap=colormap)
+    threshold = getattr(config['args'], 'threshold', None)
+    _plot_events(
+        ax, events, scale,
+        colorby=colorby,
+        colormap=colormap,
+        threshold=threshold,
+    )
     ax.set_title(get_catalog_stats(config))
     if out_file:
         plt.savefig(out_file, bbox_inches='tight')

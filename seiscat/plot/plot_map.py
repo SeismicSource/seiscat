@@ -21,6 +21,17 @@ def plot_catalog_map(config):
     :param config: config object
     """
     args = config['args']
+    if getattr(args, 'threshold', None) is not None:
+        if args.backend != 'cartopy':
+            print(
+                'Warning: --threshold is only used with '
+                '--backend cartopy. Ignoring it.'
+            )
+        elif getattr(args, 'colorby', None) is None:
+            print(
+                'Warning: --threshold is only used with --colorby. '
+                'Ignoring it.'
+            )
     if getattr(args, 'colorby', None) is not None:
         # Validate the colormap before loading events or importing a backend
         # so invalid names fail immediately at command entry.

@@ -531,6 +531,17 @@ def _add_plot_parser(subparser, parents):
              'For folium and plotly maps, the output file should have '
              'a .html extension. '
     )
+    plot_parser.add_argument(
+        '--threshold',
+        type=str,
+        default=None,
+        metavar='VALUE',
+        help='threshold above which markers have an outline. '
+             'Default: None (all markers have an outline). '
+             'Only used with --colorby and --backend cartopy. '
+             'For --colorby time, VALUE can be either epoch seconds '
+             'or an ISO datetime (e.g., 2026-04-08T12:00:00Z).'
+    )
 
 
 def _add_timeline_parser(subparser, parents):
