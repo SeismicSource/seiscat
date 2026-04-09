@@ -396,10 +396,11 @@ seiscat get
 ~~~~~~~~~~~
 
 Get the value of a specific event attribute.
+If ``EVID`` is omitted, values are shown for all selected events.
 
 .. code-block::
 
-   seiscat get key EVID [EVENT_VERSION]
+   seiscat get key [EVID] [EVENT_VERSION]
 
 Options: ``--configfile``.
 

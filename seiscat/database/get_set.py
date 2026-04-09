@@ -27,7 +27,8 @@ def seiscat_get(config):
             field_list=field_list)
     if not rows:
         err_exit('Event not found')
-    print(rows[0][0])
+    for row in rows:
+        print(row[0])
 
 
 def seiscat_set(config):

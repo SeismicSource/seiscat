@@ -622,8 +622,8 @@ def _add_get_parser(subparser, parents):
         help='attribute name'
     )
     get_parser.add_argument(
-        'eventid',
-        help='event ID to get'
+        'eventid', nargs='?',
+        help='event ID to get (if omitted, get values for all events)'
     ).completer = evid_completer
     get_parser.add_argument(
         'event_version',
