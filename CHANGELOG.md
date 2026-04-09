@@ -13,8 +13,8 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - Added colored help output using `rich-argparse`
 - Colorized error messages for improved visibility and consistency
 - Interactive table pager for `seiscat print -f table` with fixed header,
-  alternating row colors, row selection, sorting, copying evid, and keyboard navigation
-  on terminal output
+  alternating row colors, row selection, sorting, copying evid, and keyboard
+  navigation on terminal output
 - New `--where-help` option to display detailed help for the `--where` filter
   expression, including syntax, examples, and notes. Accessible from any
   subcommand that supports the `--where` option (editdb, print, export, plot,
@@ -57,6 +57,8 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - New option for CSV input in `seiscat initdb` and `seiscat updatedb`:
   `-x, --missing-value` to define one or more markers treated as missing
   values (e.g., `-999`, `N/A`).
+- Added `seiscat editdb` options to add, delete, and rename table columns,
+  with default columns protected from rename/delete
 - New command `seiscat run` to run a user-defined command on each event
 - New command `seiscat samplescript` to write a sample script for the
   `seiscat run` command

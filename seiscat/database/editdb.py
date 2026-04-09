@@ -12,7 +12,9 @@ Edit functions for seiscat.
 from ..utils import err_exit
 from .dbfunctions import (
     read_fields_and_rows_from_db, replicate_event_in_db,
-    delete_event_from_db, update_event_in_db, increment_event_in_db)
+    delete_event_from_db, update_event_in_db, increment_event_in_db,
+    add_column_to_db, delete_column_from_db, rename_column_in_db,
+    DEFAULT_COLUMNS)
 
 
 def _are_you_sure(msg):
@@ -135,6 +137,43 @@ def _increment(config, fields, rows, key_values, args):
             increment_event_in_db(config, eventid, version, key, val)
 
 
+def _edit_columns(config, args):
+    """Edit table columns (add, delete, rename)."""
+    if args.eventid is not None or args.event_version is not None:
+        err_exit(
+            'Column operations act on the whole table and do not accept '
+            'eventid/event_version arguments')
+    if args.where is not None:
+        err_exit('Column operations do not accept --where filters')
+    if args.add_column:
+        if not args.force:
+            _are_you_sure(f'Add column "{args.add_column}" to database?')
+        add_column_to_db(config, args.add_column)
+    elif args.delete_column:
+        column_name = args.delete_column.strip()
+        if column_name in DEFAULT_COLUMNS:
+            err_exit(
+                f'Column "{column_name}" is protected and cannot be deleted')
+        if not args.force:
+            _are_you_sure(
+                f'Delete column "{args.delete_column}" from database?')
+        delete_column_from_db(config, args.delete_column)
+    elif args.rename_column:
+        if '=' not in args.rename_column:
+            err_exit(
+                f'Invalid argument "{args.rename_column}" '
+                'for "--rename-column". '
+                'Argument must be in the form "old_name=new_name"')
+        old_name = args.rename_column.split('=', 1)[0].strip()
+        if old_name in DEFAULT_COLUMNS:
+            err_exit(
+                f'Column "{old_name}" is protected and cannot be renamed')
+        if not args.force:
+            _are_you_sure(
+                f'Rename column "{args.rename_column}" in database?')
+        rename_column_in_db(config, args.rename_column)
+
+
 def editdb(config):
     """
     Edit database.
@@ -142,6 +181,25 @@ def editdb(config):
     :param config: config object
     """
     args = config['args']
+    actions = [
+        bool(args.replicate),
+        bool(args.delete),
+        bool(args.set),
+        bool(args.increment),
+        bool(args.add_column),
+        bool(args.delete_column),
+        bool(args.rename_column),
+    ]
+    if sum(actions) > 1:
+        err_exit('Only one edit action can be specified at a time')
+    if sum(actions) == 0:
+        err_exit('No action specified. See "seiscat editdb -h" for help')
+    if args.add_column or args.delete_column or args.rename_column:
+        try:
+            _edit_columns(config, args)
+            return
+        except ValueError as msg:
+            err_exit(msg)
     eventid = args.eventid
     if eventid == 'ALL':
         eventid = None
@@ -172,7 +230,5 @@ def editdb(config):
             _set(config, fields, rows, args.set, args)
         elif args.increment:
             _increment(config, fields, rows, args.increment, args)
-        else:
-            err_exit('No action specified. See "seiscat editdb -h" for help')
     except ValueError as msg:
         err_exit(msg)

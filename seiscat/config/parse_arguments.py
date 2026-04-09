@@ -329,6 +329,31 @@ def _add_editdb_parser(subparser, parents):
         help='delete event'
     )
     editdb_parser.add_argument(
+        '--add-column',
+        type=str,
+        metavar='NAME[:TYPE]',
+        default=None,
+        help='add a column to the events table. TYPE is optional and '
+             'defaults to TEXT. Allowed types: TEXT, INTEGER, REAL, '
+             'NUMERIC, BLOB'
+    )
+    editdb_parser.add_argument(
+        '--delete-column',
+        type=str,
+        metavar='NAME',
+        default=None,
+        help='delete a column from the events table '
+             '(default columns are protected)'
+    )
+    editdb_parser.add_argument(
+        '--rename-column',
+        type=str,
+        metavar='OLD=NEW',
+        default=None,
+        help='rename a column in the events table '
+             '(default columns are protected)'
+    )
+    editdb_parser.add_argument(
         '-f',
         '--force',
         action='store_true',

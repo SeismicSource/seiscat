@@ -21,6 +21,20 @@ from .data_types import Event, EventList
 DB_VERSION = 1
 
 
+# Default columns are part of the core schema and cannot be renamed/deleted.
+DEFAULT_COLUMNS = (
+    'evid',
+    'ver',
+    'time',
+    'lat',
+    'lon',
+    'depth',
+    'mag',
+    'mag_type',
+    'event_type',
+)
+
+
 def _get_db_connection(config, initdb=False):
     """
     Get database connection.
@@ -259,6 +273,117 @@ def _get_db_values_from_event(ev, config):
     extra_field_defaults = config['extra_field_defaults'] or []
     values += extra_field_defaults
     return values
+
+
+def _validate_column_name(column_name):
+    """Validate a database column name."""
+    if not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', column_name):
+        raise ValueError(
+            f'Invalid column name "{column_name}". '
+            'Use only letters, numbers, and underscores, '
+            'and do not start with a number.'
+        )
+
+
+def _parse_column_definition(column_definition):
+    """Parse a column definition string in the form NAME[:TYPE]."""
+    if ':' in column_definition:
+        name, col_type = column_definition.split(':', 1)
+    else:
+        name, col_type = column_definition, 'TEXT'
+    name = name.strip()
+    col_type = col_type.strip().upper()
+    _validate_column_name(name)
+    allowed_types = {'TEXT', 'INTEGER', 'REAL', 'NUMERIC', 'BLOB'}
+    if col_type not in allowed_types:
+        raise ValueError(
+            f'Invalid column type "{col_type}". '
+            f'Allowed types: {", ".join(sorted(allowed_types))}'
+        )
+    return name, col_type
+
+
+def get_db_columns(config):
+    """Return the list of column names in the events table."""
+    conn = _get_db_connection(config)
+    cursor = conn.cursor()
+    cursor.execute('PRAGMA table_info(events)')
+    columns = [row[1] for row in cursor.fetchall()]
+    conn.close()
+    return columns
+
+
+def add_column_to_db(config, column_definition):
+    """Add a new column to the events table."""
+    name, col_type = _parse_column_definition(column_definition)
+    columns = get_db_columns(config)
+    if name in columns:
+        raise ValueError(f'Column "{name}" already exists in database')
+    conn = _get_db_connection(config)
+    cursor = conn.cursor()
+    cursor.execute(f'ALTER TABLE events ADD COLUMN {name} {col_type}')
+    conn.commit()
+    conn.close()
+    print(f'Added column "{name}" with type {col_type}')
+
+
+def delete_column_from_db(config, column_name):
+    """Delete a column from the events table."""
+    column_name = column_name.strip()
+    _validate_column_name(column_name)
+    if column_name in DEFAULT_COLUMNS:
+        raise ValueError(
+            f'Column "{column_name}" is protected and cannot be deleted')
+    columns = get_db_columns(config)
+    if column_name not in columns:
+        raise ValueError(f'Column "{column_name}" not found in database')
+    conn = _get_db_connection(config)
+    cursor = conn.cursor()
+    try:
+        cursor.execute(f'ALTER TABLE events DROP COLUMN {column_name}')
+    except sqlite3.OperationalError as e:
+        raise ValueError(
+            f'Cannot delete column "{column_name}": {e.args[0]}') from e
+    conn.commit()
+    conn.close()
+    print(f'Deleted column "{column_name}"')
+
+
+def rename_column_in_db(config, rename_definition):
+    """Rename a column in the events table using OLD=NEW syntax."""
+    if '=' not in rename_definition:
+        raise ValueError(
+            f'Invalid argument "{rename_definition}" for "--rename-column". '
+            'Argument must be in the form "old_name=new_name"'
+        )
+    old_name, new_name = rename_definition.split('=', 1)
+    old_name = old_name.strip()
+    new_name = new_name.strip()
+    _validate_column_name(old_name)
+    _validate_column_name(new_name)
+    if old_name in DEFAULT_COLUMNS:
+        raise ValueError(
+            f'Column "{old_name}" is protected and cannot be renamed')
+    if new_name in DEFAULT_COLUMNS:
+        raise ValueError(
+            f'Column name "{new_name}" is reserved and cannot be used')
+    columns = get_db_columns(config)
+    if old_name not in columns:
+        raise ValueError(f'Column "{old_name}" not found in database')
+    if new_name in columns:
+        raise ValueError(f'Column "{new_name}" already exists in database')
+    conn = _get_db_connection(config)
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            f'ALTER TABLE events RENAME COLUMN {old_name} TO {new_name}')
+    except sqlite3.OperationalError as e:
+        raise ValueError(
+            f'Cannot rename column "{old_name}" to "{new_name}": '
+            f'{e.args[0]}') from e
+    conn.commit()
+    conn.close()
+    print(f'Renamed column "{old_name}" to "{new_name}"')
 
 
 def _add_event_to_db(

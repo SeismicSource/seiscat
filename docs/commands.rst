@@ -179,6 +179,7 @@ seiscat editdb
 ~~~~~~~~~~~~~~
 
 Edit, replicate, or delete events in place.
+It can also modify table columns (add/delete/rename).
 
 .. code-block::
 
@@ -192,9 +193,20 @@ Edit, replicate, or delete events in place.
    seiscat editdb EVID --replicate
    seiscat editdb EVID --delete --force
 
+   # Edit table columns (global operations)
+   seiscat editdb --add-column quality:TEXT
+   seiscat editdb --rename-column quality=quality_flag
+   seiscat editdb --delete-column quality_flag
+
 Options: ``--configfile``, ``--where`` (to target multiple events),
 ``--set KEY=VALUE`` (repeatable), ``--increment KEY=INCREMENT``
-(repeatable), ``--replicate``, ``--delete``, ``--force``.
+(repeatable), ``--replicate``, ``--delete``, ``--add-column NAME[:TYPE]``,
+``--rename-column OLD=NEW``, ``--delete-column NAME``, ``--force``.
+
+Default columns (``evid``, ``ver``, ``time``, ``lat``, ``lon``, ``depth``,
+``mag``, ``mag_type``, ``event_type``) are protected from rename/delete.
+User-defined columns (from ``extra_field_*`` config options or added later)
+are not protected and can be renamed/deleted.
 
 seiscat fetchdata
 ~~~~~~~~~~~~~~~~~
@@ -364,9 +376,9 @@ Backends:
    seiscat timeline -C -B 1m
 
    # Backend and output examples
-   seiscat timeline -A mag -m matplotlib -o timeline.png
-   seiscat timeline -A mag -m plotly -o timeline.html
-   seiscat timeline -C -m terminal
+   seiscat timeline -A mag -b matplotlib -o timeline.png
+   seiscat timeline -A mag -b plotly -o timeline.html
+   seiscat timeline -C -b terminal
 
 Options: ``--configfile``, ``--where``, ``--allversions``,
 ``--attribute FIELD`` (default: ``mag``), ``--count``,
