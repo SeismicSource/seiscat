@@ -24,7 +24,8 @@ def plot_catalog_timeline(config):
     :param config: config object
     """
     args = config['args']
-    if not args.count and args.backend != 'terminal':
+    if not args.count and not getattr(args, 'cumulative', False) and \
+            args.backend != 'terminal':
         # Validate the colormap before loading events or importing a backend
         # so invalid names fail immediately for scatter plots.
         get_matplotlib_colormap(getattr(args, 'colormap', None))

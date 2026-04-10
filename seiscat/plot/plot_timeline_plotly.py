@@ -24,7 +24,7 @@ except ImportError:
     )
 from .plot_timeline_utils import (
     get_event_times_values_and_events, bin_events_by_time,
-    bin_label, get_bin_size_label,
+    bin_label, get_bin_size_label, get_cumulative_event_times_and_counts,
 )
 from .plot_utils import (
     get_label_for_attribute, get_event_popup_html, get_plotly_colorscale,
@@ -124,7 +124,11 @@ def _build_attribute_figure(events, args):
 
 def _build_count_figure(events, args):
     """
-    Build a Plotly figure for event-count bar chart.
+    Build a Plotly figure for event-count bar chart with optional overlay.
+
+    Modes:
+    - Count only: histogram of binned events
+    - Both count and cumulative: dual-axis with histogram and cumulative
 
     :param events: EventList of Event dicts
     :param args: parsed command-line arguments
@@ -148,18 +152,87 @@ def _build_count_figure(events, args):
     fig.add_trace(go.Bar(
         x=bin_centers,
         y=counts,
+        name='Event Count',
         width=widths_ms,
         marker_color='steelblue',
         hovertemplate='%{customdata}<br>Count: %{y}<extra></extra>',
         customdata=labels,
     ))
+
+    title = f'Event Count vs. Time (bin size: {bin_size_label})'
+    layout_kwargs = {}
+
+    # Dual-axis mode: overlay raw-event cumulative on secondary y-axis
+    if getattr(args, 'cumulative', False):
+        cumulative_times, cumulative_counts = (
+            get_cumulative_event_times_and_counts(events)
+        )
+        if not cumulative_times:
+            err_exit('No events to plot.')
+        fig.add_trace(go.Scatter(
+            x=cumulative_times,
+            y=cumulative_counts,
+            mode='lines',
+            name='Cumulative Count',
+            line=dict(color='firebrick', width=2, shape='hv'),
+            yaxis='y2',
+            hovertemplate='%{x|%Y-%m-%d %H:%M}<br>'
+                          'Cumulative: %{y}<extra></extra>',
+        ))
+        layout_kwargs['yaxis2'] = dict(
+            title='Cumulative Event Count',
+            overlaying='y',
+            side='right',
+            rangemode='tozero',
+            showgrid=False,
+        )
+        title = (
+            'Event Count and Cumulative Count vs. Time '
+            f'(bin size: {bin_size_label})'
+        )
+
     fig.update_layout(
         xaxis_title='Time',
         yaxis_title='Event Count',
-        title=f'Event Count vs. Time (bin size: {bin_size_label})',
+        title=title,
         bargap=0,
+        **layout_kwargs,
     )
     return fig
+
+
+def _build_cumulative_count_figure(events):
+    """Build a Plotly figure for raw-event cumulative count over time."""
+    times, cumulative = get_cumulative_event_times_and_counts(events)
+    if not times:
+        err_exit('No events to plot.')
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=times,
+        y=cumulative,
+        mode='lines',
+        name='Cumulative Count',
+        line=dict(color='firebrick', width=2, shape='hv'),
+        hovertemplate='%{x|%Y-%m-%d %H:%M}<br>'
+                      'Cumulative: %{y}<extra></extra>',
+    ))
+    fig.update_layout(
+        xaxis_title='Time',
+        yaxis_title='Cumulative Event Count',
+        yaxis=dict(rangemode='tozero'),
+        title='Cumulative Event Count vs. Time',
+    )
+    return fig
+
+
+def _dispatch_count_figure(events, args):
+    """Dispatch to appropriate count-mode figure builder."""
+    cumulative_only = (
+        getattr(args, 'cumulative', False) and not args.count
+    )
+    if cumulative_only:
+        return _build_cumulative_count_figure(events)
+    return _build_count_figure(events, args)
 
 
 def plot_catalog_timeline_plotly(events, config):
@@ -171,8 +244,8 @@ def plot_catalog_timeline_plotly(events, config):
     """
     args = config['args']
 
-    if args.count:
-        fig = _build_count_figure(events, args)
+    if args.count or getattr(args, 'cumulative', False):
+        fig = _dispatch_count_figure(events, args)
     else:
         fig = _build_attribute_figure(events, args)
 

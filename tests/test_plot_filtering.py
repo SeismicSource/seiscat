@@ -22,7 +22,10 @@ from seiscat.plot.plot_timeline import plot_catalog_timeline
 from seiscat.plot.plot_utils import (
     filter_events_for_plotting, is_large_n_plotly_mode,
 )
-from seiscat.plot.plot_timeline_utils import get_event_times_values_and_events
+from seiscat.plot.plot_timeline_utils import (
+    get_cumulative_event_times_and_counts,
+    get_event_times_values_and_events,
+)
 
 
 class TestFilterEventsForPlotting(unittest.TestCase):
@@ -194,6 +197,83 @@ class TestTimelineAttributeFiltering(unittest.TestCase):
             {'evid': 'bad2', 'time': 2.0, 'mag': 2.0, 'depth': None},
         ]
 
+        with patch(
+            'seiscat.plot.plot_timeline.read_events_from_db',
+            return_value=events,
+        ):
+            with patch.dict(sys.modules, {module.__name__: module}):
+                plot_catalog_timeline(config)
+        backend.assert_called_once_with(events, config)
+
+
+class TestTimelineCumulativeCounts(unittest.TestCase):
+    """Test cumulative count helper for timeline count mode."""
+
+    def test_cumulative_counts_empty(self):
+        """Empty input should return empty output."""
+        times, counts = get_cumulative_event_times_and_counts([])
+        self.assertEqual(times, [])
+        self.assertEqual(counts, [])
+
+    def test_cumulative_counts_sorted_by_time(self):
+        """Cumulative counts should follow time-sorted raw events."""
+        events = [
+            {'evid': 'e2', 'time': 2.0},
+            {'evid': 'e1', 'time': 1.0},
+            {'evid': 'e3', 'time': 3.0},
+        ]
+        times, counts = get_cumulative_event_times_and_counts(events)
+        self.assertEqual(
+            [float(t.timestamp()) for t in times],
+            [1.0, 2.0, 3.0],
+        )
+        self.assertEqual(counts, [1, 2, 3])
+
+
+class TestTimelineDualAxisModes(unittest.TestCase):
+    """Test different count/cumulative combinations."""
+
+    def test_count_only_mode(self):
+        """Count-only mode should use histogram binning."""
+        backend = MagicMock()
+        module = types.ModuleType('seiscat.plot.plot_timeline_matplotlib')
+        module.plot_catalog_timeline_matplotlib = backend
+        args = SimpleNamespace(
+            backend='matplotlib',
+            count=True,
+            cumulative=False,
+            colorby=None,
+            colormap=None,
+        )
+        config = {'args': args}
+        events = [
+            {'evid': 'e1', 'time': 1.0, 'mag': 3.0},
+            {'evid': 'e2', 'time': 2.0, 'mag': 3.5},
+        ]
+        with patch(
+            'seiscat.plot.plot_timeline.read_events_from_db',
+            return_value=events,
+        ):
+            with patch.dict(sys.modules, {module.__name__: module}):
+                plot_catalog_timeline(config)
+        backend.assert_called_once_with(events, config)
+
+    def test_cumulative_only_mode(self):
+        """Cumulative-only mode should skip binning."""
+        backend = MagicMock()
+        module = types.ModuleType('seiscat.plot.plot_timeline_matplotlib')
+        module.plot_catalog_timeline_matplotlib = backend
+        args = SimpleNamespace(
+            backend='matplotlib',
+            count=False,
+            cumulative=True,
+            colorby=None,
+            colormap=None,
+        )
+        config = {'args': args}
+        events = [
+            {'evid': 'e1', 'time': 1.0, 'mag': 3.0},
+        ]
         with patch(
             'seiscat.plot.plot_timeline.read_events_from_db',
             return_value=events,

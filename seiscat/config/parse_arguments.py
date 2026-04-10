@@ -609,7 +609,17 @@ def _add_timeline_parser(subparser, parents):
         help='bin width for count mode (default: auto). '
              'Accepted formats: integer N (N equal-width bins), '
              'or a duration string such as "1d" (days), "1w" (weeks), '
-             '"1m" (months), "1y" (years). Only used when --count is set.'
+             '"1m" (months), "1y" (years). '
+             'Ignored if --cumulative is used without --count.'
+    )
+    timeline_parser.add_argument(
+        '-U',
+        '--cumulative',
+        action='store_true',
+        default=False,
+        help='plot cumulative event count. With --count: shows dual-axis '
+             'histogram+cumulative. Without --count: shows raw cumulative '
+             'over chronological time (no binning).'
     )
     timeline_parser.add_argument(
         '-b',

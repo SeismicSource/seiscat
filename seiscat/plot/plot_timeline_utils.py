@@ -280,3 +280,18 @@ def get_bin_size_label(bins, bins_spec=None):
     if seconds is not None:
         return _seconds_to_human_duration(seconds)
     return f'{spec}, {width_human}'
+
+
+def get_cumulative_event_times_and_counts(events):
+    """
+    Return cumulative event count over chronologically sorted raw event times.
+
+    :param events: EventList of Event dicts
+    :returns: tuple ``(times, counts)`` where *times* is a sorted list of
+        timezone-aware datetimes and *counts* is ``[1, 2, ..., N]``
+    """
+    if not events:
+        return [], []
+    times = sorted(_utcdatetime_to_datetime(e['time']) for e in events)
+    counts = np.arange(1, len(times) + 1, dtype=int).tolist()
+    return times, counts

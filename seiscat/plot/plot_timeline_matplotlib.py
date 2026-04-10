@@ -16,12 +16,38 @@ from matplotlib.ticker import FuncFormatter
 from .plot_timeline_utils import (
     get_event_times_values_and_events, bin_events_by_time,
     get_bin_size_label, ONE_DAY_SECONDS,
+    get_cumulative_event_times_and_counts,
 )
 from .plot_utils import (
     get_label_for_attribute, get_matplotlib_colormap, format_epoch_seconds,
 )
 from ..database.dbfunctions import get_catalog_stats
 from ..utils import err_exit
+
+
+def _plot_cumulative_overlay(ax, events, bin_size_label):
+    """Overlay raw-event cumulative count on a secondary y-axis."""
+    ax2 = ax.twinx()
+    times, cumulative = get_cumulative_event_times_and_counts(events)
+    if not times:
+        err_exit('No events to plot.')
+    ax2.step(
+        times,
+        cumulative,
+        where='post',
+        color='firebrick',
+        linewidth=1.6,
+        zorder=4,
+        label='Cumulative Count',
+    )
+    ax2.set_ylabel('Cumulative Event Count', color='firebrick')
+    ax2.tick_params(axis='y', labelcolor='firebrick')
+    ax2.set_ylim(bottom=0)
+    title = (
+        'Event Count and Cumulative Count vs. Time '
+        f'(bin size: {bin_size_label})'
+    )
+    ax.set_title(title)
 
 
 def _plot_attribute(events, args, ax):
@@ -80,12 +106,40 @@ def _plot_attribute(events, args, ax):
 
 def _plot_count(events, args, ax):
     """
-    Bar chart of event count per time bin.
+    Bar chart of event count per time bin, optionally with cumulative overlay.
+
+    Modes:
+    - Count only: histogram of binned events
+    - Cumulative only: raw cumulative step plot
+    - Both: dual-axis with histogram (left) and cumulative (right)
 
     :param events: EventList of Event dicts
     :param args: parsed command-line arguments
     :param ax: matplotlib Axes
     """
+    count_plot = getattr(args, 'count', False)
+    cumulative_plot = getattr(args, 'cumulative', False)
+    cumulative_only = cumulative_plot and not count_plot
+
+    if cumulative_only:
+        # Cumulative-only mode: raw event times, no binning
+        times, cumulative = get_cumulative_event_times_and_counts(events)
+        if not times:
+            err_exit('No events to plot.')
+        ax.step(
+            times,
+            cumulative,
+            where='post',
+            color='firebrick',
+            linewidth=1.6,
+            zorder=4,
+        )
+        ax.set_ylabel('Cumulative Event Count')
+        ax.set_ylim(bottom=0)
+        ax.set_title('Cumulative Event Count vs. Time')
+        return
+
+    # Count mode (with or without cumulative overlay)
     bins_spec = getattr(args, 'bins', None)
     bins = bin_events_by_time(events, bins_spec)
     if not bins:
@@ -113,8 +167,13 @@ def _plot_count(events, args, ax):
         zorder=3,
     )
     ax.xaxis_date()
-    ax.set_ylabel('Event Count')
-    ax.set_title(f'Event Count vs. Time (bin size: {bin_size_label})')
+    ax.set_ylabel('Event Count (per bin)')
+
+    # Dual-axis mode: overlay cumulative on secondary y-axis
+    if not cumulative_only and cumulative_plot:
+        _plot_cumulative_overlay(ax, events, bin_size_label)
+    else:
+        ax.set_title(f'Event Count vs. Time (bin size: {bin_size_label})')
 
 
 def plot_catalog_timeline_matplotlib(events, config):
@@ -125,11 +184,13 @@ def plot_catalog_timeline_matplotlib(events, config):
     :param config: config object
     """
     args = config['args']
+    count_plot = getattr(args, 'count', False)
+    cumulative_plot = getattr(args, 'cumulative', False)
 
     fig, ax = plt.subplots(figsize=(12, 5))
     ax.grid(axis='y', linestyle='--', alpha=0.5, zorder=0)
 
-    if args.count:
+    if count_plot or cumulative_plot:
         _plot_count(events, args, ax)
     else:
         _plot_attribute(events, args, ax)

@@ -369,11 +369,19 @@ Backends:
    seiscat timeline -A time
    seiscat timeline -A mag --colorby time
 
-   # Event count with auto/custom bins
+   # Event count histogram with auto/custom bins
    seiscat timeline -C
    seiscat timeline -C -B 20
    seiscat timeline -C -B 7d
    seiscat timeline -C -B 1m
+
+   # Cumulative count over raw event times (no bins)
+   seiscat timeline --cumulative
+   seiscat timeline -C --cumulative
+
+   # Dual-axis: histogram with cumulative overlay
+   seiscat timeline -C -B 20 --cumulative
+   seiscat timeline -C -b plotly -B 1w --cumulative
 
    # Backend and output examples
    seiscat timeline -A mag -b matplotlib -o timeline.png
@@ -385,6 +393,7 @@ Options: ``--configfile``, ``--where``, ``--allversions``,
 ``--colorby FIELD`` (attribute mode only),
 ``--colormap NAME`` (attribute mode only; Matplotlib colormap name),
 ``-B/--bins SPEC`` (count mode only),
+``-U/--cumulative`` (standalone cumulative mode or with ``--count``),
 ``--backend {matplotlib,plotly,terminal}``,
 ``--out-file FILE``.
 
@@ -397,6 +406,14 @@ Bin specification for ``-B/--bins``:
 - duration string: ``Nd`` (days), ``Nw`` (weeks), ``Nm`` (months),
   ``Ny`` (years)
 - omitted: automatic bin width
+- ignored when ``--cumulative`` is used without ``--count``
+
+Cumulative count behavior:
+
+- With ``--cumulative`` only: plots raw cumulative count over chronological time (no binning)
+- With ``--count`` only: plots histogram of binned event counts
+- With both ``--count`` and ``--cumulative``: shows histogram on left y-axis and cumulative
+   line from raw chronological events on right y-axis
 
 Time formatting behavior:
 
