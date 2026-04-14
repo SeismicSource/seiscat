@@ -4,7 +4,7 @@ Keep a local seismic catalog.
 
 Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 
-## unreleased
+## [unreleased]
 
 - Raised minimum required Python version to 3.9, added support for Python
   3.13 and 3.14
@@ -81,7 +81,7 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
   `--increment` options for each `KEY=VALUE` pair
   (e.g., `-s locked=True -s processed=True`).
 
-## v0.8 - 2024-10-28
+## [0.8] - 2024-10-28
 
 - New option for `seiscat print` and `seiscat plot`: `--where` to filter events
   based on one or more conditions
@@ -90,7 +90,7 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - New command line option `seiscat download` to download full event details
   and/or waveform data and metadata from FDSNWS services
 
-## v0.7 - 2024-03-11
+## [0.7] - 2024-03-11
 
 - CSV output for `seiscat print`, using `--format=csv` (or `-f csv`)
 - Special argument `ALL` for `seiscat editdb` to edit all the events
@@ -99,7 +99,7 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - New option for `seiscat editdb`: `--increment` to increment (or decrement)
   a numeric field by a given, positive or negative, amount
 
-## v0.6 - 2023-06-26
+## [0.6] - 2023-06-26
 
 - New command to edit the event database: `seiscat editdb`
 - `eventid` argument for `seiscat print`, to print a specific event
@@ -108,7 +108,7 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - Fix bug where an event was updated to new version even if the same event
   already existed in the database
 
-## v0.5 - 2023-06-22
+## [0.5] - 2023-06-22
 
 - New configuration option: `overwrite_updated_events`. Default is `False`
   and updated events get an incremented version number
@@ -120,7 +120,7 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
   on top
 - Rename database column `dep` to `depth`
 
-## v0.4 - 2023-06-20
+## [0.4] - 2023-06-20
 
 - Command line autocompletion, thanks to argcomplete
 - Show event depth in plot annotation
@@ -129,17 +129,17 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - Exit gracefully if database file is missing
 - Fix printing of `None` values
 
-## v0.3 - 2023-06-20
+## [0.3] - 2023-06-20
 
 - New command to print catalog to screen: `seiscat print`
 - Documentation!
 
-## v0.2 - 2023-06-19
+## [0.2] - 2023-06-19
 
 - Fix for plotting the whole world when no limits are given
 - New way of computing zoom level for map tiles
 
-## v0.1 - 2023-06-19
+## [0.1] - 2023-06-19
 
 This is the initial release of SeisCat.
 
@@ -150,3 +150,13 @@ The seismic catalog is built and updated by querying a FDSNWS event webservice.
 More ways of feeding the catalog will be added in the future.
 
 The local catalog is stored in a SQLite database (single file database).
+
+[unreleased]: https://github.com/SeismicSource/seiscat/compare/v0.8...HEAD
+[0.8]: https://github.com/SeismicSource/seiscat/compare/v0.7...v0.8
+[0.7]: https://github.com/SeismicSource/seiscat/compare/v0.6...v0.7
+[0.6]: https://github.com/SeismicSource/seiscat/compare/v0.5...v0.6
+[0.5]: https://github.com/SeismicSource/seiscat/compare/v0.4...v0.5
+[0.4]: https://github.com/SeismicSource/seiscat/compare/v0.3...v0.4
+[0.3]: https://github.com/SeismicSource/seiscat/compare/v0.2...v0.3
+[0.2]: https://github.com/SeismicSource/seiscat/compare/v0.1...v0.2
+[0.1]: https://github.com/SeismicSource/seiscat/releases/tag/v0.1
