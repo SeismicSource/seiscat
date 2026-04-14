@@ -269,10 +269,44 @@ def _get_db_values_from_event(ev, config):
     event_type = ev.event_type
     values = [
         evid, version, time, lat, lon, depth, mag, mag_type, event_type]
-    # add extra fields
+    # add extra fields (configured defaults and/or per-event values)
+    extra_field_names = config['extra_field_names'] or []
     extra_field_defaults = config['extra_field_defaults'] or []
-    values += extra_field_defaults
+    ev_extra = getattr(ev, 'extra', {}) or {}
+    for idx, field_name in enumerate(extra_field_names):
+        extra_value = ev_extra.get(field_name)
+        if isinstance(extra_value, dict):
+            extra_value = extra_value.get('value')
+        if extra_value is None and idx < len(extra_field_defaults):
+            extra_value = extra_field_defaults[idx]
+        values.append(extra_value)
     return values
+
+
+def _merge_extra_fields_in_config(config, extra_column_names):
+    """Merge runtime extra columns into config extra field lists."""
+    extra_field_names = list(config['extra_field_names'] or [])
+    extra_field_types = list(config['extra_field_types'] or [])
+    extra_field_defaults = list(config['extra_field_defaults'] or [])
+    for column_name in extra_column_names:
+        if column_name in extra_field_names:
+            continue
+        extra_field_names.append(column_name)
+        extra_field_types.append('TEXT')
+        extra_field_defaults.append(None)
+    config['extra_field_names'] = extra_field_names
+    config['extra_field_types'] = extra_field_types
+    config['extra_field_defaults'] = extra_field_defaults
+
+
+def _add_runtime_columns_to_db(config, column_names):
+    """Add runtime-discovered columns to events table."""
+    existing_columns = get_db_columns(config)
+    for column_name in column_names:
+        if column_name in existing_columns:
+            continue
+        add_column_to_db(config, column_name)
+        existing_columns.append(column_name)
 
 
 def _validate_column_name(column_name):
@@ -461,12 +495,22 @@ def write_catalog_to_db(cat, config, initdb):
         _set_db_version(cursor)
     else:
         _check_db_version(cursor, config)
-    field_definitions, n_standard_fields, n_extra_fields =\
-        _get_db_field_definitions(config)
+    field_definitions, _, _ = _get_db_field_definitions(config)
     # create table if it doesn't exist, use evid and ver as primary key
     cursor.execute(
         'CREATE TABLE IF NOT EXISTS events '
         f'({", ".join(field_definitions)}, PRIMARY KEY (evid, ver))')
+    conn.commit()
+    conn.close()
+
+    if initdb and config.get('_csv_extra_columns'):
+        _add_runtime_columns_to_db(config, config['_csv_extra_columns'])
+        _merge_extra_fields_in_config(config, config['_csv_extra_columns'])
+
+    conn = _get_db_connection(config)
+    cursor = conn.cursor()
+    _check_db_version(cursor, config)
+    _, n_standard_fields, n_extra_fields = _get_db_field_definitions(config)
     events_created = 0
     events_updated = 0
     for ev in cat:

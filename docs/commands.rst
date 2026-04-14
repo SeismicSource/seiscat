@@ -142,9 +142,14 @@ Initialize the database (from configured sources or an event file).
    seiscat initdb -f events.quakeml         # QuakeML (ObsPy auto-detect)
    seiscat initdb -f events.sc3ml           # SC3ML format
    seiscat initdb -f catalog.csv -C         # crop to config criteria
+   seiscat initdb -f catalog.csv --csv-extra-columns  # import extra CSV cols
 
 Options: ``--configfile``, event file input options, ``--missing-value``,
-``--depth_units``, ``--crop``.
+``--depth_units``, ``--crop``, ``--csv-extra-columns``.
+
+``--csv-extra-columns`` imports non-standard CSV columns as additional
+database columns (TEXT) and fills them row-by-row. This option is supported
+for ``seiscat initdb`` only.
 
 seiscat updatedb
 ~~~~~~~~~~~~~~~~

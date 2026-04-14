@@ -59,6 +59,8 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
   values (e.g., `-999`, `N/A`).
 - Added `seiscat editdb` options to add, delete, and rename table columns,
   with default columns protected from rename/delete
+- New `seiscat initdb` option `--csv-extra-columns` to import non-standard
+  CSV columns as additional database columns
 - New command `seiscat run` to run a user-defined command on each event
 - New command `seiscat samplescript` to write a sample script for the
   `seiscat run` command

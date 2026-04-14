@@ -245,7 +245,7 @@ def _get_parent_parsers():
 
 def _add_initdb_parser(subparser, parents):
     """Add the initdb subparser."""
-    subparser.add_parser(
+    initdb_parser = subparser.add_parser(
         'initdb',
         parents=[
             parents['configfile_parser'],
@@ -255,6 +255,14 @@ def _add_initdb_parser(subparser, parents):
         ],
         formatter_class=RichHelpFormatter,
         help='initialize database')
+    initdb_parser.add_argument(
+        '--csv-extra-columns',
+        action='store_true',
+        default=False,
+        help='when importing CSV files, add non-standard CSV columns '
+             'to the database as TEXT columns and populate them '
+             '(default: %(default)s)'
+    )
 
 
 def _add_updatedb_parser(subparser, parents):

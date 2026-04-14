@@ -100,10 +100,15 @@ latitude,longitude,depth,magnitude,origin_time
 42.5,13.2,10.0,N/A,2023-05-15T14:30:45
 """
 
+CSV_CONTENT_WITH_EXTRA_COLUMNS = """\
+latitude,longitude,depth,magnitude,origin_time,quality,reviewer
+42.5,13.2,10.0,3.5,2023-05-15T14:30:45,A,alice
+"""
+
 
 def create_mock_config(
     filename, depth_units='km', delimiter=None, column_names=None,
-    no_value=None
+    no_value=None, csv_extra_columns=False, action='initdb'
 ):
     """Create a mock config object for testing.
 
@@ -127,6 +132,8 @@ def create_mock_config(
     args.delimiter = delimiter
     args.column_names = column_names
     args.no_value = no_value
+    args.csv_extra_columns = csv_extra_columns
+    args.action = action
     return {'args': args}
 
 
@@ -1001,6 +1008,31 @@ class TestReadCatalogFromCSV(unittest.TestCase):
 
             self.assertEqual(len(cat), 1)
             self.assertIsNone(cat[0].magnitudes[0].mag)
+        finally:
+            os.unlink(filename)
+
+    def test_imports_extra_columns_when_requested(self):
+        """Additional CSV columns should be exposed for initdb import."""
+        csv_content = CSV_CONTENT_WITH_EXTRA_COLUMNS
+        with tempfile.NamedTemporaryFile(
+            mode='w', delete=False, suffix='.csv'
+        ) as f:
+            f.write(csv_content)
+            filename = f.name
+
+        try:
+            config = create_mock_config(
+                filename, depth_units='km', csv_extra_columns=True)
+
+            with patch('builtins.print'):
+                cat = read_catalog_from_csv(config)
+
+            self.assertEqual(
+                getattr(cat, 'seiscat_extra_column_names', []),
+                ['quality', 'reviewer']
+            )
+            self.assertEqual(cat[0].extra['quality']['value'], 'A')
+            self.assertEqual(cat[0].extra['reviewer']['value'], 'alice')
         finally:
             os.unlink(filename)
 

@@ -14,13 +14,16 @@ import sqlite3
 import tempfile
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 from seiscat.database.dbfunctions import _process_where_option
 from seiscat.database.dbfunctions import (
     get_db_columns,
     add_column_to_db,
     delete_column_from_db,
     rename_column_in_db,
+    write_catalog_to_db,
 )
+from seiscat.sources.csv import read_catalog_from_csv
 
 
 class TestProcessWhereOption(unittest.TestCase):
@@ -111,6 +114,73 @@ class TestSchemaColumnOperations(unittest.TestCase):
         """Default columns are protected from renaming."""
         with self.assertRaises(ValueError):
             rename_column_in_db(self.config, 'evid=event_id')
+
+
+class TestInitDbCsvExtraColumns(unittest.TestCase):
+    """Test creation of runtime CSV extra columns during initdb."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.db_file = Path(self.tmpdir.name) / 'test.sqlite'
+        self.csv_file = Path(self.tmpdir.name) / 'events.csv'
+        self.csv_file.write_text(
+            'latitude,longitude,depth,magnitude,origin_time,quality,reviewer\n'
+            '42.5,13.2,10.0,3.5,2023-05-15T14:30:45,A,alice\n',
+            encoding='utf8'
+        )
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def _csv_config(self):
+        args = MagicMock()
+        args.fromfile = [str(self.csv_file)]
+        args.depth_units = 'km'
+        args.delimiter = ','
+        args.column_names = None
+        args.no_value = None
+        args.csv_extra_columns = True
+        args.action = 'initdb'
+        return {'args': args}
+
+    def _db_config(self, extra_columns):
+        return {
+            'db_file': str(self.db_file),
+            'extra_field_names': None,
+            'extra_field_types': None,
+            'extra_field_defaults': None,
+            '_csv_extra_columns': extra_columns,
+            'overwrite_updated_events': False,
+            'args': SimpleNamespace(
+                eventid=None,
+                event_version=None,
+                where=None,
+                sortby='time',
+                allversions=True,
+                reverse=False,
+            ),
+        }
+
+    def test_initdb_creates_and_populates_extra_columns(self):
+        """Runtime CSV extra columns should be added and filled."""
+        with patch('builtins.print'):
+            cat = read_catalog_from_csv(self._csv_config())
+        config = self._db_config(
+            getattr(cat, 'seiscat_extra_column_names', []))
+
+        with patch('builtins.print'):
+            write_catalog_to_db(cat, config, initdb=True)
+
+        columns = get_db_columns(config)
+        self.assertIn('quality', columns)
+        self.assertIn('reviewer', columns)
+
+        conn = sqlite3.connect(self.db_file)
+        cursor = conn.cursor()
+        cursor.execute('SELECT quality, reviewer FROM events')
+        row = cursor.fetchone()
+        conn.close()
+        self.assertEqual(row, ('A', 'alice'))
 
 
 if __name__ == '__main__':

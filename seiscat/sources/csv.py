@@ -490,7 +490,7 @@ def _apply_no_value_markers(row, text_markers, numeric_markers):
     return out_row
 
 
-def _read_csv_row(row, fields, depth_units, mag_type):
+def _read_csv_row(row, fields, depth_units, mag_type, extra_column_names=None):
     """
     Read a row from a CSV file.
 
@@ -538,10 +538,22 @@ def _read_csv_row(row, fields, depth_units, mag_type):
     mag.mag = float_or_none(row[fields['mag']])
     ev.magnitudes.append(mag)
     ev.preferred_magnitude_id = mag.resource_id
+    if extra_column_names:
+        # Store CSV extra fields so database write can map them to columns.
+        extra = getattr(ev, 'extra', {}) or {}
+        for column_name in extra_column_names:
+            extra[column_name] = {
+                'value': row.get(column_name),
+                'namespace': 'seiscat'
+            }
+        ev.extra = extra
     return ev
 
 
-def _read_csv(fp, delimiter, column_names, nrows, depth_units, no_value=None):
+def _read_csv(
+    fp, delimiter, column_names, nrows, depth_units, no_value=None,
+    import_extra_columns=False,
+):
     """
     Read a catalog from a CSV file.
 
@@ -575,6 +587,17 @@ def _read_csv(fp, delimiter, column_names, nrows, depth_units, no_value=None):
         fieldnames=column_names)
     text_markers, numeric_markers = _normalize_no_values(no_value)
     fields = _guess_field_names(reader.fieldnames)
+    matched_field_names = {
+        field_name for field_name in fields.values() if field_name is not None
+    }
+    extra_column_names = [
+        field_name for field_name in reader.fieldnames
+        if field_name not in matched_field_names
+    ] if import_extra_columns else []
+    if extra_column_names:
+        print('Additional CSV columns to import:')
+        for field_name in extra_column_names:
+            print(f'  "{field_name}"')
     # if magtype is missing, try to guess it from the magnitude field name
     mag_type = None
     if fields['mag_type'] is None:
@@ -588,12 +611,15 @@ def _read_csv(fp, delimiter, column_names, nrows, depth_units, no_value=None):
         print(f'reading row {n + 1}/{nrows}\r', end='')
         row = _apply_no_value_markers(row, text_markers, numeric_markers)
         try:
-            ev = _read_csv_row(row, fields, depth_units, mag_type)
+            ev = _read_csv_row(
+                row, fields, depth_units, mag_type, extra_column_names)
         except (ValueError, TypeError) as e:
             print(f'Error at row {n + 1}: {e}')
             continue
         cat.append(ev)
     print()  # needed to add a newline after the last "reading row" message
+    if extra_column_names:
+        setattr(cat, 'seiscat_extra_column_names', extra_column_names)
     return cat
 
 
@@ -644,7 +670,8 @@ def read_catalog_from_csv(config, filename=None):
     with open(csv_filename, 'r', encoding='utf8') as fp:
         cat = _read_csv(
             fp, delimiter, args.column_names, nrows,
-            args.depth_units, args.no_value)
+            args.depth_units, args.no_value,
+            import_extra_columns=getattr(args, 'csv_extra_columns', False))
     if args.depth_units is None:
         # If catalog's maximum depth is too small, assume it is in kilometers
         # and convert it to meters
