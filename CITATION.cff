@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "SeisCat: Keep a local seismic catalog"
+version: "0.8"
+date-released: "2024-10-28"
+type: software
+abstract: "SeisCat is a command-line software tool for building, maintaining, and querying local seismic catalogs. It integrates event data from FDSNWS web services and local files in multiple formats, storing them in a portable SQLite database for efficient access and analysis. In addition to catalog management, SeisCat supports visualization, export, waveform and station metadata retrieval, and automated event-based processing through user-defined scripts."
+license: "GPL-3.0-or-later"
+authors:
+  - family-names: Satriano
+    given-names: Claudio
+    email: satriano@ipgp.fr
+    affiliation: "Université Paris Cité, Institut de physique du globe de Paris, CNRS, F-75005 Paris, France"
+    orcid: "https://orcid.org/0000-0002-3039-2530"
+repository-code: "https://github.com/SeismicSource/seiscat"
+url: "https://seiscat.seismicsource.org"
+documentation: "https://seiscat.readthedocs.io"
+keywords:
+  - seismology
+  - earthquake
+  - catalog
+  - database
