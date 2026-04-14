@@ -227,10 +227,8 @@ def _build_cumulative_count_figure(events):
 
 def _dispatch_count_figure(events, args):
     """Dispatch to appropriate count-mode figure builder."""
-    cumulative_only = (
-        getattr(args, 'cumulative', False) and not args.count
-    )
-    if cumulative_only:
+    if getattr(args, 'cumulative', False) and not args.count:
+        # cumulative-only mode: plot raw-event cumulative count without binning
         return _build_cumulative_count_figure(events)
     return _build_count_figure(events, args)
 
