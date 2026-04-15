@@ -24,6 +24,30 @@ def _flush_pending_input():
         curses.flushinp()
 
 
+def _display_busy_popup(stdscr, message='Sorting... please wait'):
+    """Display a transient centered popup while a long task is running."""
+    with suppress(curses.error):
+        max_y, max_x = stdscr.getmaxyx()
+        popup_width = min(len(message) + 6, max_x - 4)
+        popup_height = 3
+        popup_y = (max_y - popup_height) // 2
+        popup_x = (max_x - popup_width) // 2
+        top_border = f'╔{"═" * (popup_width - 2)}╗'
+        content = _format_centered_popup_line(popup_width, message)
+        bottom_border = f'╚{"═" * (popup_width - 2)}╝'
+        stdscr.addstr(popup_y, popup_x, top_border, curses.A_BOLD)
+        stdscr.addstr(popup_y + 1, popup_x, content, curses.A_BOLD)
+        stdscr.addstr(popup_y + 2, popup_x, bottom_border, curses.A_BOLD)
+        stdscr.refresh()
+
+
+def _sort_with_feedback(stdscr, col_index, raw_data, pager_state):
+    """Show busy feedback, sort rows, then clear queued input."""
+    _display_busy_popup(stdscr)
+    _sort_rows_by_column(col_index, raw_data, pager_state)
+    _flush_pending_input()
+
+
 def _copy_to_clipboard(text):
     """
     Copy text to system clipboard (cross-platform).
@@ -458,10 +482,10 @@ def _handle_pager_input(
         # Re-sort the data
         if pager_state['sort_col'] is not None:
             with suppress(IndexError, TypeError):
-                _sort_rows_by_column(
+                _sort_with_feedback(
+                    stdscr,
                     pager_state['sort_col'], raw_data, pager_state
                 )
-                _flush_pending_input()
         return True
     # Handle sort field selector with 's' key
     if raw_data and key == ord('s'):
@@ -477,8 +501,9 @@ def _handle_pager_input(
                 pager_state['sort_asc'] = True
             # Sort the raw data
             with suppress(IndexError, TypeError):
-                _sort_rows_by_column(selected_col, raw_data, pager_state)
-                _flush_pending_input()
+                _sort_with_feedback(
+                    stdscr, selected_col, raw_data, pager_state
+                )
         return True
     # Handle column sorting with number keys (1-9)
     if raw_data and chr(key) in '123456789':
@@ -494,8 +519,7 @@ def _handle_pager_input(
                 pager_state['sort_asc'] = True
             # Sort the raw data
             with suppress(IndexError, TypeError):
-                _sort_rows_by_column(col_num, raw_data, pager_state)
-                _flush_pending_input()
+                _sort_with_feedback(stdscr, col_num, raw_data, pager_state)
     elif key in [curses.KEY_LEFT, ord('h')]:
         if enable_h_scroll:
             # Scroll left
