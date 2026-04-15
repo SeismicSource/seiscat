@@ -37,15 +37,38 @@ def _print_table_rows(header, body_rows):
         print(row)
 
 
-def _display_table(header, body_rows, fields=None, rows=None):
+def _format_table_rows(fields, rows):
+    """
+    Build plain text table header and rows from raw values.
+
+    :param fields: list of column names
+    :param rows: list of row values
+    :return: tuple (header, body_rows)
+    """
+    max_len = [len(f) for f in fields]
+    for row in rows:
+        for i, val in enumerate(row):
+            max_len[i] = max(max_len[i], len(str(val)))
+    header = '  '.join(f'{f:{max_len[i]}}' for i, f in enumerate(fields))
+    body_rows = []
+    for row in rows:
+        row_str = '  '.join(
+            f'{("None" if val is None else str(val)):{max_len[i]}}'
+            for i, val in enumerate(row)
+        )
+        body_rows.append(row_str)
+    return header, body_rows
+
+
+def _display_table(header=None, body_rows=None, fields=None, rows=None):
     """
     Display table header and rows.
 
     Uses interactive curses pager if output is to a terminal,
     otherwise prints plain text.
 
-    :param header: header row string
-    :param body_rows: list of body row strings
+    :param header: optional header row string
+    :param body_rows: optional list of body row strings
     :param fields: optional list of column names for sorting
     :param rows: optional list of raw row data for sorting
     """
@@ -57,12 +80,22 @@ def _display_table(header, body_rows, fields=None, rows=None):
             raw_data = None
             if fields is not None and rows is not None:
                 raw_data = {'fields': fields, 'rows': rows}
+            if header is None:
+                header = ''
+            if body_rows is None:
+                body_rows = []
             display_table_pager(header, body_rows, raw_data=raw_data)
         except PagerException:
             # Fallback to simple print if curses fails
+            if (header is None or body_rows is None) and (
+                    fields is not None and rows is not None):
+                header, body_rows = _format_table_rows(fields, rows)
             _print_table_rows(header, body_rows)
     else:
         # Plain text output for pipes/files
+        if (header is None or body_rows is None) and (
+                fields is not None and rows is not None):
+            header, body_rows = _format_table_rows(fields, rows)
         _print_table_rows(header, body_rows)
 
 
@@ -73,30 +106,18 @@ def _print_catalog_table(config):
     :param config: config object
     """
     from ..database.dbfunctions import read_fields_and_rows_from_db
+    from ..database.transient_status import transient_status
     # get fields and rows from database
     # rows are sorted by time and version and reversed if requested
-    fields, rows = read_fields_and_rows_from_db(config)
+    with transient_status('Reading database...') as update_status:
+        fields, rows = read_fields_and_rows_from_db(config)
+        update_status('Reading database... done')
     if len(rows) == 0:
         print('No events in catalog')
         return
-    # Build plain text table
-    max_len = [len(f) for f in fields]
-    for row in rows:
-        for i, val in enumerate(row):
-            max_len[i] = max(max_len[i], len(str(val)))
-    # Build header
-    header = '  '.join(f'{f:{max_len[i]}}' for i, f in enumerate(fields))
-    # Build body rows
-    body_rows = []
-    for row in rows:
-        row_str = '  '.join(
-            f'{("None" if val is None else str(val)):{max_len[i]}}'
-            for i, val in enumerate(row)
-        )
-        body_rows.append(row_str)
-    # Display table (pager if TTY, plain text otherwise)
-    # Pass raw fields and rows for interactive sorting
-    _display_table(header, body_rows, fields=fields, rows=rows)
+    # Display table (pager if TTY, plain text otherwise).
+    # For TTY, defer heavy formatting to pager so the UI opens immediately.
+    _display_table(fields=fields, rows=rows)
 
 
 def print_catalog(config):

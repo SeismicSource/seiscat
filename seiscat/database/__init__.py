@@ -10,3 +10,4 @@ Database functions for seiscat.
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
 from .get_set import seiscat_get, seiscat_set  # noqa
+from .transient_status import transient_status  # noqa

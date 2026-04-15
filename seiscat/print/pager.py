@@ -808,9 +808,19 @@ def display_table_pager(
             'default_sort_col': default_sort_col,
             'default_sort_asc': default_sort_asc
         }
+        local_header = header
+        local_body_rows = body_rows
+        # If raw rows are available but preformatted strings are not,
+        # show UI immediately and build table strings inside curses.
+        if raw_data and not local_body_rows:
+            _display_busy_popup(stdscr, 'Loading table... please wait')
+            _update_formatted_rows_cache(raw_data, pager_state)
+            local_header = pager_state['formatted_header']
+            local_body_rows = pager_state['formatted_body_rows']
         while True:
             should_continue = _pager_loop_iteration(
-                stdscr, header, body_rows, pager_state, raw_data=raw_data
+                stdscr, local_header, local_body_rows,
+                pager_state, raw_data=raw_data
             )
             if not should_continue:
                 break

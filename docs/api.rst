@@ -55,6 +55,11 @@ Database
     :undoc-members:
     :show-inheritance:
 
+.. automodule:: seiscat.database.transient_status
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Fetching Data
 =============
 .. automodule:: seiscat.fetchdata.event_details
