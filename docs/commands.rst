@@ -270,6 +270,9 @@ using an interactive pager with the following features:
      updated and auto-scrolled when needed
    - Use ``j``/``k`` to scroll inside the popup when details
      exceed the visible area
+   - Main table bindings remain active in popup mode:
+     ``←``/``→`` (horizontal scroll), ``c`` (copy evid),
+     ``Space``/``f`` (page down), ``b`` (page up), ``g`` (home), ``G`` (end)
    - Press ``q``, ``Esc``, or ``Enter`` to close the popup
 - **Copy event ID**: Press ``c`` to copy the event ID (evid) of the currently
   selected row to the system clipboard. A popup will confirm the copy

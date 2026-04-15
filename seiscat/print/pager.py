@@ -199,7 +199,8 @@ def _build_detail_lines(fields, row):
 
 def _display_event_details_popup(stdscr, fields, rows, row_idx,
                                  draw_bg_fn=None,
-                                 popup_max_detail_line_len=None):
+                                 popup_max_detail_line_len=None,
+                                 popup_key_handler=None):
     """
     Display a popup with all event details organized line by line.
     Supports navigating between events with j (next) and k (previous).
@@ -212,6 +213,8 @@ def _display_event_details_popup(stdscr, fields, rows, row_idx,
     :param row_idx: index of the currently displayed row
     :param draw_bg_fn: optional callable(row_idx) that redraws the
         table behind the popup without calling stdscr.refresh()
+    :param popup_key_handler: optional callable(key, row_idx) to handle
+        table-navigation keys while popup is open
     """
     max_y, max_x = stdscr.getmaxyx()
     title = ' Event Details '
@@ -330,6 +333,11 @@ def _display_event_details_popup(stdscr, fields, rows, row_idx,
         elif key in [curses.KEY_UP, ord('.')]:
             if row_idx > 0:
                 row_idx -= 1
+                scroll_offset = 0
+        elif popup_key_handler is not None:
+            new_row_idx = popup_key_handler(key, row_idx)
+            if new_row_idx is not None:
+                row_idx = new_row_idx
                 scroll_offset = 0
     return row_idx
 
@@ -450,10 +458,10 @@ def _display_sort_selector(stdscr, raw_data):
             return selected_col
 
 
-def _handle_pager_input(
-        stdscr, pager_state, body_rows, available_rows,
-        enable_h_scroll, max_row_width, max_x, raw_data=None,
-        redraw_bg=None):
+def _handle_pager_input(stdscr, pager_state, body_rows, available_rows,
+                        enable_h_scroll, max_row_width, max_x,
+                        raw_data=None, redraw_bg=None,
+                        popup_key_handler=None):
     """
     Handle keyboard input for pager navigation and sorting.
 
@@ -467,6 +475,8 @@ def _handle_pager_input(
     :param raw_data: optional dict with fields and rows for sorting
     :param redraw_bg: optional callable(row_idx) to redraw the table
         behind the event-details popup
+    :param popup_key_handler: optional callable(key, row_idx) to handle
+        table-navigation keys while popup is open
     :return: True to continue, False to exit
     """
     try:
@@ -498,7 +508,8 @@ def _handle_pager_input(
                 draw_bg_fn=redraw_bg,
                 popup_max_detail_line_len=pager_state.get(
                     'popup_max_detail_line_len'
-                )
+                ),
+                popup_key_handler=popup_key_handler
             )
             pager_state['selected_row'] = new_idx
         return True
@@ -784,11 +795,66 @@ def _pager_loop_iteration(
             num_help_lines, help_line1, help_line2,
             sort_info, total_events, refresh=False
         )
+
+    def _handle_popup_key(key, current_row_idx):
+        """Handle selected main-table keys while popup is open."""
+        if key == curses.KEY_LEFT:
+            if enable_h_scroll:
+                pager_state['h_scroll'] = max(0, pager_state['h_scroll'] - 5)
+            return current_row_idx
+        if key == curses.KEY_RIGHT:
+            if enable_h_scroll:
+                pager_state['h_scroll'] = min(
+                    max_row_width - max_x, pager_state['h_scroll'] + 5
+                )
+            return current_row_idx
+        if key == ord('c') and raw_data:
+            if 0 <= current_row_idx < len(raw_data['rows']):
+                if row := raw_data['rows'][current_row_idx]:
+                    event_id = str(row[0])
+                    if _copy_to_clipboard(event_id):
+                        message = f'evid {event_id} copied to clipboard'
+                    else:
+                        message = 'Clipboard copy failed'
+                    _display_message_popup(stdscr, message)
+            return current_row_idx
+        if key in [curses.KEY_PPAGE, ord('b')]:  # Page Up
+            pager_state['offset'] = max(
+                0, pager_state['offset'] - available_rows
+            )
+            pager_state['selected_row'] = max(
+                0, pager_state['selected_row'] - available_rows
+            )
+            return pager_state['selected_row']
+        if key in [curses.KEY_NPAGE, ord('f'), ord(' ')]:  # Page Down
+            pager_state['offset'] = max(
+                0,
+                min(
+                    len(body_rows) - available_rows,
+                    pager_state['offset'] + available_rows
+                )
+            )
+            pager_state['selected_row'] = min(
+                len(body_rows) - 1,
+                pager_state['selected_row'] + available_rows
+            )
+            return pager_state['selected_row']
+        if key in [curses.KEY_HOME, ord('g')]:  # Home
+            pager_state['offset'] = 0
+            pager_state['selected_row'] = 0
+            return pager_state['selected_row']
+        if key in [curses.KEY_END, ord('G')]:  # End
+            pager_state['selected_row'] = len(body_rows) - 1
+            pager_state['offset'] = max(0, len(body_rows) - available_rows)
+            return pager_state['selected_row']
+        return None
+
     # Handle input
     return _handle_pager_input(
         stdscr, pager_state, body_rows, available_rows,
         enable_h_scroll, max_row_width, max_x, raw_data=raw_data,
-        redraw_bg=_redraw_bg
+        redraw_bg=_redraw_bg,
+        popup_key_handler=_handle_popup_key
     )
 
 
