@@ -261,9 +261,9 @@ using an interactive pager with the following features:
 - **Horizontal scrolling**: If the table is wider than your terminal, use
   ``h``/``←`` and ``l``/``→`` to scroll left and right
 - **Row selection**: The first row is highlighted; use ``j``/``k`` or arrow
-   keys to move the selection
+  keys to move the selection
 - **Event details popup**: Press ``Enter`` on the selected row to open a
-   popup with all event fields listed line by line
+  popup with all event fields listed line by line
 
    - In the popup, use ``j`` for next event and ``k`` for previous event
    - While moving with ``j``/``k``, the selected table row behind the popup is
