@@ -18,6 +18,12 @@ class PagerException(Exception):
     """Exception raised when the pager fails."""
 
 
+def _flush_pending_input():
+    """Clear queued keypresses to prevent lag after expensive operations."""
+    with suppress(curses.error, AttributeError):
+        curses.flushinp()
+
+
 def _copy_to_clipboard(text):
     """
     Copy text to system clipboard (cross-platform).
@@ -86,6 +92,16 @@ def _format_rows(fields, rows):
         )
         body_rows.append(row_str)
     return header, body_rows
+
+
+def _update_formatted_rows_cache(raw_data, pager_state):
+    """Rebuild and cache formatted rows/header after sorting changes."""
+    header, body_rows = _format_rows(raw_data['fields'], raw_data['rows'])
+    pager_state['formatted_header'] = header
+    pager_state['formatted_body_rows'] = body_rows
+    # Rows formatted by _format_rows all have uniform width equal to header.
+    pager_state['formatted_max_row_width'] = len(header)
+    pager_state['format_dirty'] = False
 
 
 def _display_message_popup(stdscr, message):
@@ -445,6 +461,7 @@ def _handle_pager_input(
                 _sort_rows_by_column(
                     pager_state['sort_col'], raw_data, pager_state
                 )
+                _flush_pending_input()
         return True
     # Handle sort field selector with 's' key
     if raw_data and key == ord('s'):
@@ -461,6 +478,7 @@ def _handle_pager_input(
             # Sort the raw data
             with suppress(IndexError, TypeError):
                 _sort_rows_by_column(selected_col, raw_data, pager_state)
+                _flush_pending_input()
         return True
     # Handle column sorting with number keys (1-9)
     if raw_data and chr(key) in '123456789':
@@ -477,6 +495,7 @@ def _handle_pager_input(
             # Sort the raw data
             with suppress(IndexError, TypeError):
                 _sort_rows_by_column(col_num, raw_data, pager_state)
+                _flush_pending_input()
     elif key in [curses.KEY_LEFT, ord('h')]:
         if enable_h_scroll:
             # Scroll left
@@ -542,6 +561,7 @@ def _sort_rows_by_column(col_index, raw_data, pager_state):
         ),
         reverse=not pager_state['sort_asc']
     )
+    pager_state['format_dirty'] = True
     # Reset offset and selected row after sorting
     pager_state['offset'] = 0
     pager_state['selected_row'] = 0
@@ -665,13 +685,19 @@ def _pager_loop_iteration(
         num_help_lines = 2
     # -1 for header, -num_help_lines for help lines
     available_rows = max_y - 1 - num_help_lines
-    # Re-format rows if sorting has changed
+    # Build formatted rows lazily and cache them: this avoids O(N) work
+    # on every frame after sorting large catalogs.
     if raw_data and pager_state.get('sort_col') is not None:
-        header, body_rows = _format_rows(
-            raw_data['fields'], raw_data['rows']
+        if pager_state.get('format_dirty', True):
+            _update_formatted_rows_cache(raw_data, pager_state)
+        header = pager_state['formatted_header']
+        body_rows = pager_state['formatted_body_rows']
+        max_row_width = pager_state['formatted_max_row_width']
+    else:
+        # Calculate max row width for horizontal scrolling
+        max_row_width = max(
+            len(header), max((len(row) for row in body_rows), default=0)
         )
-    # Calculate max row width for horizontal scrolling
-    max_row_width = max(len(header), max(len(row) for row in body_rows))
     # Only enable horizontal scrolling if table is wider than terminal
     enable_h_scroll = max_row_width > max_x
     # Constrain horizontal scroll to valid range
