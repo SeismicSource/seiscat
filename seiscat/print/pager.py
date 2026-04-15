@@ -98,13 +98,21 @@ def _format_rows(fields, rows):
 
     :param fields: list of column names
     :param rows: list of row data (each row is a list/tuple)
-    :return: tuple of (header_string, body_rows_list)
+    :return: tuple of (header_string, body_rows_list,
+        max_detail_line_len)
     """
     max_len = [len(f) for f in fields]
+    # "field: value" length baseline for popup details lines.
+    max_detail_len = [len(f) + 2 for f in fields]
     for row in rows:
         for i, val in enumerate(row):
             if i < len(max_len):
-                max_len[i] = max(max_len[i], len(str(val)))
+                table_val = 'None' if val is None else str(val)
+                detail_val = '' if val is None else str(val)
+                max_len[i] = max(max_len[i], len(table_val))
+                max_detail_len[i] = max(
+                    max_detail_len[i], len(fields[i]) + 2 + len(detail_val)
+                )
     # Build header
     header = '  '.join(f'{f:{max_len[i]}}' for i, f in enumerate(fields))
     # Build body rows
@@ -115,16 +123,20 @@ def _format_rows(fields, rows):
             for i, val in enumerate(row)
         )
         body_rows.append(row_str)
-    return header, body_rows
+    max_detail_line_len = max(max_detail_len, default=0)
+    return header, body_rows, max_detail_line_len
 
 
 def _update_formatted_rows_cache(raw_data, pager_state):
     """Rebuild and cache formatted rows/header after sorting changes."""
-    header, body_rows = _format_rows(raw_data['fields'], raw_data['rows'])
+    header, body_rows, max_detail_line_len = _format_rows(
+        raw_data['fields'], raw_data['rows']
+    )
     pager_state['formatted_header'] = header
     pager_state['formatted_body_rows'] = body_rows
     # Rows formatted by _format_rows all have uniform width equal to header.
     pager_state['formatted_max_row_width'] = len(header)
+    pager_state['popup_max_detail_line_len'] = max_detail_line_len
     pager_state['format_dirty'] = False
 
 
@@ -185,8 +197,9 @@ def _build_detail_lines(fields, row):
     return lines
 
 
-def _display_event_details_popup(
-        stdscr, fields, rows, row_idx, draw_bg_fn=None):
+def _display_event_details_popup(stdscr, fields, rows, row_idx,
+                                 draw_bg_fn=None,
+                                 popup_max_detail_line_len=None):
     """
     Display a popup with all event details organized line by line.
     Supports navigating between events with j (next) and k (previous).
@@ -202,14 +215,27 @@ def _display_event_details_popup(
     """
     max_y, max_x = stdscr.getmaxyx()
     title = ' Event Details '
+    # Keep a stable width for the whole popup session.
+    if popup_max_detail_line_len is None:
+        # Fallback: current row only (fast, no full-catalog scan).
+        initial_lines = _build_detail_lines(fields, rows[row_idx])
+        popup_max_detail_line_len = max(
+            (len(line) for line in initial_lines), default=0
+        )
+    max_popup_width = min(
+        max(popup_max_detail_line_len + 4, len(title) + 4),
+        max_x - 4
+    )
 
     def _render(lines, row_idx, scroll_offset):
         """Render the popup for the given lines and scroll state."""
         can_scroll = len(lines) > display_lines
+        popup_width = max_popup_width
         popup_x = (max_x - popup_width) // 2
         # Clear popup area
+        clear_x = (max_x - max_popup_width) // 2
         for y in range(popup_y, popup_y + popup_height):
-            stdscr.addstr(y, popup_x, ' ' * popup_width)
+            stdscr.addstr(y, clear_x, ' ' * max_popup_width)
         # Top border with event counter
         counter = f' {row_idx + 1}/{len(rows)} '
         counter_len = len(counter)
@@ -257,17 +283,7 @@ def _display_event_details_popup(
         )
         stdscr.refresh()
 
-    # Fix popup geometry once (based on all rows so it doesn't jump)
-    all_lines = [
-        line
-        for r in rows
-        for line in _build_detail_lines(fields, r)
-    ]
-    global_max_len = max((len(line) for line in all_lines), default=0)
-    popup_width = min(
-        max(global_max_len + 4, len(title) + 4),
-        max_x - 4
-    )
+    # Keep geometry stable; width is computed per-row at render time.
     max_display_lines = max(1, max_y - 8)
     lines = _build_detail_lines(fields, rows[row_idx])
     display_lines = min(len(lines), max_display_lines)
@@ -466,7 +482,10 @@ def _handle_pager_input(
             new_idx = _display_event_details_popup(
                 stdscr, raw_data['fields'],
                 raw_data['rows'], selected_row_idx,
-                draw_bg_fn=redraw_bg
+                draw_bg_fn=redraw_bg,
+                popup_max_detail_line_len=pager_state.get(
+                    'popup_max_detail_line_len'
+                )
             )
             pager_state['selected_row'] = new_idx
         return True
