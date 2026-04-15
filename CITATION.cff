@@ -15,6 +15,7 @@ authors:
 repository-code: "https://github.com/SeismicSource/seiscat"
 url: "https://seiscat.seismicsource.org"
 documentation: "https://seiscat.readthedocs.io"
+doi: "10.5281/zenodo.19596891"
 keywords:
   - seismology
   - earthquake

@@ -10,6 +10,7 @@ Keep a local seismic catalog.
 [![docs-badge]][docs-link]
 [![DeepWiki-badge]][DeepWiki-link]
 [![codecov-badge]][codecov-link]
+[![DOI-badge]][DOI-link]
 
 Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 
@@ -202,6 +203,8 @@ Don't hesitate sending me pull requests with new features and/or bugfixes!
 [license-link]: https://www.gnu.org/licenses/gpl-3.0.html
 [docs-badge]: https://readthedocs.org/projects/seiscat/badge/?version=latest
 [docs-link]: https://seiscat.readthedocs.io/en/latest/?badge=latest
+[DOI-badge]: https://zenodo.org/badge/DOI/10.5281/zenodo.19596891.svg
+[DOI-link]: https://doi.org/10.5281/zenodo.19596891
 [Issues]: https://github.com/SeismicSource/seiscat/issues
 [codecov-badge]: https://codecov.io/github/SeismicSource/seiscat/graph/badge.svg?token=X0Z60185PC
 [codecov-link]: https://codecov.io/github/SeismicSource/seiscat
