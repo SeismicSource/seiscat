@@ -134,6 +134,142 @@ def _format_centered_popup_line(popup_width, text):
     return '║' + ' ' * message_left + text + ' ' * message_right + '║'
 
 
+def _build_detail_lines(fields, row):
+    """Build 'field: value' lines for a single event row."""
+    lines = []
+    for i, field in enumerate(fields):
+        val = row[i] if i < len(row) else ''
+        val_str = '' if val is None else str(val)
+        lines.append(f'{field}: {val_str}')
+    return lines
+
+
+def _display_event_details_popup(
+        stdscr, fields, rows, row_idx, draw_bg_fn=None):
+    """
+    Display a popup with all event details organized line by line.
+    Supports navigating between events with j (next) and k (previous).
+    If draw_bg_fn is provided, the table behind the popup is redrawn
+    (with updated highlight and scroll) on each event change.
+
+    :param stdscr: curses window
+    :param fields: list of field names
+    :param rows: list of all row data
+    :param row_idx: index of the currently displayed row
+    :param draw_bg_fn: optional callable(row_idx) that redraws the
+        table behind the popup without calling stdscr.refresh()
+    """
+    max_y, max_x = stdscr.getmaxyx()
+    title = ' Event Details '
+
+    def _render(lines, row_idx, scroll_offset):
+        """Render the popup for the given lines and scroll state."""
+        can_scroll = len(lines) > display_lines
+        popup_x = (max_x - popup_width) // 2
+        # Clear popup area
+        for y in range(popup_y, popup_y + popup_height):
+            stdscr.addstr(y, popup_x, ' ' * popup_width)
+        # Top border with event counter
+        counter = f' {row_idx + 1}/{len(rows)} '
+        counter_len = len(counter)
+        inner = popup_width - 2
+        top_border = (
+            '╔' + counter + '═' * (inner - counter_len) + '╗'
+        )
+        stdscr.addstr(popup_y, popup_x, top_border, curses.A_BOLD)
+        # Title line
+        title_padding = popup_width - 2 - len(title)
+        title_left = title_padding // 2
+        title_right = title_padding - title_left
+        title_line = (
+            '║' + ' ' * title_left + title
+            + ' ' * title_right + '║'
+        )
+        stdscr.addstr(popup_y + 1, popup_x, title_line, curses.A_BOLD)
+        # Separator
+        sep_line = '╠' + '═' * (popup_width - 2) + '╣'
+        stdscr.addstr(popup_y + 2, popup_x, sep_line, curses.A_BOLD)
+        # Content lines
+        available_width = popup_width - 4
+        for i in range(display_lines):
+            line_idx = scroll_offset + i
+            if line_idx < len(lines):
+                content = lines[line_idx]
+                if len(content) > available_width:
+                    content = content[:available_width]
+                else:
+                    content = content.ljust(available_width)
+                stdscr.addstr(
+                    popup_y + 3 + i, popup_x, f'║ {content} ║'
+                )
+        # Bottom border with hint
+        nav_hint = ' j/k: next/prev |'
+        scroll_hint = ' J/K: scroll |' if can_scroll else ''
+        hint = f'{nav_hint}{scroll_hint} q/Esc/↵: close '
+        hint_fill = popup_width - 2 - len(hint)
+        if hint_fill >= 0:
+            left_fill = hint_fill // 2
+            right_fill = hint_fill - left_fill
+            bottom_border = (
+                '╚' + '═' * left_fill + hint
+                + '═' * right_fill + '╝'
+            )
+        else:
+            bottom_border = '╚' + '═' * (popup_width - 2) + '╝'
+        stdscr.addstr(
+            popup_y + popup_height - 1,
+            popup_x, bottom_border, curses.A_BOLD
+        )
+        stdscr.refresh()
+
+    # Fix popup geometry once (based on all rows so it doesn't jump)
+    all_lines = [
+        line
+        for r in rows
+        for line in _build_detail_lines(fields, r)
+    ]
+    global_max_len = max((len(line) for line in all_lines), default=0)
+    popup_width = min(
+        max(global_max_len + 4, len(title) + 4),
+        max_x - 4
+    )
+    max_display_lines = max(1, max_y - 8)
+    lines = _build_detail_lines(fields, rows[row_idx])
+    display_lines = min(len(lines), max_display_lines)
+    popup_height = display_lines + 4
+    popup_y = (max_y - popup_height) // 2
+    scroll_offset = 0
+
+    while True:
+        lines = _build_detail_lines(fields, rows[row_idx])
+        display_lines = min(len(lines), max_display_lines)
+        scroll_offset = min(
+            scroll_offset, max(0, len(lines) - display_lines)
+        )
+        with suppress(curses.error):
+            if draw_bg_fn is not None:
+                draw_bg_fn(row_idx)
+            _render(lines, row_idx, scroll_offset)
+        key = stdscr.getch()
+        if key in [ord('q'), 27, ord('\n'), ord('\r'), curses.KEY_ENTER]:
+            break
+        elif key in [curses.KEY_DOWN, ord('J')]:
+            if scroll_offset + display_lines < len(lines):
+                scroll_offset += 1
+        elif key in [curses.KEY_UP, ord('K')]:
+            if scroll_offset > 0:
+                scroll_offset -= 1
+        elif key in [ord('j'), ord(',')]:
+            if row_idx < len(rows) - 1:
+                row_idx += 1
+                scroll_offset = 0
+        elif key in [ord('k'), ord('.')]:
+            if row_idx > 0:
+                row_idx -= 1
+                scroll_offset = 0
+    return row_idx
+
+
 def _draw_sort_popup_and_get_input(
         stdscr, popup_y, popup_x, popup_width, popup_height,
         fields, selected_idx):
@@ -257,7 +393,8 @@ def _display_sort_selector(stdscr, raw_data):
 
 def _handle_pager_input(
         stdscr, pager_state, body_rows, available_rows,
-        enable_h_scroll, max_row_width, max_x, raw_data=None):
+        enable_h_scroll, max_row_width, max_x, raw_data=None,
+        redraw_bg=None):
     """
     Handle keyboard input for pager navigation and sorting.
 
@@ -269,6 +406,8 @@ def _handle_pager_input(
     :param max_row_width: maximum row width in characters
     :param max_x: terminal width
     :param raw_data: optional dict with fields and rows for sorting
+    :param redraw_bg: optional callable(row_idx) to redraw the table
+        behind the event-details popup
     :return: True to continue, False to exit
     """
     try:
@@ -289,6 +428,17 @@ def _handle_pager_input(
                 else:
                     message = 'Clipboard copy failed'
                 _display_message_popup(stdscr, message)
+        return True
+    # Handle Enter key to show event details popup
+    if raw_data and key in [ord('\n'), ord('\r'), curses.KEY_ENTER]:
+        selected_row_idx = pager_state['selected_row']
+        if 0 <= selected_row_idx < len(raw_data['rows']):
+            new_idx = _display_event_details_popup(
+                stdscr, raw_data['fields'],
+                raw_data['rows'], selected_row_idx,
+                draw_bg_fn=redraw_bg
+            )
+            pager_state['selected_row'] = new_idx
         return True
     # Handle sort field selector with 's' key
     if raw_data and key == ord('0'):
@@ -407,6 +557,82 @@ def _sort_rows_by_column(col_index, raw_data, pager_state):
     pager_state['selected_row'] = 0
 
 
+def _draw_table(
+        stdscr, header, body_rows, pager_state,
+        available_rows, max_y, max_x,
+        num_help_lines, help_line1, help_line2,
+        sort_info, total_events, refresh=True):
+    """
+    Draw the table (header, body rows, help lines) onto stdscr.
+
+    :param refresh: if True, call stdscr.refresh() after drawing
+    """
+    stdscr.erase()
+    with suppress(curses.error):
+        header_scroll = header[pager_state['h_scroll']:]
+        header_display = (
+            header_scroll[:max_x] if len(header_scroll) > max_x
+            else header_scroll
+        )
+        stdscr.addstr(0, 0, header_display, curses.A_REVERSE)
+        for i, row in enumerate(
+            body_rows[
+                pager_state['offset']:
+                pager_state['offset'] + available_rows
+            ]
+        ):
+            row_scroll = row[pager_state['h_scroll']:]
+            row_display = (
+                row_scroll[:max_x] if len(row_scroll) > max_x
+                else row_scroll
+            )
+            row_index = pager_state['offset'] + i
+            if row_index == pager_state['selected_row']:
+                color_attr = curses.A_REVERSE
+            else:
+                try:
+                    color_attr = (
+                        curses.color_pair(1)
+                        if row_index % 2 == 0
+                        else curses.color_pair(2)
+                    )
+                except curses.error:
+                    color_attr = 0
+            stdscr.addstr(1 + i, 0, row_display, color_attr)
+    first_visible = pager_state['offset'] + 1
+    last_visible = min(
+        pager_state['offset'] + available_rows, len(body_rows)
+    )
+    status_text = (
+        f'Events {first_visible}-{last_visible} of '
+        f'{total_events}{sort_info}'
+    )
+    with suppress(curses.error):
+        if num_help_lines == 1:
+            full_help = f'{help_line1} | {help_line2}'
+            full_line = f'{full_help} | {status_text}'
+            if len(full_line) <= max_x:
+                help_display = (full_line + ' ' * max_x)[:max_x]
+            else:
+                help_display = (status_text + ' ' * max_x)[:max_x]
+            stdscr.addstr(max_y - 1, 0, help_display, curses.A_REVERSE)
+        else:
+            width_available = (
+                max_x - len(help_line1) - len(status_text) - 3
+            )
+            padding_width = max(0, width_available)
+            line1 = (
+                f'{help_line1} | '
+                + ' ' * padding_width + status_text
+            )
+            line1 = (line1 + ' ' * max_x)[:max_x]
+            line2 = (help_line2 + ' ' * max_x)[:max_x]
+            stdscr.addstr(max_y - 2, 0, line1, curses.A_REVERSE)
+            stdscr.addstr(max_y - 1, 0, line2, curses.A_REVERSE)
+    if refresh:
+        stdscr.refresh()
+
+
 def _pager_loop_iteration(
         stdscr, header, body_rows, pager_state, raw_data=None):
     """
@@ -423,13 +649,15 @@ def _pager_loop_iteration(
     max_y, max_x = stdscr.getmaxyx()
     # Determine how many help lines we'll need
     # Build help text components (will be reused below)
-    help_line1 = 'q/Esc: quit | j/↓/k/↑: move | h/←/l/→: scroll | c: copy evid'
+    help_line1 = (
+        'q/Esc: quit | ↵: details | j/↓/k/↑: move'
+        ' | h/←/l/→: scroll | c: copy evid'
+    )
     help_line2 = (
         'Space/f: page↓ | b: page↑ | g: home | G: end | '
         '0: dflt | 1-9: sort | s: sort'
     )
     # Build status text (needed to determine help layout)
-    first_visible = 1  # Will recalculate below when needed
     total_events = len(body_rows)
     sort_info = ''
     if raw_data and pager_state.get('sort_col') is not None:
@@ -466,93 +694,32 @@ def _pager_loop_iteration(
         )
     else:
         pager_state['h_scroll'] = 0
-    # Use erase() instead of clear() to avoid flickering
-    # erase() stages the clear for next refresh(),
-    # while clear() blanks immediately
-    stdscr.erase()
-    # Suppress curses.error for content display to handle:
-    # - Terminal resize race conditions (between getmaxyx() and addstr())
-    # - Bottom-right corner quirks (some terminals error on last cell)
-    # - Terminal capability differences across platforms
-    # This ensures the pager remains functional even with partial display
-    with suppress(curses.error):
-        # Display header in reverse video
-        header_scroll = header[pager_state['h_scroll']:]
-        header_display = (
-            header_scroll[:max_x] if len(header_scroll) > max_x
-            else header_scroll
+    _draw_table(
+        stdscr, header, body_rows, pager_state,
+        available_rows, max_y, max_x,
+        num_help_lines, help_line1, help_line2,
+        sort_info, total_events
+    )
+    # Closure passed to the event-details popup so it can redraw the
+    # table (with updated row highlight and scroll) while open.
+
+    def _redraw_bg(new_row_idx):
+        pager_state['selected_row'] = new_row_idx
+        if new_row_idx >= pager_state['offset'] + available_rows:
+            pager_state['offset'] = new_row_idx - available_rows + 1
+        elif new_row_idx < pager_state['offset']:
+            pager_state['offset'] = new_row_idx
+        _draw_table(
+            stdscr, header, body_rows, pager_state,
+            available_rows, max_y, max_x,
+            num_help_lines, help_line1, help_line2,
+            sort_info, total_events, refresh=False
         )
-        stdscr.addstr(0, 0, header_display, curses.A_REVERSE)
-        # Display visible body rows with alternating font colors
-        for i, row in enumerate(
-            body_rows[
-                pager_state['offset']:
-                pager_state['offset'] + available_rows
-            ]
-        ):
-            row_scroll = row[pager_state['h_scroll']:]
-            row_display = (
-                row_scroll[:max_x] if len(row_scroll) > max_x
-                else row_scroll
-            )
-            # Alternate colors based on row index in the entire dataset
-            row_index = pager_state['offset'] + i
-            # Check if this is the selected row
-            if row_index == pager_state['selected_row']:
-                # Highlight selected row with reverse video
-                color_attr = curses.A_REVERSE
-            else:
-                # Use alternating colors if color pairs were initialized
-                # Fallback to no color if color pairs are unavailable
-                try:
-                    color_attr = (
-                        curses.color_pair(1)
-                        if row_index % 2 == 0
-                        else curses.color_pair(2)
-                    )
-                except curses.error:
-                    color_attr = 0
-            stdscr.addstr(1 + i, 0, row_display, color_attr)
-    # Display help lines at the bottom (outside suppress block)
-    # Recalculate visible event range with actual available_rows
-    first_visible = pager_state['offset'] + 1
-    last_visible = min(
-        pager_state['offset'] + available_rows, len(body_rows)
-    )
-    # Build updated status text
-    status_text = (
-        f'Events {first_visible}-{last_visible} of '
-        f'{total_events}{sort_info}'
-    )
-    with suppress(curses.error):
-        if num_help_lines == 1:
-            # Everything fits on one line (or not enough space)
-            full_help = f'{help_line1} | {help_line2}'
-            full_line = f'{full_help} | {status_text}'
-            if len(full_line) <= max_x:
-                help_display = (full_line + ' ' * max_x)[:max_x]
-            else:
-                # Truncate or show status only
-                help_display = (status_text + ' ' * max_x)[:max_x]
-            stdscr.addstr(max_y - 1, 0, help_display, curses.A_REVERSE)
-        else:
-            # Use two lines
-            # Line 1: First part of help + status
-            width_available = (
-                max_x - len(help_line1) - len(status_text) - 3
-            )
-            padding_width = max(0, width_available)
-            line1 = f'{help_line1} | ' + ' ' * padding_width + status_text
-            line1 = (line1 + ' ' * max_x)[:max_x]
-            # Line 2: Second part of help
-            line2 = (help_line2 + ' ' * max_x)[:max_x]
-            stdscr.addstr(max_y - 2, 0, line1, curses.A_REVERSE)
-            stdscr.addstr(max_y - 1, 0, line2, curses.A_REVERSE)
-    stdscr.refresh()
     # Handle input
     return _handle_pager_input(
         stdscr, pager_state, body_rows, available_rows,
-        enable_h_scroll, max_row_width, max_x, raw_data=raw_data
+        enable_h_scroll, max_row_width, max_x, raw_data=raw_data,
+        redraw_bg=_redraw_bg
     )
 
 

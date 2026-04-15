@@ -260,8 +260,17 @@ using an interactive pager with the following features:
   ``g`` for home, ``G`` for end
 - **Horizontal scrolling**: If the table is wider than your terminal, use
   ``h``/``←`` and ``l``/``→`` to scroll left and right
-- **Row selection**: The first row is highlighted; use arrow keys to move the
-  selection
+- **Row selection**: The first row is highlighted; use ``j``/``k`` or arrow
+   keys to move the selection
+- **Event details popup**: Press ``Enter`` on the selected row to open a
+   popup with all event fields listed line by line
+
+   - In the popup, use ``j`` for next event and ``k`` for previous event
+   - While moving with ``j``/``k``, the selected table row behind the popup is
+     updated and auto-scrolled when needed
+   - Use ``J``/``K`` or ``↓``/``↑`` to scroll inside the popup when details
+     exceed the visible area
+   - Press ``q``, ``Esc``, or ``Enter`` to close the popup
 - **Copy event ID**: Press ``c`` to copy the event ID (evid) of the currently
   selected row to the system clipboard. A popup will confirm the copy
   operation.
