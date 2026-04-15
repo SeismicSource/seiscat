@@ -6,82 +6,149 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 
 ## [unreleased]
 
-- Raised minimum required Python version to 3.9, added support for Python
-  3.13 and 3.14
-- New default name for the database file: `seiscat_db.sqlite`
-  (instead of `seiscat.sqlite`)
-- Added colored help output using `rich-argparse`
-- Colorized error messages for improved visibility and consistency
-- Interactive table pager for `seiscat print -f table` with fixed header,
-  alternating row colors, row selection, sorting, copying evid, keyboard
-  navigation and event details popup.
-- New `--where-help` option to display detailed help for the `--where` filter
-  expression, including syntax, examples, and notes. Accessible from any
-  subcommand that supports the `--where` option (editdb, print, export, plot,
-  fetchdata, run)
-- Improved error messages for `--where` argument to suggest using
-  `--where-help` for more information
-- Improved `--where` handling of missing values: expressions like
-  `mag=None`, `mag==None`, and `mag!=None` are now translated to SQL
-  `IS NULL` / `IS NOT NULL` semantics
-- New `--sortby` option to sort catalog output by any database field
-  (default: `time`). Available for `seiscat print`, `seiscat export`,
-  `seiscat plot`, and `seiscat run`. Supports tab-completion of field names.
-- New `seiscat timeline` command with matplotlib/plotly/terminal backends,
-  attribute or count mode (`--count`, `--bins`), optional `--colorby`, and
-  time-formatted axis/colorbar when using `time`
-- Added `--colorby` support to map plots, as well as `--colormap` support
-  (with autocompletion) for `seiscat plot` and `seiscat timeline`
-- New `--threshold` option for `seiscat plot` (Cartopy + `--colorby` only):
-  markers above threshold keep a black outline
-- In `seiscat plot` the option `-m/--maptype` has been renamed to
-  `-b/--backend` for consistency with `seiscat timeline`
-- `seiscat download` renamed to `seiscat fetchdata`
-- New option for `seiscat fetchdata`: `--sds` to retrieve waveform data from
-  a local SDS archive
-- Configuration option `channel_priorities` replaced by `channel_codes`
-- Removed configuration option `location_priorities`
-- Added configuration option `prefer_high_sampling_rate`
-- New configuration option `station_radius_max_mag` for magnitude-dependent
-  maximum station radius
-- New option for `seiscat initdb` and `seiscat updatedb`: `--fromfile` to
-  initialize or update the database from an event file. Supported formats:
-  CSV and any format supported by ObsPy (QuakeML, SC3ML, NLLOC, etc.).
-  CSV format is tried first, then falls back to ObsPy if needed
-- New option for file-based import in `seiscat initdb` and
-  `seiscat updatedb`: `-C, --crop` to crop imported events to the
-  geographic/depth/magnitude/event-type selection criteria defined
-  in the configuration file
-- New command `seiscat cropdb` to crop an existing database to the
-  configured selection criteria
-- New option for CSV input in `seiscat initdb` and `seiscat updatedb`:
-  `-x, --missing-value` to define one or more markers treated as missing
-  values (e.g., `-999`, `N/A`).
-- Added `seiscat editdb` options to add, delete, and rename table columns,
-  with default columns protected from rename/delete
-- New `seiscat initdb` option `--csv-extra-columns` to import non-standard
-  CSV columns as additional database columns
-- New command `seiscat run` to run a user-defined command on each event
-- New command `seiscat samplescript` to write a sample script for the
-  `seiscat run` command
-- New command `seiscat export` to export the catalog to a file in
-  a specified format (currently supported formats are CSV, GeoJSON, and KML)
-- `seiscat print`: remove the CSV format, which is now available
-  through `seiscat export`
-- New commands `seiscat get` and `seiscat set` to get and set the value of
-  a specfic event attribute
-- New plottype `plotly` for `seiscat plot`, producing interactive 3D seismicity
-  plots
-- New command `seiscat logo` to print the beautiful, ascii-art SeisCat logo
-- New option for `seiscat plot`: `--out-file` to save the plot to a file
-- `seiscat plot` now respects the `--sortby` parameter instead of always
-  sorting by time, allowing control over which events are drawn on top
-- Use higher resolution Natural Earth background images for Cartopy maps
-- Fixed an issue in `seiscat editdb` where positional arguments (`eventid` and
-  `event_version`) were not parsed correctly due to improper handling of the
-  `--set` and `--increment` options. Users must now repeat the `--set` and
-  `--increment` options for each `KEY=VALUE` pair
-  (e.g., `-s locked=True -s processed=True`).
+This is a major release with substantial improvements across visualization,
+database management, and workflow automation. Highlights include a new
+interactive terminal UI, expanded plotting capabilities with Plotly, and four
+new core commands: `seiscat timeline`, `seiscat export`, `seiscat cropdb`, and
+`seiscat run`. Additional enhancements throughout the CLI make filtering,
+import/export, and event processing more powerful and flexible.
+
+Minimum required Python version is now 3.9, and support for Python
+3.13 and 3.14 has been added.
+
+See the full changelog below for complete details.
+
+### Added
+
+#### Compatibility
+
+- Added support for Python 3.13 and 3.14.
+
+#### CLI and User Interface
+
+- Added colored help output using `rich-argparse`.
+- Added colorized error messages for improved visibility and consistency.
+- Added interactive table pager for `seiscat print -f table` with:
+  - fixed header
+  - alternating row colors
+  - row selection
+  - sorting
+  - copying evid
+  - keyboard navigation
+  - event details popup
+- Added new `seiscat logo` command to print the ASCII-art SeisCat logo.
+
+#### Filtering and Sorting
+
+- Added new `--where-help` option to display detailed help for the `--where`
+  filter expression, including syntax, examples, and notes. Available from any
+  subcommand supporting `--where` (`editdb`, `print`, `export`, `plot`,
+  `fetchdata`, `run`).
+- Added new `--sortby` option to sort catalog output by any database field
+  (default: `time`). Available for:
+  - `seiscat print`
+  - `seiscat export`
+  - `seiscat plot`
+  - `seiscat run`
+- Added tab-completion support for `--sortby` field names.
+
+#### Plotting and Visualization
+
+- Added new `seiscat timeline` command with:
+  - matplotlib / plotly / terminal backends
+  - attribute or count mode (`--count`, `--bins`)
+  - optional `--colorby`
+  - time-formatted axis/colorbar when using `time`
+- Added `--colorby` support for map plots.
+- Added `--colormap` support (with autocompletion) for:
+  - `seiscat plot`
+  - `seiscat timeline`
+- Added new `--threshold` option for `seiscat plot` (Cartopy + `--colorby`
+  only): markers above threshold retain a black outline.
+- Added new `plotly` plottype for `seiscat plot`, enabling interactive 3D
+  seismicity plots.
+- Added new `--out-file` option for `seiscat plot` to save plots to file.
+
+#### Data Import and Export
+
+- Added `--fromfile` option to `seiscat initdb` and `seiscat updatedb` to
+  initialize/update the database from an event file.
+  Supported formats:
+  - CSV
+  - Any ObsPy-supported format (QuakeML, SC3ML, NLLOC, etc.)
+- Added `-C, --crop` option for file-based imports in `seiscat initdb` and
+  `seiscat updatedb` to crop imported events according to configured selection
+  criteria.
+- Added new CSV import option `-x, --missing-value` in `seiscat initdb` and
+  `seiscat updatedb` to define missing-value markers (e.g. `-999`, `N/A`).
+- Added new `--csv-extra-columns` option to `seiscat initdb` for importing
+  non-standard CSV columns as additional database fields.
+- Added new `seiscat export` command to export catalogs in:
+  - CSV
+  - GeoJSON
+  - KML
+
+#### Database Management
+
+- Added new `seiscat cropdb` command to crop an existing database to configured
+  selection criteria.
+- Added `seiscat editdb` options to:
+  - add table columns
+  - delete table columns
+  - rename table columns
+- Added protection for default columns against rename/delete.
+- Added new `seiscat get` and `seiscat set` commands to retrieve/set specific
+  event attribute values.
+
+#### Automation and Scripting
+
+- Added new `seiscat run` command to run a user-defined command on each event.
+- Added new `seiscat samplescript` command to generate a sample script for
+  `seiscat run`.
+
+#### Data Retrieval
+
+- Added new `--sds` option for `seiscat fetchdata` to retrieve waveform data
+  from a local SDS archive.
+
+#### Configuration
+
+- Added new configuration option `prefer_high_sampling_rate`.
+- Added new configuration option `station_radius_max_mag` for
+  magnitude-dependent maximum station radius.
+
+### Changed
+
+- Raised minimum required Python version to 3.9.
+- Changed default database filename from `seiscat.sqlite` to
+  `seiscat_db.sqlite`.
+- Improved error messages for `--where` to suggest using `--where-help`.
+- Improved `--where` handling of missing values:
+  - `mag=None`
+  - `mag==None`
+  - `mag!=None`
+  are now translated into SQL `IS NULL` / `IS NOT NULL`.
+- Renamed `-m/--maptype` to `-b/--backend` in `seiscat plot` for consistency
+  with `seiscat timeline`.
+- Renamed `seiscat download` to `seiscat fetchdata`.
+- Replaced configuration option `channel_priorities` with `channel_codes`.
+- `seiscat plot` now respects `--sortby` instead of always sorting by time,
+  allowing control over draw order.
+- Upgraded Cartopy maps to use higher-resolution Natural Earth background
+  images.
+- `seiscat editdb` now requires repeating `--set` and `--increment` for each
+  `KEY=VALUE` pair. Example: `-s locked=True -s processed=True`.
+
+### Removed
+
+- Removed configuration option `location_priorities`.
+- Removed CSV output format from `seiscat print`; use `seiscat export` instead.
+
+### Fixed
+
+- Fixed an issue in seiscat editdb where positional arguments (`eventid`,
+`event_version`) were not parsed correctly due to improper handling of
+`--set` and `--increment`.
 
 ## [0.8] - 2024-10-28
 
