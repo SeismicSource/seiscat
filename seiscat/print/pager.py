@@ -265,18 +265,31 @@ def _display_event_details_popup(stdscr, fields, rows, row_idx,
                     popup_y + 3 + i, popup_x, f'║ {content} ║'
                 )
         # Bottom border with hint
-        nav_hint = ' j/k: next/prev |'
-        scroll_hint = ' J/K: scroll |' if can_scroll else ''
+        nav_hint = ' ↑/↓: next/prev |'
+        scroll_hint = ' j/k: scroll |' if can_scroll else ''
         hint = f'{nav_hint}{scroll_hint} q/Esc/↵: close '
-        hint_fill = popup_width - 2 - len(hint)
-        if hint_fill >= 0:
-            left_fill = hint_fill // 2
-            right_fill = hint_fill - left_fill
-            bottom_border = (
-                f'╚{"═" * left_fill}{hint}{"═" * right_fill}╝'
-            )
-        else:
-            bottom_border = f'╚{"═" * (popup_width - 2)}╝'
+        inner_width = popup_width - 2
+        # Always keep a visible footer hint: progressively shorten/truncate
+        # when terminal space is tight instead of dropping it entirely.
+        hint_candidates = [
+            hint,
+            ' ↑/↓ ev | j/k scroll | q/Esc/↵ ',
+            ' ↑/↓ | j/k | q/Esc ',
+            ' q/Esc '
+        ]
+        hint_to_draw = ''
+        for candidate in hint_candidates:
+            if len(candidate) <= inner_width:
+                hint_to_draw = candidate
+                break
+        if not hint_to_draw and inner_width > 0:
+            hint_to_draw = hint_candidates[-1][:inner_width]
+        hint_fill = inner_width - len(hint_to_draw)
+        left_fill = hint_fill // 2
+        right_fill = hint_fill - left_fill
+        bottom_border = (
+            f'╚{"═" * left_fill}{hint_to_draw}{"═" * right_fill}╝'
+        )
         stdscr.addstr(
             popup_y + popup_height - 1,
             popup_x, bottom_border, curses.A_BOLD
@@ -304,17 +317,17 @@ def _display_event_details_popup(stdscr, fields, rows, row_idx,
         key = stdscr.getch()
         if key in [ord('q'), 27, ord('\n'), ord('\r'), curses.KEY_ENTER]:
             break
-        elif key in [curses.KEY_DOWN, ord('J')]:
+        elif key in [ord('j')]:
             if scroll_offset + display_lines < len(lines):
                 scroll_offset += 1
-        elif key in [curses.KEY_UP, ord('K')]:
+        elif key in [ord('k')]:
             if scroll_offset > 0:
                 scroll_offset -= 1
-        elif key in [ord('j'), ord(',')]:
+        elif key in [curses.KEY_DOWN, ord(',')]:
             if row_idx < len(rows) - 1:
                 row_idx += 1
                 scroll_offset = 0
-        elif key in [ord('k'), ord('.')]:
+        elif key in [curses.KEY_UP, ord('.')]:
             if row_idx > 0:
                 row_idx -= 1
                 scroll_offset = 0
@@ -539,24 +552,24 @@ def _handle_pager_input(
             # Sort the raw data
             with suppress(IndexError, TypeError):
                 _sort_with_feedback(stdscr, col_num, raw_data, pager_state)
-    elif key in [curses.KEY_LEFT, ord('h')]:
+    elif key == curses.KEY_LEFT:
         if enable_h_scroll:
             # Scroll left
             pager_state['h_scroll'] = max(0, pager_state['h_scroll'] - 5)
-    elif key in [curses.KEY_RIGHT, ord('l')]:
+    elif key == curses.KEY_RIGHT:
         if enable_h_scroll:
             # Scroll right
             pager_state['h_scroll'] = min(
                 max_row_width - max_x, pager_state['h_scroll'] + 5
             )
-    elif key in [curses.KEY_DOWN, ord('j')]:
+    elif key == curses.KEY_DOWN:
         if pager_state['selected_row'] < len(body_rows) - 1:
             pager_state['selected_row'] += 1
             # Auto-scroll if selected row goes off screen
             if pager_state['selected_row'] >= (
                     pager_state['offset'] + available_rows):
                 pager_state['offset'] += 1
-    elif key in [curses.KEY_UP, ord('k')]:
+    elif key == curses.KEY_UP:
         if pager_state['selected_row'] > 0:
             pager_state['selected_row'] -= 1
             # Auto-scroll if selected row goes off screen
@@ -700,8 +713,8 @@ def _pager_loop_iteration(
     # Determine how many help lines we'll need
     # Build help text components (will be reused below)
     help_line1 = (
-        'q/Esc: quit | ↵: details | j/↓/k/↑: move'
-        ' | h/←/l/→: scroll | c: copy evid'
+        'q/Esc: quit | ↵: details | ↓/↑: move'
+        ' | ←/→: scroll | c: copy evid'
     )
     help_line2 = (
         'Space/f: page↓ | b: page↑ | g: home | G: end | '
