@@ -42,7 +42,7 @@ cartopy = [
     "cartopy",
 ]
 plotly = [
-    "plotly",
+    "plotly", "pandas"
 ]
 
 [project.urls]
