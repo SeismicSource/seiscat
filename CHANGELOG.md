@@ -6,6 +6,14 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 
 ## [unreleased]
 
+### Added
+
+- New config options `fdsn_event_user` and `fdsn_event_password` to specify
+  authentication credentials for the FDSN event web service (`fdsn_event_url`).
+- New config options `fdsn_providers_users` and `fdsn_providers_passwords`
+  (parallel lists) to specify per-provider authentication credentials for
+  waveform/metadata providers (`fdsn_providers`).
+
 ## [0.9] - 2026-04-15
 
 This is a major release with substantial improvements across visualization,

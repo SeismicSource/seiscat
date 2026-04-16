@@ -26,7 +26,14 @@ def open_fdsn_connection(config):
     fdsn_event_url = config.get('fdsn_event_url')
     if fdsn_event_url is None:
         raise ValueError('FDSN event URL not set.')
-    return Client(fdsn_event_url)
+    user = config.get('fdsn_event_user')
+    password = config.get('fdsn_event_password')
+    kwargs = {}
+    if user is not None:
+        kwargs['user'] = user
+    if password is not None:
+        kwargs['password'] = password
+    return Client(fdsn_event_url, **kwargs)
 
 
 def _to_utc_datetime(time):

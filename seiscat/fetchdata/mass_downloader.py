@@ -12,6 +12,7 @@ Uses ObsPy mass downloader to download event waveforms from FDSN web services.
 import sys
 import pathlib
 import logging
+from obspy.clients.fdsn import Client
 from obspy.clients.fdsn.mass_downloader import (
     CircularDomain, Restrictions, MassDownloader
 )
@@ -128,6 +129,38 @@ def _calculate_station_radius_max(
     return radius
 
 
+def _build_providers(config):
+    """
+    Build the providers list for MassDownloader.
+
+    If credentials are configured, returns a list of Client objects.
+    Otherwise returns the raw providers list (strings or None).
+
+    :param config: config object
+    :returns: list of Client objects, list of strings, or None
+    """
+    providers = config['fdsn_providers']
+    users = config.get('fdsn_providers_users')
+    passwords = config.get('fdsn_providers_passwords')
+    if providers is None or (users is None and passwords is None):
+        return providers
+    # Pad credential lists with None to match providers length
+    n = len(providers)
+    users = list(users or []) + [None] * n
+    passwords = list(passwords or []) + [None] * n
+    clients = []
+    for i, provider in enumerate(providers):
+        user = users[i] if users[i] != 'None' else None
+        password = passwords[i] if passwords[i] != 'None' else None
+        kwargs = {}
+        if user is not None:
+            kwargs['user'] = user
+        if password is not None:
+            kwargs['password'] = password
+        clients.append(Client(provider, **kwargs))
+    return clients
+
+
 def _check_fdsn_providers(fdsn_providers):
     """
     Check if the user wants to use all known FDSN providers.
@@ -188,7 +221,7 @@ def mass_download_waveforms(config, event):
     longitude = event['lon']
     magnitude = event['mag']
     origin_time = event['time']
-    providers = config['fdsn_providers']
+    providers = _build_providers(config)
     station_radius_min = config['station_radius_min']
     station_radius_max = config['station_radius_max']
     station_radius_max_mag = config.get('station_radius_max_mag', None)
