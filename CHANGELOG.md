@@ -14,6 +14,11 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
   (parallel lists) to specify per-provider authentication credentials for
   waveform/metadata providers (`fdsn_providers`).
 
+### Fixed
+
+- Fixed pager sorting failing when a column contains `None` values mixed with
+  numeric values (e.g. magnitude columns with positive and negative values).
+
 ## [0.9] - 2026-04-15
 
 This is a major release with substantial improvements across visualization,

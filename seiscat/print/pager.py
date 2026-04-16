@@ -622,10 +622,19 @@ def _sort_rows_by_column(col_index, raw_data, pager_state):
     :param raw_data: dict with 'rows' list to sort
     :param pager_state: dict to update offset and selected_row
     """
+    def _sort_key(row):
+        val = row[col_index] if col_index < len(row) else None
+        # None values always sort to the end, regardless of direction.
+        # Use a tuple (is_none, val) where is_none is 0 or 1 so None rows
+        # end up last in both ascending and descending order.
+        if val is None:
+            return (1, '')
+        try:
+            return (0, val)
+        except TypeError:
+            return (0, str(val))
     raw_data['rows'].sort(
-        key=lambda row: (
-            row[col_index] if col_index < len(row) else ''
-        ),
+        key=_sort_key,
         reverse=not pager_state['sort_asc']
     )
     pager_state['format_dirty'] = True
