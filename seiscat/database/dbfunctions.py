@@ -188,13 +188,16 @@ def _event_exists(cursor, values, skip_begin=0, skip_end=0):
     return len(rows_with_same_values) > 0
 
 
-def _get_evid(resource_id):
+def _get_evid(resource_id, keep_raw=False):
     """
     Get evid from resource_id.
 
     :param resource_id: resource_id string
+    :param keep_raw: if True, return resource_id unchanged
     :returns: evid string
     """
+    if keep_raw:
+        return resource_id
     evid = resource_id
     if '/' in evid:
         evid = resource_id.split('/')[-1]
@@ -246,7 +249,8 @@ def _get_db_values_from_event(ev, config):
     :returns: list of values
     :raises ValueError: if event has no origin
     """
-    evid = _get_evid(str(ev.resource_id.id))
+    evid = _get_evid(
+        str(ev.resource_id.id), keep_raw=config.get('keep_raw_evid', False))
     version = 1
     try:
         orig = ev.preferred_origin() or ev.origins[0]
