@@ -179,7 +179,14 @@ def _add_natural_earth_background(ax, extent):
             resolution='high',
             extent=extent
         )
-    except (OSError, IOError, KeyError, ValueError, AttributeError) as e:
+    except (
+        OSError,
+        IOError,
+        KeyError,
+        ValueError,
+        AttributeError,
+        IndexError,
+    ) as e:
         print(f'Warning: Could not load Natural Earth background image ({e}). '
               'Using simple background.')
         _add_simple_background(ax)
