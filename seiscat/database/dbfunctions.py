@@ -22,6 +22,8 @@ DB_VERSION = 1
 
 
 # Default columns are part of the core schema and cannot be renamed/deleted.
+# 'raw_evid' is optional (only present when keep_raw_evid = True in the config)
+# but is protected when it exists.
 DEFAULT_COLUMNS = (
     'evid',
     'ver',
@@ -227,6 +229,8 @@ def _get_db_field_definitions(config):
         'mag_type TEXT',
         'event_type TEXT',
     ]
+    if config.get('keep_raw_evid', False):
+        field_definitions.append('raw_evid TEXT')
     n_standard_fields = len(field_definitions)
     extra_field_names = config['extra_field_names'] or []
     extra_field_types = config['extra_field_types'] or []
@@ -269,6 +273,8 @@ def _get_db_values_from_event(ev, config):
     event_type = ev.event_type
     values = [
         evid, version, time, lat, lon, depth, mag, mag_type, event_type]
+    if config.get('keep_raw_evid', False):
+        values.append(str(ev.resource_id.id))
     # add extra fields (configured defaults and/or per-event values)
     extra_field_names = config['extra_field_names'] or []
     extra_field_defaults = config['extra_field_defaults'] or []

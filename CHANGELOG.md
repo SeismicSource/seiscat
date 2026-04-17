@@ -13,6 +13,11 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - New config options `fdsn_providers_users` and `fdsn_providers_passwords`
   (parallel lists) to specify per-provider authentication credentials for
   waveform/metadata providers (`fdsn_providers`).
+- New config option `keep_raw_evid` (default: `False`). When `True`, the full
+  original `resource_id` string is stored in an additional protected column
+  `raw_evid` alongside the normalized `evid`. This is useful when the
+  normalized evid is not recognized by the FDSN server and the original
+  resource_id is needed to download event details.
 
 ### Fixed
 
