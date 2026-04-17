@@ -15,8 +15,6 @@ import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
-from obspy import Catalog, UTCDateTime
-from obspy.core.event import Event, Origin, Magnitude
 from seiscat.database.dbfunctions import _process_where_option
 from seiscat.database.dbfunctions import (
     get_db_columns,
@@ -183,89 +181,6 @@ class TestInitDbCsvExtraColumns(unittest.TestCase):
         row = cursor.fetchone()
         conn.close()
         self.assertEqual(row, ('A', 'alice'))
-
-
-class TestEvidSimplificationConfig(unittest.TestCase):
-    """Test keep_raw_evid behavior when writing events to DB."""
-
-    def setUp(self):
-        self.tmpdir = tempfile.TemporaryDirectory()
-        self.db_file = Path(self.tmpdir.name) / 'test.sqlite'
-
-    def tearDown(self):
-        self.tmpdir.cleanup()
-
-    def _config(self, keep_raw_evid=False):
-        return {
-            'db_file': str(self.db_file),
-            'extra_field_names': None,
-            'extra_field_types': None,
-            'extra_field_defaults': None,
-            'overwrite_updated_events': False,
-            'keep_raw_evid': keep_raw_evid,
-            'args': SimpleNamespace(
-                eventid=None,
-                event_version=None,
-                where=None,
-                sortby='time',
-                allversions=True,
-                reverse=False,
-            ),
-        }
-
-    @staticmethod
-    def _catalog_with_url_like_resource_id():
-        event = Event(
-            resource_id=(
-                'http://example.org/fdsnws/event/1/query?'
-                'eventid=abc123&includeallorigins=true'
-            )
-        )
-        origin = Origin(
-            time=UTCDateTime('2024-01-01T00:00:00'),
-            latitude=42.5,
-            longitude=13.2,
-            depth=10000.0,
-        )
-        event.origins.append(origin)
-        event.preferred_origin_id = origin.resource_id
-        magnitude = Magnitude(mag=3.4, magnitude_type='Mw')
-        event.magnitudes.append(magnitude)
-        event.preferred_magnitude_id = magnitude.resource_id
-        return Catalog(events=[event])
-
-    def _read_single_evid(self):
-        conn = sqlite3.connect(self.db_file)
-        cursor = conn.cursor()
-        cursor.execute('SELECT evid FROM events')
-        row = cursor.fetchone()
-        conn.close()
-        return row[0]
-
-    def _write_single_event(self, keep_raw_evid):
-        cat = self._catalog_with_url_like_resource_id()
-        with patch('builtins.print'):
-            write_catalog_to_db(
-                cat,
-                self._config(keep_raw_evid=keep_raw_evid),
-                initdb=True,
-            )
-
-    def test_default_simplifies_evid_from_resource_id(self):
-        """By default, evid is simplified from resource_id."""
-        self._write_single_event(keep_raw_evid=False)
-        self.assertEqual(self._read_single_evid(), 'abc123')
-
-    def test_keep_raw_evid_preserves_full_resource_id(self):
-        """When keep_raw_evid is True, the full resource_id is stored."""
-        self._write_single_event(keep_raw_evid=True)
-        self.assertEqual(
-            self._read_single_evid(),
-            (
-                'http://example.org/fdsnws/event/1/query?'
-                'eventid=abc123&includeallorigins=true'
-            ),
-        )
 
 
 if __name__ == '__main__':
