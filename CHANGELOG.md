@@ -36,6 +36,7 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - Fixed `seiscat plot -b cartopy` crashing with `IndexError` when the map
   extent is very small (e.g. near-coincident events), by falling back to the
   simple background when Natural Earth imagery cannot be rendered.
+- Fixed clipboard copying of evid not working on linux.
 
 ## [0.9] - 2026-04-15
 

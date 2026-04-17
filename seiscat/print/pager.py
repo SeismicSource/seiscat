@@ -19,6 +19,9 @@ class PagerException(Exception):
 
 
 DEFAULT_MAX_COLUMN_WIDTH = 40
+CLIPBOARD_FAIL_MESSAGE = (
+    'Clipboard copy failed.\nInstall wl-copy, xclip, or xsel.'
+)
 
 
 def _flush_pending_input():
@@ -71,6 +74,74 @@ def _restore_default_sort(stdscr, raw_data, pager_state):
     pager_state['format_dirty'] = True
 
 
+def _copy_with_osc52(text):
+    """Try terminal clipboard copy via OSC52 escape sequence."""
+    # Lazy imports: this path is only used when external tools fail.
+    # pylint: disable=import-outside-toplevel
+    import base64
+    import os
+    import sys
+
+    if not sys.stdout.isatty():
+        return False
+
+    term = os.environ.get('TERM', '')
+    if term == 'dumb':
+        return False
+
+    encoded = base64.b64encode(text.encode('utf-8')).decode('ascii')
+    sequence = f'\033]52;c;{encoded}\a'
+
+    # Wrap OSC52 when running inside tmux/screen passthrough layers.
+    if 'TMUX' in os.environ:
+        sequence = f'\033Ptmux;\033{sequence}\033\\'
+    elif term.startswith('screen'):
+        sequence = f'\033P{sequence}\033\\'
+
+    try:
+        with open('/dev/tty', 'wb') as tty:
+            tty.write(sequence.encode('ascii'))
+            tty.flush()
+        return True
+    except OSError:
+        return False
+
+
+def _copy_with_iterm2(text):
+    """Try iTerm2 clipboard copy via OSC 1337 escape sequence."""
+    # Lazy imports: this path is only used when external tools fail.
+    # pylint: disable=import-outside-toplevel
+    import base64
+    import os
+    import sys
+
+    if os.environ.get('TERM_PROGRAM') != 'iTerm.app':
+        return False
+    if not sys.stdout.isatty():
+        return False
+
+    term = os.environ.get('TERM', '')
+    if term == 'dumb':
+        return False
+
+    encoded = base64.b64encode(text.encode('utf-8')).decode('ascii')
+    sequence = f'\033]1337;Copy=:{encoded}\a'
+
+    # Wrap sequence when running inside tmux/screen passthrough layers.
+    if 'TMUX' in os.environ:
+        sequence = f'\033Ptmux;\033{sequence}\033\\'
+    elif term.startswith('screen'):
+        sequence = f'\033P{sequence}\033\\'
+
+    try:
+        with open('/dev/tty', 'wb') as tty:
+            tty.write(sequence.encode('ascii'))
+            tty.flush()
+        return True
+    except OSError:
+        return False
+
+
 def _copy_to_clipboard(text):
     """
     Copy text to system clipboard (cross-platform).
@@ -82,37 +153,46 @@ def _copy_to_clipboard(text):
     # pylint: disable=import-outside-toplevel
     import platform
     import subprocess
+    def _is_wsl():
+        """Detect if running under Windows Subsystem for Linux."""
+        try:
+            with open('/proc/version', 'r', encoding='utf-8') as fp:
+                return 'microsoft' in fp.read().lower()
+        except OSError:
+            return False
+
     system = platform.system()
-    try:
-        if system == 'Darwin':  # macOS
+    utf8_text = text.encode('utf-8')
+    utf16_text = text.encode('utf-16le')
+    commands = []
+
+    if system == 'Darwin':  # macOS
+        commands = [(['pbcopy'], utf8_text)]
+    elif system == 'Windows':
+        commands = [(['clip'], utf16_text)]
+    else:  # Linux and other Unix-like systems
+        commands = [
+            (['wl-copy'], utf8_text),
+            (['xclip', '-selection', 'clipboard'], utf8_text),
+            (['xsel', '--clipboard', '--input'], utf8_text),
+        ]
+        if _is_wsl():
+            commands.append((['clip.exe'], utf16_text))
+
+    for cmd, payload in commands:
+        try:
             subprocess.run(
-                ['pbcopy'],
-                input=text.encode('utf-8'),
-                check=True
+                cmd,
+                input=payload,
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
             )
-        elif system == 'Windows':
-            subprocess.run(
-                ['clip'],
-                input=text.encode('utf-16le'),
-                check=True
-            )
-        else:  # Linux and other Unix-like systems
-            # Try xclip first, then xsel
-            try:
-                subprocess.run(
-                    ['xclip', '-selection', 'clipboard'],
-                    input=text.encode('utf-8'),
-                    check=True
-                )
-            except FileNotFoundError:
-                subprocess.run(
-                    ['xsel', '--clipboard', '--input'],
-                    input=text.encode('utf-8'),
-                    check=True
-                )
-        return True
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return False
+            return True
+        except (subprocess.CalledProcessError, OSError):
+            continue
+
+    return True if _copy_with_iterm2(text) else _copy_with_osc52(text)
 
 
 def _truncate_for_column(text, max_col_width):
@@ -196,10 +276,11 @@ def _display_message_popup(stdscr, message):
     :param message: message to display
     """
     max_y, max_x = stdscr.getmaxyx()
-    # Calculate popup dimensions based on message length
-    message_len = len(message)
-    popup_width = min(message_len + 6, max_x - 4)
-    popup_height = 5  # Simple popup with just the message
+    # Support one or more centered message lines.
+    message_lines = message.splitlines() or ['']
+    max_message_len = max(len(line) for line in message_lines)
+    popup_width = min(max_message_len + 6, max_x - 4)
+    popup_height = len(message_lines) + 4
     popup_y = (max_y - popup_height) // 2
     popup_x = (max_x - popup_width) // 2
 
@@ -210,18 +291,16 @@ def _display_message_popup(stdscr, message):
         # Draw top border
         top_border = f'╔{"═" * (popup_width - 2)}╗'
         stdscr.addstr(popup_y, popup_x, top_border, curses.A_BOLD)
-        message_line = _format_centered_popup_line(popup_width, message)
-        stdscr.addstr(popup_y + 1, popup_x, message_line, curses.A_BOLD)
-        # Draw blank line
-        blank_line = f'║{" " * (popup_width - 2)}║'
-        stdscr.addstr(popup_y + 2, popup_x, blank_line)
+        for i, line in enumerate(message_lines):
+            message_line = _format_centered_popup_line(popup_width, line)
+            stdscr.addstr(popup_y + 1 + i, popup_x, message_line, curses.A_BOLD)
         # Draw instruction
         instruction = 'Press any key'
         inst_line = _format_centered_popup_line(popup_width, instruction)
-        stdscr.addstr(popup_y + 3, popup_x, inst_line)
+        stdscr.addstr(popup_y + 1 + len(message_lines), popup_x, inst_line)
         # Draw bottom border
         bottom_border = f'╚{"═" * (popup_width - 2)}╝'
-        stdscr.addstr(popup_y + 4, popup_x, bottom_border, curses.A_BOLD)
+        stdscr.addstr(popup_y + 2 + len(message_lines), popup_x, bottom_border, curses.A_BOLD)
         stdscr.refresh()
         # Wait for any keypress
         stdscr.getch()
@@ -328,11 +407,11 @@ def _display_event_details_popup(stdscr, fields, rows, row_idx,
             ' ↑/↓ | j/k | q/Esc ',
             ' q/Esc '
         ]
-        hint_to_draw = ''
-        for candidate in hint_candidates:
-            if len(candidate) <= inner_width:
-                hint_to_draw = candidate
-                break
+        hint_to_draw = next(
+            (candidate for candidate in hint_candidates
+             if len(candidate) <= inner_width),
+            ''
+        )
         if not hint_to_draw and inner_width > 0:
             hint_to_draw = hint_candidates[-1][:inner_width]
         hint_fill = inner_width - len(hint_to_draw)
@@ -466,11 +545,11 @@ def _draw_sort_popup_and_get_input(
             ' ↑/↓ | 0-9 | q/Esc ',
             ' q/Esc '
         ]
-        hint_to_draw = ''
-        for candidate in hint_candidates:
-            if len(candidate) <= inner_width:
-                hint_to_draw = candidate
-                break
+        fitting_candidates = (
+            candidate for candidate in hint_candidates
+            if len(candidate) <= inner_width
+        )
+        hint_to_draw = next(fitting_candidates, '')
         if not hint_to_draw and inner_width > 0:
             hint_to_draw = hint_candidates[-1][:inner_width]
         hint_fill = inner_width - len(hint_to_draw)
@@ -579,7 +658,7 @@ def _handle_pager_input(stdscr, pager_state, body_rows, available_rows,
                 if _copy_to_clipboard(event_id):
                     message = f'evid {event_id} copied to clipboard'
                 else:
-                    message = 'Clipboard copy failed'
+                    message = CLIPBOARD_FAIL_MESSAGE
                 _display_message_popup(stdscr, message)
         return True
     # Handle Enter key to show event details popup
@@ -899,7 +978,7 @@ def _pager_loop_iteration(
                     if _copy_to_clipboard(event_id):
                         message = f'evid {event_id} copied to clipboard'
                     else:
-                        message = 'Clipboard copy failed'
+                        message = CLIPBOARD_FAIL_MESSAGE
                     _display_message_popup(stdscr, message)
             return current_row_idx
         if key in [curses.KEY_PPAGE, ord('b')]:  # Page Up
