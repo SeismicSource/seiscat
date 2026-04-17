@@ -1,6 +1,6 @@
 {
   "title": "Seiscat: keep a local seismic catalog",
-  "version": "0.9",
+  "version": "0.9.1",
   "description": "SeisCat is a command-line software tool for building, maintaining, and querying local seismic catalogs. It integrates event data from FDSNWS web services and local files in multiple formats, storing them in a portable SQLite database for efficient access and analysis. In addition to catalog management, SeisCat supports visualization, export, waveform and station metadata retrieval, and automated event-based processing through user-defined scripts.",
   "upload_type": "software",
   "license": "GPL-3.0-or-later",
