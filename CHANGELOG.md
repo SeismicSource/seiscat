@@ -4,6 +4,8 @@ Keep a local seismic catalog.
 
 Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 
+## [unreleased]
+
 ## [0.9.1] - 2026-04-17
 
 ### Added
@@ -254,6 +256,7 @@ More ways of feeding the catalog will be added in the future.
 
 The local catalog is stored in a SQLite database (single file database).
 
+[unreleased]: https://github.com/SeismicSource/seiscat/compare/v0.9.1...HEAD
 [0.9.1]: https://github.com/SeismicSource/seiscat/compare/v0.9...v0.9.1
 [0.9]: https://github.com/SeismicSource/seiscat/compare/v0.8...v0.9
 [0.8]: https://github.com/SeismicSource/seiscat/compare/v0.7...v0.8
