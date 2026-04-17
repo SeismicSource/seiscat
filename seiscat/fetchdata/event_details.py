@@ -19,6 +19,56 @@ from ..sources.fdsnws import open_fdsn_connection
 from ..utils import ExceptionExit
 
 
+def _get_events(client, evid):
+    """
+    Get events from FDSN client, falling back to no arrivals if not supported.
+
+    :param client: FDSN client
+    :param evid: event id
+    :returns: obspy catalog
+    :raises ValueError, FDSNNoDataException: if the request fails
+    """
+    try:
+        return client.get_events(eventid=evid, includearrivals=True)
+    except FDSNNotImplementedException:
+        return client.get_events(eventid=evid)
+
+
+def _fetch_event(client, evid, raw_evid):
+    """
+    Fetch a single event from the FDSN client, retrying with raw_evid on fail.
+
+    Prints status messages. Returns None if all attempts fail.
+
+    :param client: FDSN client
+    :param evid: normalized event id
+    :param raw_evid: raw (original) resource_id string, or None
+    :returns: obspy catalog, or None on failure
+    """
+    try:
+        return _get_events(client, evid)
+    except (ValueError, FDSNNoDataException) as e:
+        if not raw_evid or raw_evid == evid:
+            print(
+                f'Cannot fetch event details for {evid} '
+                f'from server {client.base_url}: {e}'
+            )
+            return None
+        first_error = e
+    print(
+        f'normalized evid failed ({first_error}), retrying with raw_evid...',
+        end=' '
+    )
+    try:
+        return _get_events(client, raw_evid)
+    except (ValueError, FDSNNoDataException) as e2:
+        print(
+            f'Cannot fetch event details for {evid} '
+            f'from server {client.base_url}: {e2}'
+        )
+        return None
+
+
 def fetch_event_details(config):
     """
     Fetch event details from FDSN web services
@@ -35,6 +85,8 @@ def fetch_event_details(config):
     overwrite_existing = config['args'].overwrite_existing
     for event in events:
         evid = event['evid']
+        # .get() returns None if 'raw_evid' column doesn't exist
+        raw_evid = event.get('raw_evid')
         print(f'{evid}:', end=' ')
         evid_dir = pathlib.Path(event_dir / f'{evid}')
         evid_dir.mkdir(parents=True, exist_ok=True)
@@ -42,18 +94,10 @@ def fetch_event_details(config):
         if not overwrite_existing and outfile.exists():
             print(f'{outfile} exists, skipping')
             continue
-        try:
-            try:
-                event = client.get_events(eventid=evid, includearrivals=True)
-            except FDSNNotImplementedException:
-                event = client.get_events(eventid=evid)
-        except (ValueError, FDSNNoDataException) as e:
-            print(
-                f'Cannot fetch event details for {evid} '
-                f'from server {client.base_url}: {e}'
-            )
+        fetched = _fetch_event(client, evid, raw_evid)
+        if fetched is None:
             continue
         with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            event.write(outfile, format='QUAKEML')
+            warnings.simplefilter('ignore')
+            fetched.write(outfile, format='QUAKEML')
         print(f'event details saved to {outfile}')

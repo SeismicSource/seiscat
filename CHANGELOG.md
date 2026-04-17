@@ -18,6 +18,9 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
   `raw_evid` alongside the normalized `evid`. This is useful when the
   normalized evid is not recognized by the FDSN server and the original
   resource_id is needed to download event details.
+- `seiscat fetchdata`: when downloading event details fails with the
+  normalized `evid`, automatically retry using the `raw_evid` value (if the
+  `raw_evid` column is present in the database).
 
 ### Fixed
 
