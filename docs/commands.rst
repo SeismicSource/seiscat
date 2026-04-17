@@ -243,12 +243,13 @@ Print the catalog to the console in various formats.
 
    seiscat print                        # default table format
    seiscat print -f stats               # Summary statistics
+   seiscat print --max-col-width 24     # Truncate wide columns in pager
    seiscat print EVID                   # Print a specific event
    seiscat print -w "mag >= 3.0"        # Filter and print
    seiscat print --sortby mag -r        # Sort by magnitude (largest first)
 
 Options: ``--configfile``, ``--where``, ``--allversions``, ``--sortby``,
-``--reverse``, ``--format {table,stats}``.
+``--reverse``, ``--format {table,stats}``, ``--max-col-width N``.
 
 **Interactive Pager**
 
@@ -274,6 +275,10 @@ using an interactive pager with the following features:
      ``←``/``→`` (horizontal scroll), ``c`` (copy evid),
      ``Space``/``f`` (page down), ``b`` (page up), ``g`` (home), ``G`` (end)
    - Press ``q``, ``Esc``, or ``Enter`` to close the popup
+- **Column truncation**: Use ``--max-col-width N`` to limit the width of
+   each table column in the interactive pager. Longer values are shown with
+   ``...``, while pressing ``Enter`` on a row still reveals the full values
+   in the details popup. Use ``--max-col-width 0`` to disable truncation.
 - **Copy event ID**: Press ``c`` to copy the event ID (evid) of the currently
   selected row to the system clipboard. A popup will confirm the copy
   operation.

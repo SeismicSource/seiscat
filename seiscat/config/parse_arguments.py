@@ -464,6 +464,14 @@ def _add_print_parser(subparser, parents):
         choices=['table', 'stats'],
         help='output format (default: %(default)s)'
     )
+    print_parser.add_argument(
+        '--max-col-width',
+        type=int,
+        default=40,
+        metavar='N',
+        help='maximum column width in the interactive table pager '
+             '(default: %(default)s; use 0 to disable truncation)'
+    )
 
 
 def _add_export_parser(subparser, parents):

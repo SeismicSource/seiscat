@@ -18,6 +18,9 @@ class PagerException(Exception):
     """Exception raised when the pager fails."""
 
 
+DEFAULT_MAX_COLUMN_WIDTH = 40
+
+
 def _flush_pending_input():
     """Clear queued keypresses to prevent lag after expensive operations."""
     with suppress(curses.error, AttributeError):
@@ -92,7 +95,18 @@ def _copy_to_clipboard(text):
         return False
 
 
-def _format_rows(fields, rows):
+def _truncate_for_column(text, max_col_width):
+    """Truncate text to a fixed column width using an ellipsis."""
+    if max_col_width is None or max_col_width <= 0:
+        return text
+    if len(text) <= max_col_width:
+        return text
+    if max_col_width <= 3:
+        return '.' * max_col_width
+    return f'{text[:max_col_width - 3]}...'
+
+
+def _format_rows(fields, rows, max_col_width=DEFAULT_MAX_COLUMN_WIDTH):
     """
     Format raw data into aligned string rows.
 
@@ -101,26 +115,36 @@ def _format_rows(fields, rows):
     :return: tuple of (header_string, body_rows_list,
         max_detail_line_len)
     """
-    max_len = [len(f) for f in fields]
+    max_len = [len(_truncate_for_column(f, max_col_width)) for f in fields]
     # "field: value" length baseline for popup details lines.
     max_detail_len = [len(f) + 2 for f in fields]
     for row in rows:
         for i, val in enumerate(row):
             if i < len(max_len):
                 table_val = 'None' if val is None else str(val)
+                table_val = _truncate_for_column(table_val, max_col_width)
                 detail_val = '' if val is None else str(val)
                 max_len[i] = max(max_len[i], len(table_val))
                 max_detail_len[i] = max(
                     max_detail_len[i], len(fields[i]) + 2 + len(detail_val)
                 )
     # Build header
-    header = '  '.join(f'{f:{max_len[i]}}' for i, f in enumerate(fields))
+    header = '  '.join(
+        f'{_truncate_for_column(f, max_col_width):{max_len[i]}}'
+        for i, f in enumerate(fields)
+    )
     # Build body rows
     body_rows = []
     for row in rows:
+        formatted_vals = []
+        for i, val in enumerate(row):
+            if i >= len(max_len):
+                break
+            table_val = 'None' if val is None else str(val)
+            table_val = _truncate_for_column(table_val, max_col_width)
+            formatted_vals.append(f'{table_val:{max_len[i]}}')
         row_str = '  '.join(
-            f'{("None" if val is None else str(val)):{max_len[i]}}'
-            for i, val in enumerate(row)
+            formatted_vals
         )
         body_rows.append(row_str)
     max_detail_line_len = max(max_detail_len, default=0)
@@ -129,8 +153,12 @@ def _format_rows(fields, rows):
 
 def _update_formatted_rows_cache(raw_data, pager_state):
     """Rebuild and cache formatted rows/header after sorting changes."""
+    max_col_width = pager_state.get(
+        'max_col_width', DEFAULT_MAX_COLUMN_WIDTH
+    )
     header, body_rows, max_detail_line_len = _format_rows(
-        raw_data['fields'], raw_data['rows']
+        raw_data['fields'], raw_data['rows'],
+        max_col_width=max_col_width
     )
     pager_state['formatted_header'] = header
     pager_state['formatted_body_rows'] = body_rows
@@ -868,8 +896,10 @@ def _pager_loop_iteration(
 
 
 def display_table_pager(
-        header, body_rows, raw_data=None,
-        default_sort_col=None, default_sort_asc=True):
+    header, body_rows, raw_data=None,
+    default_sort_col=None, default_sort_asc=True,
+    max_col_width=DEFAULT_MAX_COLUMN_WIDTH,
+):
     """
     Display table with fixed header and alternating row font colors using
     curses scrolling. Supports interactive sorting by column.
@@ -881,6 +911,8 @@ def display_table_pager(
     :param default_sort_col: default column index for sorting (can be
         restored with 0 key)
     :param default_sort_asc: default sort direction (True for ascending)
+    :param max_col_width: maximum width for table columns in characters
+        (longer values are truncated with ...)
     :raises PagerException: if the pager fails to initialize or run
     """
     def _display_table_pager_wrapper(stdscr):
@@ -913,7 +945,8 @@ def display_table_pager(
             'sort_col': default_sort_col,
             'sort_asc': default_sort_asc,
             'default_sort_col': default_sort_col,
-            'default_sort_asc': default_sort_asc
+            'default_sort_asc': default_sort_asc,
+            'max_col_width': max_col_width
         }
         local_header = header
         local_body_rows = body_rows

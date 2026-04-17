@@ -60,7 +60,8 @@ def _format_table_rows(fields, rows):
     return header, body_rows
 
 
-def _display_table(header=None, body_rows=None, fields=None, rows=None):
+def _display_table(header=None, body_rows=None, fields=None, rows=None,
+                   max_col_width=None):
     """
     Display table header and rows.
 
@@ -71,6 +72,7 @@ def _display_table(header=None, body_rows=None, fields=None, rows=None):
     :param body_rows: optional list of body row strings
     :param fields: optional list of column names for sorting
     :param rows: optional list of raw row data for sorting
+    :param max_col_width: maximum column width for the interactive pager
     """
     # Check if output is to a terminal
     if sys.stdout.isatty():
@@ -84,7 +86,10 @@ def _display_table(header=None, body_rows=None, fields=None, rows=None):
                 header = ''
             if body_rows is None:
                 body_rows = []
-            display_table_pager(header, body_rows, raw_data=raw_data)
+            display_table_pager(
+                header, body_rows, raw_data=raw_data,
+                max_col_width=max_col_width
+            )
         except PagerException:
             # Fallback to simple print if curses fails
             if (header is None or body_rows is None) and (
@@ -117,7 +122,11 @@ def _print_catalog_table(config):
         return
     # Display table (pager if TTY, plain text otherwise).
     # For TTY, defer heavy formatting to pager so the UI opens immediately.
-    _display_table(fields=fields, rows=rows)
+    _display_table(
+        fields=fields,
+        rows=rows,
+        max_col_width=getattr(config['args'], 'max_col_width', None)
+    )
 
 
 def print_catalog(config):

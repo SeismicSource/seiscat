@@ -21,6 +21,9 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - `seiscat fetchdata`: when downloading event details fails with the
   normalized `evid`, automatically retry using the `raw_evid` value (if the
   `raw_evid` column is present in the database).
+- New `--max-col-width` option for `seiscat print` to limit the width of
+  columns in the interactive table pager. Longer values are truncated with
+  `...`, while full row details remain available via the Enter popup.
 
 ### Fixed
 
