@@ -276,9 +276,9 @@ using an interactive pager with the following features:
      ``Space``/``f`` (page down), ``b`` (page up), ``g`` (home), ``G`` (end)
    - Press ``q``, ``Esc``, or ``Enter`` to close the popup
 - **Column truncation**: Use ``--max-col-width N`` to limit the width of
-   each table column in the interactive pager. Longer values are shown with
-   ``...``, while pressing ``Enter`` on a row still reveals the full values
-   in the details popup. Use ``--max-col-width 0`` to disable truncation.
+  each table column in the interactive pager. Longer values are shown with
+  ``...``, while pressing ``Enter`` on a row still reveals the full values
+  in the details popup. Use ``--max-col-width 0`` to disable truncation.
 - **Copy event ID**: Press ``c`` to copy the event ID (evid) of the currently
   selected row to the system clipboard. A popup will confirm the copy
   operation.
@@ -286,9 +286,11 @@ using an interactive pager with the following features:
 - **Interactive sorting**:
 
   - Press ``s`` to open a popup menu to select a column to sort by
+  - In the sort popup: use ``↑``/``↓`` to navigate, ``1``–``9`` (or higher
+    for more columns) to quickly select a column, ``Enter``/``Space`` to
+    confirm, or ``q``/``Esc`` to dismiss without sorting
   - Press ``1``–``9`` to quickly sort by the corresponding column number
-  - Press ``0`` to revert to the default sort order (from ``--sortby`` or
-    configuration)
+  - Press ``0`` to restore the default sort order
   - Press the same column again to toggle sort direction (ascending/descending)
   - The status bar shows the current sort field and direction (↑ for ascending,
     ↓ for descending)

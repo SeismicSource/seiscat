@@ -24,6 +24,10 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - New `--max-col-width` option for `seiscat print` to limit the width of
   columns in the interactive table pager. Longer values are truncated with
   `...`, while full row details remain available via the Enter popup.
+- `seiscat print` interactive event sorting popup:
+  - option to restore the default sort order by pressing ``0``
+  - it's now possible to dismiss the event sorting popup
+    by pressing ``esc`` or ``q``.
 
 ### Fixed
 

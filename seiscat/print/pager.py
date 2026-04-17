@@ -51,6 +51,26 @@ def _sort_with_feedback(stdscr, col_index, raw_data, pager_state):
     _flush_pending_input()
 
 
+def _restore_default_sort(stdscr, raw_data, pager_state):
+    """Restore default sorting or initial row order."""
+    pager_state['sort_col'] = pager_state.get('default_sort_col')
+    pager_state['sort_asc'] = pager_state.get('default_sort_asc', True)
+    if pager_state['sort_col'] is not None:
+        with suppress(IndexError, TypeError):
+            _sort_with_feedback(
+                stdscr,
+                pager_state['sort_col'], raw_data, pager_state
+            )
+        return
+    # No explicit default sort column: restore original input order.
+    initial_rows = pager_state.get('initial_rows')
+    if initial_rows is not None:
+        raw_data['rows'][:] = initial_rows
+    pager_state['offset'] = 0
+    pager_state['selected_row'] = 0
+    pager_state['format_dirty'] = True
+
+
 def _copy_to_clipboard(text):
     """
     Copy text to system clipboard (cross-platform).
@@ -385,7 +405,8 @@ def _draw_sort_popup_and_get_input(
     :param selected_idx: currently selected field index
     :return: tuple (selected_col, new_selected_idx) where selected_col
         is the column to select (or None to continue), and new_selected_idx
-        is the updated selection index for next iteration
+        is the updated selection index for next iteration.
+        Returns (-1, selected_idx) to signal cancellation (e.g., Q or Esc key)
     """
     try:
         # Clear popup area with spaces to remove background text
@@ -413,7 +434,13 @@ def _draw_sort_popup_and_get_input(
             if start_idx + i < end_idx:
                 field_idx = start_idx + i
                 field_name = fields[field_idx]
-                prefix = f'{field_idx + 1}. ' if field_idx < 9 else '  '
+                # First option is "0. default", others follow 1..9.
+                if field_idx == 0:
+                    prefix = '0. '
+                elif field_idx <= 9:
+                    prefix = f'{field_idx}. '
+                else:
+                    prefix = '  '
                 content = f'{prefix}{field_name}'
             else:
                 content = ''
@@ -429,15 +456,36 @@ def _draw_sort_popup_and_get_input(
                 stdscr.addstr(y, popup_x, option_line, curses.A_REVERSE)
             else:
                 stdscr.addstr(y, popup_x, option_line)
-        # Draw bottom border
-        bottom_border = f'╚{"═" * (popup_width - 2)}╝'
+        # Draw bottom border with hint
+        hint = ' ↑/↓: navigate | 0-9: select | q/Esc: cancel '
+        inner_width = popup_width - 2
+        # Progressively shorten hint to fit available space
+        hint_candidates = [
+            hint,
+            ' ↑/↓ nav | 0-9 sel | q/Esc ',
+            ' ↑/↓ | 0-9 | q/Esc ',
+            ' q/Esc '
+        ]
+        hint_to_draw = ''
+        for candidate in hint_candidates:
+            if len(candidate) <= inner_width:
+                hint_to_draw = candidate
+                break
+        if not hint_to_draw and inner_width > 0:
+            hint_to_draw = hint_candidates[-1][:inner_width]
+        hint_fill = inner_width - len(hint_to_draw)
+        left_fill = hint_fill // 2
+        right_fill = hint_fill - left_fill
+        bottom_border = (
+            f'╚{"═" * left_fill}{hint_to_draw}{"═" * right_fill}╝'
+        )
         bottom_y = popup_y + popup_height - 1
         stdscr.addstr(bottom_y, popup_x, bottom_border, curses.A_BOLD)
         stdscr.refresh()
         # Handle input
         key = stdscr.getch()
         if key in [ord('q'), 27]:  # q or Esc
-            return (None, selected_idx)
+            return (-1, selected_idx)
         if key in [ord('\n'), ord(' ')]:  # Enter or Space
             return (selected_idx, selected_idx)
         if key in [curses.KEY_DOWN, ord('j')]:
@@ -447,7 +495,8 @@ def _draw_sort_popup_and_get_input(
             selected_idx = max(0, selected_idx - 1)
             return (None, selected_idx)
         if chr(key).isdigit():
-            col_num = int(chr(key)) - 1
+            digit = int(chr(key))
+            col_num = 0 if digit == 0 else digit
             if 0 <= col_num < len(fields):
                 return (col_num, selected_idx)
             return (None, selected_idx)
@@ -463,10 +512,12 @@ def _display_sort_selector(stdscr, raw_data):
 
     :param stdscr: curses window
     :param raw_data: dict with 'fields' list
-    :return: selected column index (0-indexed) or None if cancelled
+    :return: selected column index (0-indexed), -2 for default sort, or None if
+        cancelled
     """
     max_y, max_x = stdscr.getmaxyx()
-    fields = raw_data['fields']
+    # Prepend "default" option to the fields list
+    fields = ['default'] + raw_data['fields']
     # Calculate popup dimensions
     max_field_len = max(len(f) for f in fields) if fields else 0
     title_len = len(' Sort by column ')
@@ -482,8 +533,13 @@ def _display_sort_selector(stdscr, raw_data):
             stdscr, popup_y, popup_x, popup_width, popup_height,
             fields, selected_idx
         )
+        if selected_col == -1:
+            # User cancelled with Q or Esc
+            return None
         if selected_col is not None:
-            return selected_col
+            # If "default" (index 0 in expanded list) is selected,
+            # return -2 as signal to restore default sort
+            return -2 if selected_col == 0 else selected_col - 1
 
 
 def _handle_pager_input(stdscr, pager_state, body_rows, available_rows,
@@ -542,26 +598,15 @@ def _handle_pager_input(stdscr, pager_state, body_rows, available_rows,
             pager_state['selected_row'] = new_idx
         return True
     # Handle sort field selector with 's' key
-    if raw_data and key == ord('0'):
-        # Revert to default sort order
-        pager_state['sort_col'] = pager_state.get(
-            'default_sort_col'
-        )
-        pager_state['sort_asc'] = pager_state.get(
-            'default_sort_asc', True
-        )
-        # Re-sort the data
-        if pager_state['sort_col'] is not None:
-            with suppress(IndexError, TypeError):
-                _sort_with_feedback(
-                    stdscr,
-                    pager_state['sort_col'], raw_data, pager_state
-                )
+    if raw_data and key in [ord('0')]:
+        _restore_default_sort(stdscr, raw_data, pager_state)
         return True
     # Handle sort field selector with 's' key
     if raw_data and key == ord('s'):
         selected_col = _display_sort_selector(stdscr, raw_data)
-        if selected_col is not None:
+        if selected_col == -2:
+            _restore_default_sort(stdscr, raw_data, pager_state)
+        elif selected_col is not None:
             # Check if sorting the same column (toggle sort direction)
             if pager_state.get('sort_col') == selected_col:
                 pager_state['sort_asc'] = not pager_state.get(
@@ -791,7 +836,9 @@ def _pager_loop_iteration(
     available_rows = max_y - 1 - num_help_lines
     # Build formatted rows lazily and cache them: this avoids O(N) work
     # on every frame after sorting large catalogs.
-    if raw_data and pager_state.get('sort_col') is not None:
+    if raw_data and (
+            pager_state.get('format_dirty', False)
+            or pager_state.get('sort_col') is not None):
         if pager_state.get('format_dirty', True):
             _update_formatted_rows_cache(raw_data, pager_state)
         header = pager_state['formatted_header']
@@ -937,6 +984,9 @@ def display_table_pager(
         # Hide cursor (not supported on all terminals)
         with suppress(curses.error, AttributeError):
             curses.curs_set(0)
+        # Reduce Esc key delay to make it as responsive as Q
+        with suppress(curses.error, AttributeError):
+            curses.set_escdelay(25)
         # Track pager state (offset, selected row, horizontal scroll, sorting)
         pager_state = {
             'offset': 0,
@@ -946,6 +996,7 @@ def display_table_pager(
             'sort_asc': default_sort_asc,
             'default_sort_col': default_sort_col,
             'default_sort_asc': default_sort_asc,
+            'initial_rows': list(raw_data['rows']) if raw_data else None,
             'max_col_width': max_col_width
         }
         local_header = header
