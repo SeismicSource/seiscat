@@ -62,6 +62,10 @@ function Show-Banner {
     Write-Host '   /\_/\' -ForegroundColor Green
     Write-Host '  ( o.o )' -ForegroundColor Green
     Write-Host '   > ^ <   SeiScat' -ForegroundColor Green
+    Write-Host ''
+    Write-Host 'Keep a local seismic catalog' -ForegroundColor Green
+    Write-Host 'Copyright (c) 2021-2026 Claudio Satriano' -ForegroundColor Green
+    Write-Host ''
 }
 
 function Show-Usage {

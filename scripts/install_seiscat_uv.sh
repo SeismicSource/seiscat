@@ -43,6 +43,10 @@ print_banner() {
    /\_/\
   ( o.o )
    > ^ <   SeiScat
+
+Keep a local seismic catalog
+Copyright (c) 2021-2026 Claudio Satriano
+
 EOF
     printf '%b' "$C_RESET"
 }
