@@ -22,7 +22,8 @@ Optional plotting backends can be installed with extras:
 
    pip install seiscat[cartopy]
    pip install seiscat[plotly]
-   pip install seiscat[cartopy,plotly]
+   pip install seiscat[folium]
+   pip install seiscat[cartopy,plotly,folium]
 
 
 To upgrade from a previously installed version:
@@ -110,7 +111,8 @@ To install optional plotting backends in editable mode:
 
    pip install -e .[cartopy]
    pip install -e .[plotly]
-   pip install -e .[cartopy,plotly]
+   pip install -e .[folium]
+   pip install -e .[cartopy,plotly,folium]
 
 
 You can keep your local SeisCat repository updated by running ``git pull``
