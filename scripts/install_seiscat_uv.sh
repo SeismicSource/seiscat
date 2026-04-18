@@ -21,20 +21,30 @@ else
 fi
 
 info() {
-    printf '%b[INFO]%b %s\n' "$C_BLUE" "$C_RESET" "$1"
+    printf '%b🐾 [INFO]%b %s\n' "$C_BLUE" "$C_RESET" "$1"
 }
 
 ok() {
-    printf '%b[OK]%b %s\n' "$C_GREEN" "$C_RESET" "$1"
+    printf '%b😺 [OK]%b %s\n' "$C_GREEN" "$C_RESET" "$1"
 }
 
 warn() {
-    printf '%b[WARN]%b %s\n' "$C_YELLOW" "$C_RESET" "$1"
+    printf '%b⚠️  [WARN]%b %s\n' "$C_YELLOW" "$C_RESET" "$1"
 }
 
 fail() {
-    printf '%b[ERROR]%b %s\n' "$C_RED" "$C_RESET" "$1" >&2
+    printf '%b❌ [ERROR]%b %s\n' "$C_RED" "$C_RESET" "$1" >&2
     exit 1
+}
+
+print_banner() {
+    printf '%b' "$C_GREEN"
+    cat <<'EOF'
+   /\_/\
+  ( o.o )
+   > ^ <   SeiScat
+EOF
+    printf '%b' "$C_RESET"
 }
 
 parse_args() {
@@ -49,6 +59,30 @@ parse_args() {
     if [ $# -ne 0 ]; then
         fail "Unknown argument: $1"
     fi
+}
+
+explain_and_confirm() {
+    info 'This installer will perform the following actions:'
+    info '1) Check if uv is installed and install it if missing.'
+    info '2) Install/update seiscat with plotly, cartopy, folium, and pandas via uv tool install.'
+    info '3) Install/update argcomplete via uv tool install.'
+    info '4) Run activate-global-python-argcomplete and, on zsh, manage a seiscat completion block in ~/.zshrc.'
+
+    if [ "$DRY_RUN" = true ]; then
+        warn 'Dry-run mode: commands and file changes will be printed but not executed.'
+    fi
+
+    printf 'Do you want to continue? [y/N]: '
+    read -r reply
+    case "$reply" in
+        y|Y|yes|YES)
+            ok 'Confirmation received. Proceeding...'
+            ;;
+        *)
+            info 'No problem, installation cancelled. Run the script again anytime.'
+            exit 0
+            ;;
+    esac
 }
 
 run_cmd() {
@@ -144,7 +178,9 @@ install_uv() {
 }
 
 main() {
-    info 'Starting SeisCat installation with uv for Linux/macOS/WSL...'
+    print_banner
+    info 'Starting SeisCat setup with uv for Linux/macOS/WSL...'
+    explain_and_confirm
 
     info 'Step 1/4: Checking if uv is installed...'
     if command -v uv >/dev/null 2>&1; then
@@ -153,18 +189,18 @@ main() {
         install_uv
     fi
 
-    info 'Step 2/4: Installing/updating seiscat with plotly, cartopy, folium, and pandas support using uv tool install...'
+    info 'Step 2/4: Installing/updating seiscat with plotly, cartopy, folium, and pandas support...'
     run_cmd uv tool install seiscat --with plotly --with cartopy --with folium --with pandas --upgrade --force
     ok 'seiscat installed/updated with plotly, cartopy, folium, and pandas support.'
 
-    info 'Step 3/4: Installing argcomplete using uv tool install...'
+    info 'Step 3/4: Installing/updating argcomplete...'
     run_cmd uv tool install argcomplete --upgrade --force
     ok 'argcomplete installed successfully.'
 
     info 'Step 4/4: Running activate-global-python-argcomplete...'
     activate_argcomplete
 
-    ok 'All steps completed.'
+    ok 'All done. SeisCat is ready to go.'
     info 'If seiscat is not found in your shell, restart your terminal or ensure ~/.local/bin is in PATH.'
 }
 

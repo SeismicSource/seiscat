@@ -39,23 +39,29 @@ $ErrorActionPreference = 'Stop'
 
 function Write-Info {
     param([Parameter(Mandatory = $true)][string]$Message)
-    Write-Host "[INFO] $Message" -ForegroundColor Cyan
+    Write-Host "🐾 [INFO] $Message" -ForegroundColor Cyan
 }
 
 function Write-Ok {
     param([Parameter(Mandatory = $true)][string]$Message)
-    Write-Host "[OK]   $Message" -ForegroundColor Green
+    Write-Host "😺 [OK]   $Message" -ForegroundColor Green
 }
 
 function Write-WarnMsg {
     param([Parameter(Mandatory = $true)][string]$Message)
-    Write-Host "[WARN] $Message" -ForegroundColor Yellow
+    Write-Host "⚠️  [WARN] $Message" -ForegroundColor Yellow
 }
 
 function Fail {
     param([Parameter(Mandatory = $true)][string]$Message)
-    Write-Host "[ERROR] $Message" -ForegroundColor Red
+    Write-Host "❌ [ERROR] $Message" -ForegroundColor Red
     exit 1
+}
+
+function Show-Banner {
+    Write-Host '   /\_/\' -ForegroundColor Green
+    Write-Host '  ( o.o )' -ForegroundColor Green
+    Write-Host '   > ^ <   SeiScat' -ForegroundColor Green
 }
 
 function Show-Usage {
@@ -68,6 +74,26 @@ Options:
     -Help     Show this help message and exit.
 '@ | Write-Host
 }
+
+    function Confirm-Proceed {
+        Write-Info "This installer will perform the following actions:"
+        Write-Info "1) Check if uv is installed and install it if missing."
+        Write-Info "2) Install/update seiscat with plotly, cartopy, folium, and pandas via uv tool install."
+        Write-Info "3) Install/update argcomplete via uv tool install."
+        Write-Info "4) Run activate-global-python-argcomplete."
+
+        if ($DryRun) {
+            Write-WarnMsg "Dry-run mode: commands and file changes will be printed but not executed."
+        }
+
+        $reply = Read-Host "Do you want to continue? [y/N]"
+        if ($reply -notin @('y', 'Y', 'yes', 'YES')) {
+            Write-Info "No problem, installation cancelled. Run the script again anytime."
+            exit 0
+        }
+
+        Write-Ok "Confirmation received. Proceeding..."
+    }
 
 function Test-Command {
     param([Parameter(Mandatory = $true)][string]$Name)
@@ -185,8 +211,10 @@ if ($Help) {
     exit 0
 }
 
-Write-Info "Starting SeisCat installation with uv for Windows..."
+Show-Banner
+Write-Info "Starting SeisCat setup with uv for Windows..."
 
+Confirm-Proceed
 if ($DryRun) {
     Write-WarnMsg "Dry-run mode enabled: no commands will be executed and no files will be modified."
 }
@@ -199,7 +227,7 @@ else {
     Install-Uv
 }
 
-Write-Info "Step 2/4: Installing/updating seiscat with plotly, cartopy, folium, and pandas support using uv tool install..."
+Write-Info "Step 2/4: Installing/updating seiscat with plotly, cartopy, folium, and pandas support..."
 Invoke-StepCommand -Display "uv tool install seiscat --with plotly --with cartopy --with folium --with pandas --upgrade --force" -ScriptBlock {
     uv tool install seiscat --with plotly --with cartopy --with folium --with pandas --upgrade --force
 }
@@ -213,5 +241,5 @@ Write-Ok "argcomplete installed/updated successfully."
 
 Activate-Argcomplete
 
-Write-Ok "All steps completed."
+Write-Ok "All done. SeisCat is ready to go."
 Write-Info "If seiscat is not found in this terminal, open a new terminal window and try again."
