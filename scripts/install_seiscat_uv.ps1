@@ -1,0 +1,217 @@
+#!/usr/bin/env pwsh
+# Copyright (c) 2021-2026 Claudio Satriano <satriano@ipgp.fr>
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+<#
+.SYNOPSIS
+Install or update SeisCat with uv on Windows.
+
+.DESCRIPTION
+This script:
+1) Checks if uv is installed and installs it if missing.
+2) Installs/updates SeisCat with optional plotting dependencies.
+3) Installs/updates argcomplete.
+4) Runs activate-global-python-argcomplete.
+
+.PARAMETER DryRun
+Print planned commands without executing them.
+
+.PARAMETER Help
+Show usage help and exit.
+
+.EXAMPLE
+pwsh -NoProfile -File scripts/install_seiscat_uv.ps1
+
+.EXAMPLE
+pwsh -NoProfile -File scripts/install_seiscat_uv.ps1 -DryRun
+
+.EXAMPLE
+pwsh -NoProfile -File scripts/install_seiscat_uv.ps1 -Help
+#>
+
+param(
+    [switch]$DryRun,
+    [Alias('h')][switch]$Help
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+function Write-Info {
+    param([Parameter(Mandatory = $true)][string]$Message)
+    Write-Host "[INFO] $Message" -ForegroundColor Cyan
+}
+
+function Write-Ok {
+    param([Parameter(Mandatory = $true)][string]$Message)
+    Write-Host "[OK]   $Message" -ForegroundColor Green
+}
+
+function Write-WarnMsg {
+    param([Parameter(Mandatory = $true)][string]$Message)
+    Write-Host "[WARN] $Message" -ForegroundColor Yellow
+}
+
+function Fail {
+    param([Parameter(Mandatory = $true)][string]$Message)
+    Write-Host "[ERROR] $Message" -ForegroundColor Red
+    exit 1
+}
+
+function Show-Usage {
+        @'
+Usage:
+    pwsh -NoProfile -File scripts/install_seiscat_uv.ps1 [-DryRun] [-Help]
+
+Options:
+    -DryRun   Print all steps and commands without executing them.
+    -Help     Show this help message and exit.
+'@ | Write-Host
+}
+
+function Test-Command {
+    param([Parameter(Mandatory = $true)][string]$Name)
+    return $null -ne (Get-Command $Name -ErrorAction SilentlyContinue)
+}
+
+function Invoke-StepCommand {
+    param(
+        [Parameter(Mandatory = $true)][string]$Display,
+        [Parameter(Mandatory = $true)][scriptblock]$ScriptBlock
+    )
+
+    Write-Info "Running: $Display"
+    if ($DryRun) {
+        Write-WarnMsg "Dry-run mode enabled: command not executed."
+        return
+    }
+
+    & $ScriptBlock
+}
+
+function Update-PathForCurrentSession {
+    $candidateDirs = @(
+        (Join-Path $HOME ".local\\bin"),
+        (Join-Path $HOME ".cargo\\bin")
+    )
+
+    foreach ($dir in $candidateDirs) {
+        if ((Test-Path $dir) -and ($env:PATH -notlike "*$dir*")) {
+            $env:PATH = "$dir;$env:PATH"
+        }
+    }
+}
+
+function Install-Uv {
+    Write-Info "uv is not installed. Installing uv..."
+
+    if (Test-Command "winget") {
+        Write-Info "Installing uv with winget..."
+        Invoke-StepCommand -Display "winget install --id Astral-sh.uv -e --accept-package-agreements --accept-source-agreements" -ScriptBlock {
+            winget install --id Astral-sh.uv -e --accept-package-agreements --accept-source-agreements
+        }
+    }
+    elseif (Test-Command "scoop") {
+        Write-Info "Installing uv with scoop..."
+        Invoke-StepCommand -Display "scoop install uv" -ScriptBlock {
+            scoop install uv
+        }
+    }
+    elseif (Test-Command "choco") {
+        Write-Info "Installing uv with chocolatey..."
+        Invoke-StepCommand -Display "choco install uv -y" -ScriptBlock {
+            choco install uv -y
+        }
+    }
+    else {
+        Write-Info "No package manager detected. Installing uv via official install script..."
+        Invoke-StepCommand -Display "Invoke-RestMethod -Uri https://astral.sh/uv/install.ps1 | run" -ScriptBlock {
+            & ([scriptblock]::Create((Invoke-RestMethod -Uri "https://astral.sh/uv/install.ps1")))
+        }
+    }
+
+    Update-PathForCurrentSession
+
+    if ($DryRun) {
+        Write-Ok "uv installation skipped in dry-run mode."
+        return
+    }
+
+    if (-not (Test-Command "uv")) {
+        Fail "uv installation did not complete successfully. Open a new terminal and retry."
+    }
+
+    Write-Ok "uv installed successfully: $(uv --version)"
+}
+
+function Activate-Argcomplete {
+    Write-Info "Step 4/4: Running activate-global-python-argcomplete..."
+
+    $activationCmd = Get-Command "activate-global-python-argcomplete" -ErrorAction SilentlyContinue
+
+    if ($null -ne $activationCmd) {
+        try {
+            Invoke-StepCommand -Display "activate-global-python-argcomplete --user" -ScriptBlock {
+                & $activationCmd.Source --user
+            }
+            Write-Ok "Global argcomplete activation completed (--user mode)."
+        }
+        catch {
+            Write-WarnMsg "activate-global-python-argcomplete --user failed. Retrying without --user..."
+            Invoke-StepCommand -Display "activate-global-python-argcomplete" -ScriptBlock {
+                & $activationCmd.Source
+            }
+            Write-Ok "Global argcomplete activation completed."
+        }
+        return
+    }
+
+    Write-WarnMsg "activate-global-python-argcomplete is not on PATH. Trying via uv tool run..."
+    try {
+        Invoke-StepCommand -Display "uv tool run --from argcomplete activate-global-python-argcomplete --user" -ScriptBlock {
+            uv tool run --from argcomplete activate-global-python-argcomplete --user
+        }
+        Write-Ok "Global argcomplete activation completed via uv tool run (--user mode)."
+    }
+    catch {
+        Write-WarnMsg "argcomplete activation command failed on this shell."
+        Write-WarnMsg "On Windows, this command mainly targets bash-like shells."
+        Write-WarnMsg "If you use Git Bash, run activate-global-python-argcomplete there."
+    }
+}
+
+if ($Help) {
+    Show-Usage
+    exit 0
+}
+
+Write-Info "Starting SeisCat installation with uv for Windows..."
+
+if ($DryRun) {
+    Write-WarnMsg "Dry-run mode enabled: no commands will be executed and no files will be modified."
+}
+
+Write-Info "Step 1/4: Checking if uv is installed..."
+if (Test-Command "uv") {
+    Write-Ok "uv is already installed: $(uv --version)"
+}
+else {
+    Install-Uv
+}
+
+Write-Info "Step 2/4: Installing/updating seiscat with plotly, cartopy, folium, and pandas support using uv tool install..."
+Invoke-StepCommand -Display "uv tool install seiscat --with plotly --with cartopy --with folium --with pandas --upgrade --force" -ScriptBlock {
+    uv tool install seiscat --with plotly --with cartopy --with folium --with pandas --upgrade --force
+}
+Write-Ok "seiscat installed/updated with plotly, cartopy, folium, and pandas support."
+
+Write-Info "Step 3/4: Installing/updating argcomplete using uv tool install..."
+Invoke-StepCommand -Display "uv tool install argcomplete --upgrade --force" -ScriptBlock {
+    uv tool install argcomplete --upgrade --force
+}
+Write-Ok "argcomplete installed/updated successfully."
+
+Activate-Argcomplete
+
+Write-Ok "All steps completed."
+Write-Info "If seiscat is not found in this terminal, open a new terminal window and try again."
