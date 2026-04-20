@@ -40,9 +40,8 @@ fail() {
 print_banner() {
     printf '%b' "$C_GREEN"
     cat <<'EOF'
-   /\_/\
-  ( o.o )
-   > ^ <   SeiScat
+    /\_/\
+ ~~( ⊙.⊙ )~~ SeiScat
 
 Keep a local seismic catalog
 Copyright (c) 2021-2026 Claudio Satriano

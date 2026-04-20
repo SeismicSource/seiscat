@@ -53,8 +53,7 @@ SEISCAT_LOGO = r"""
 
 SEISCAT_LOGO_SMALL = r"""
    /\_/\
-  ( o.o )
-   > ^ <   SeiScat
+~~( ⊙.⊙ )~~ SeiScat
 """
 
 
