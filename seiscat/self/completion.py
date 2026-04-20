@@ -73,13 +73,12 @@ def _powershell_profile_path():
     ps_exec = _find_powershell_executable()
     if ps_exec is not None:
         try:
-            output = _run_capture([
+            if output := _run_capture([
                 ps_exec,
                 '-NoProfile',
                 '-Command',
                 '$PROFILE.CurrentUserAllHosts'
-            ])
-            if output:
+            ]):
                 return Path(output)
         except (subprocess.CalledProcessError, OSError):
             pass
