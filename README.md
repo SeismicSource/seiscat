@@ -31,7 +31,7 @@ events.
 👇  See below on how to [install](#installation) and
 [get started](#getting-started).
 
-📖 Check out the official documentation [here](https://seiscat.rtfd.io).
+📖 Check out the [official documentation][docs-link].
 
 ## Getting Started
 
@@ -98,41 +98,30 @@ your system Python (if any) and manages it via [uv][uv-link].
 
 Run one of the following commands:
 
-```sh
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/SeismicSource/seiscat/refs/heads/main/scripts/install_seiscat_uv.sh)"
-```
+    bash -c "$(curl -fsSL https://raw.githubusercontent.com/SeismicSource/seiscat/refs/heads/main/scripts/install_seiscat_uv.sh)"
 
 or:
 
-```sh
-bash -c "$(wget https://raw.githubusercontent.com/SeismicSource/seiscat/refs/heads/main/scripts/install_seiscat_uv.sh -O -)"
-```
+    bash -c "$(wget https://raw.githubusercontent.com/SeismicSource/seiscat/refs/heads/main/scripts/install_seiscat_uv.sh -O -)"
 
 #### Windows (PowerShell)
 
 Run the following command in PowerShell:
 
-```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/SeismicSource/seiscat/refs/heads/main/scripts/install_seiscat_uv.ps1 | iex"
-```
+    powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/SeismicSource/seiscat/refs/heads/main/scripts/install_seiscat_uv.ps1 | iex"
 
 ### Updating SeisCat
 
 Once installed as a system tool, SeisCat can be updated directly:
 
-```sh
-seiscat self update
-```
+    seiscat self update
 
 To switch to the development version:
 
-```sh
-seiscat self update --git
-```
+    seiscat self update --git
 
 For alternative installation methods (pip, development snapshots, releases,
-and editable source installs), see the full installation documentation:
-https://seiscat.readthedocs.io/en/latest/installation.html
+and editable source installs), see the [full installation documentation][full-installation-docs-link].
 
 ## Getting Help / Reporting Bugs
 
@@ -166,4 +155,7 @@ Don't hesitate sending me pull requests with new features and/or bugfixes!
 [codecov-link]: https://codecov.io/github/SeismicSource/seiscat
 [DeepWiki-badge]: https://deepwiki.com/badge.svg
 [DeepWiki-link]: https://deepwiki.com/SeismicSource/seiscat
+
+<!-- Other links -->
 [uv-link]: https://docs.astral.sh/uv/
+[full-installation-docs-link]: https://seiscat.readthedocs.io/en/latest/installation.html
