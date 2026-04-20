@@ -9,6 +9,11 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 
 ## [unreleased]
 
+### Fixed
+
+- Fix capitalization of SeisCat in small logo 😳
+- Fix `seiscat self update` logic to properly handle up-to date versions
+
 ## [0.9.2] - 2026-04-20
 
 ### Added
