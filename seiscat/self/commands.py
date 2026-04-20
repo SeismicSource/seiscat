@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from .completion import completion_status, install_completion
+from .logo import print_logo
 from .status import print_self_status
 from .update import uninstall_seiscat, update_seiscat
 
@@ -15,7 +16,6 @@ def run_self_command(args):
         return
 
     if args.self_action == 'logo':
-        from ..utils import print_logo
         print_logo(compact=args.compact)
         return
 

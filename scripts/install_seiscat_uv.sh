@@ -42,8 +42,7 @@ print_banner() {
     cat <<'EOF'
     /\_/\
  ~~( ⊙.⊙ )~~ SeiScat
-
-Keep a local seismic catalog
+Keep a local seismic catalog.
 Copyright (c) 2021-2026 Claudio Satriano
 
 EOF

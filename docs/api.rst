@@ -16,6 +16,43 @@ seiscat CLI
     :undoc-members:
     :show-inheritance:
 
+Self Management
+===============
+.. automodule:: seiscat.self
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: seiscat.self.commands
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: seiscat.self.status
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: seiscat.self.update
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: seiscat.self.completion
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: seiscat.self.install_detection
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: seiscat.self.logo
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Export
 ======
 .. automodule:: seiscat.export
@@ -212,6 +249,16 @@ print
     :undoc-members:
     :show-inheritance:
 
+.. automodule:: seiscat.print.print_catalog
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: seiscat.print.pager
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 utils
 =====
 .. automodule:: seiscat.utils
@@ -229,7 +276,7 @@ utils
     :undoc-members:
     :show-inheritance:
 
-.. automodule:: seiscat.utils.print_logo
+.. automodule:: seiscat.utils.logo
     :members:
     :undoc-members:
     :show-inheritance:

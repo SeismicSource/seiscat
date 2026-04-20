@@ -18,6 +18,7 @@ from rich_argparse import RichHelpFormatter
 from rich.console import Console
 from rich.panel import Panel
 from .._version import get_versions
+from ..utils.logo import SEISCAT_LOGO_SMALL
 from .autocompletion import (
     evid_completer,
     sortby_completer,
@@ -92,6 +93,56 @@ class SubcommandHelpFormatter(RichHelpFormatter):
                 # For lines that are short enough, just add them as they are
                 lines.append(line)
         return lines
+
+    def _fill_text(self, text, width, indent):
+        """Preserve explicit newlines in description/epilog text."""
+        lines = []
+        for line in text.splitlines():
+            if not line.strip():
+                lines.append('')
+                continue
+            lines.extend(textwrap.wrap(
+                line,
+                width,
+                replace_whitespace=False,
+                drop_whitespace=False
+            ))
+        return '\n'.join(lines)
+
+    def _rich_fill_text(self, text, width, indent):
+        """Preserve explicit newlines when Rich renders description text."""
+        raw_lines = text.plain.splitlines()
+        if not raw_lines:
+            rendered = text[:0]
+            rendered.append('\n\n')
+            return rendered
+
+        rendered = text[:0]
+        indent_plain = (
+            indent.plain if hasattr(indent, 'plain') else str(indent)
+        )
+        for idx, line in enumerate(raw_lines):
+            if line.strip():
+                wrapped_lines = textwrap.wrap(
+                    line,
+                    width=width,
+                    replace_whitespace=False,
+                    drop_whitespace=False
+                ) or ['']
+                for widx, wrapped_line in enumerate(wrapped_lines):
+                    line_text = text[:0] + indent_plain + wrapped_line
+                    for highlight in self.highlights:
+                        line_text.highlight_regex(
+                            highlight,
+                            style_prefix='argparse.'
+                        )
+                    rendered.append_text(line_text)
+                    if widx < len(wrapped_lines) - 1:
+                        rendered.append('\n')
+            if idx < len(raw_lines) - 1:
+                rendered.append('\n')
+        rendered.append('\n\n')
+        return rendered
 
     def _format_action(self, action):
         parts = super()._format_action(action)
@@ -856,7 +907,9 @@ def _add_main_arguments(parser):
 def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description='Keep a local seismic catalog.',
+        description=textwrap.dedent(
+            f'{SEISCAT_LOGO_SMALL}Keep a local seismic catalog.'
+        ),
         formatter_class=SubcommandHelpFormatter,
         add_help=True
     )
