@@ -138,6 +138,18 @@ def update_seiscat(git=False):
             'Use --git to keep git track explicitly.'
         )
 
+    if (
+        context.channel == 'release'
+        and latest_release
+        and context.version_installed != 'unknown'
+        and not _is_release_higher(context.version_installed, latest_release)
+    ):
+        return (
+            f'Installed release version ({context.version_installed}) '
+            'is already up to date or newer '
+            f'than latest release ({latest_release}).'
+        )
+
     if context.installer == 'uv' and uv_available:
         _uv_update_release()
         return 'Updated to latest release using uv.'
