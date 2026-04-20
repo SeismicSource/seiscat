@@ -133,31 +133,9 @@ function Update-PathForCurrentSession {
 }
 
 function Install-Uv {
-    Write-Info "uv is not installed. Installing uv..."
-
-    if (Test-Command "winget") {
-        Write-Info "Installing uv with winget..."
-        Invoke-StepCommand -Display "winget install --id Astral-sh.uv -e --accept-package-agreements --accept-source-agreements" -ScriptBlock {
-            winget install --id Astral-sh.uv -e --accept-package-agreements --accept-source-agreements
-        }
-    }
-    elseif (Test-Command "scoop") {
-        Write-Info "Installing uv with scoop..."
-        Invoke-StepCommand -Display "scoop install uv" -ScriptBlock {
-            scoop install uv
-        }
-    }
-    elseif (Test-Command "choco") {
-        Write-Info "Installing uv with chocolatey..."
-        Invoke-StepCommand -Display "choco install uv -y" -ScriptBlock {
-            choco install uv -y
-        }
-    }
-    else {
-        Write-Info "No package manager detected. Installing uv via official install script..."
-        Invoke-StepCommand -Display "Invoke-RestMethod -Uri https://astral.sh/uv/install.ps1 | run" -ScriptBlock {
-            & ([scriptblock]::Create((Invoke-RestMethod -Uri "https://astral.sh/uv/install.ps1")))
-        }
+    Write-Info "uv is not installed. Installing uv via official install script..."
+    Invoke-StepCommand -Display "Invoke-RestMethod -Uri https://astral.sh/uv/install.ps1 | Invoke-Expression" -ScriptBlock {
+        & ([scriptblock]::Create((Invoke-RestMethod -Uri "https://astral.sh/uv/install.ps1")))
     }
 
     Update-PathForCurrentSession
