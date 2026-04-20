@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from seiscat.self.install_detection import InstallContext
-from seiscat.self.update import update_seiscat
+from seiscat.self.update import uninstall_seiscat, update_seiscat
 
 
 class TestSelfUpdatePolicy(unittest.TestCase):
@@ -94,3 +94,32 @@ class TestSelfUpdatePolicy(unittest.TestCase):
 
         msg = update_seiscat(git=False)
         self.assertIn('Editable install detected', msg)
+
+    @patch('seiscat.self.completion.uninstall_completion')
+    @patch('seiscat.self.update._run_checked')
+    @patch('seiscat.self.update._schedule_windows_pip_uninstall')
+    @patch('seiscat.self.update.shutil.which', return_value=None)
+    @patch('seiscat.self.update.detect_install_context')
+    @patch('seiscat.self.update.os.name', 'nt')
+    def test_windows_pip_uninstall_is_deferred(
+            self,
+            mock_detect,
+            _mock_which,
+            mock_schedule,
+            mock_run_checked,
+            mock_uninstall_completion):
+        mock_detect.return_value = InstallContext(
+            installer='pip',
+            channel='release',
+            version_installed='0.9.1',
+            source_url=None,
+            editable=False,
+            confidence='high',
+        )
+
+        msg = uninstall_seiscat(yes=True)
+
+        mock_schedule.assert_called_once()
+        mock_run_checked.assert_not_called()
+        mock_uninstall_completion.assert_called_once()
+        self.assertIn('scheduled', msg)

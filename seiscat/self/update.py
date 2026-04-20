@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -38,6 +39,29 @@ def get_latest_release_version(timeout=5):
 
 def _run_checked(command):
     subprocess.run(command, check=True)
+
+
+def _schedule_windows_pip_uninstall():
+    """Schedule pip uninstall after current process exits (Windows only)."""
+    helper_code = (
+        'import ctypes, subprocess, sys, time; '
+        'pid = int(sys.argv[1]); '
+        'sync = 0x00100000; '
+        'infinite = 0xFFFFFFFF; '
+        'kernel32 = ctypes.windll.kernel32; '
+        'handle = kernel32.OpenProcess(sync, False, pid); '
+        'kernel32.WaitForSingleObject(handle, infinite) if handle else '
+        'time.sleep(1); '
+        'kernel32.CloseHandle(handle) if handle else None; '
+        'subprocess.run([sys.executable, "-m", "pip", "uninstall", '
+        '"-y", "seiscat"], check=False)'
+    )
+    subprocess.Popen([
+        sys.executable,
+        '-c',
+        helper_code,
+        str(os.getpid())
+    ])
 
 
 def _pip_update_release():
@@ -135,10 +159,15 @@ def uninstall_seiscat(yes=False):
 
     context = detect_install_context()
     uv_available = shutil.which('uv') is not None
+    deferred_pip_uninstall = False
     try:
         if context.installer == 'uv' and uv_available:
             _run_checked(['uv', 'tool', 'uninstall', 'seiscat'])
             backend = 'uv'
+        elif os.name == 'nt':
+            _schedule_windows_pip_uninstall()
+            backend = 'pip'
+            deferred_pip_uninstall = True
         else:
             _run_checked([
                 sys.executable, '-m', 'pip', 'uninstall', '-y', 'seiscat'
@@ -146,6 +175,15 @@ def uninstall_seiscat(yes=False):
             backend = 'pip'
     finally:
         uninstall_completion()
+
+    if deferred_pip_uninstall:
+        return (
+            '\nSeiscat uninstall has been scheduled using pip.\n'
+            'This terminal may show pip output after seiscat exits.\n'
+            'Managed completion snippets removed.\n'
+            'For reinstall instructions, visit:\n'
+            '  https://seiscat.seismicsource.org'
+        )
 
     return (
         f'\nSeiscat uninstalled using {backend}.\n'
