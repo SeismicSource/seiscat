@@ -13,6 +13,7 @@ import subprocess
 ZSH_MARKER = '# >>> seiscat argcomplete >>>'
 ZSH_END_MARKER = '# <<< seiscat argcomplete <<<'
 BASH_LINE = 'eval "$(register-python-argcomplete seiscat)"'
+POWERSHELL_MODULE = 'seiscat-argcomplete.psm1'
 
 
 def _detect_shell():
@@ -45,6 +46,55 @@ def _is_bash_completion_installed():
     return BASH_LINE in bashrc.read_text(encoding='utf-8', errors='ignore')
 
 
+def _run_capture(command):
+    completed = subprocess.run(
+        command,
+        check=True,
+        capture_output=True,
+        text=True
+    )
+    return completed.stdout.strip()
+
+
+def _find_powershell_executable():
+    return shutil.which('pwsh') or shutil.which('powershell')
+
+
+def _powershell_module_path():
+    return Path.home() / POWERSHELL_MODULE
+
+
+def _powershell_import_line():
+    # Use absolute path to avoid profile cwd-dependent imports.
+    return f'Import-Module "{_powershell_module_path()}"'
+
+
+def _powershell_profile_path():
+    ps_exec = _find_powershell_executable()
+    if ps_exec is not None:
+        try:
+            output = _run_capture([
+                ps_exec,
+                '-NoProfile',
+                '-Command',
+                '$PROFILE.CurrentUserAllHosts'
+            ])
+            if output:
+                return Path(output)
+        except (subprocess.CalledProcessError, OSError):
+            pass
+    return Path.home() / 'Documents' / 'PowerShell' / 'profile.ps1'
+
+
+def _is_powershell_completion_installed():
+    module_path = _powershell_module_path()
+    profile_path = _powershell_profile_path()
+    if not module_path.exists() or not profile_path.exists():
+        return False
+    content = profile_path.read_text(encoding='utf-8', errors='ignore')
+    return _powershell_import_line() in content
+
+
 def completion_status():
     """Return completion status dictionary for current platform/shell."""
     shell = _detect_shell()
@@ -74,10 +124,11 @@ def completion_status():
             else 'bash completion line not found'
         )
     elif shell == 'powershell':
-        status['installed'] = False
+        status['installed'] = _is_powershell_completion_installed()
         status['details'] = (
-            'PowerShell completion via argcomplete is limited; '
-            'use Git Bash/WSL for full shell hook support'
+            'PowerShell completion module and profile import detected'
+            if status['installed']
+            else 'PowerShell completion module/profile import not found'
         )
     else:
         status['installed'] = False
@@ -88,6 +139,46 @@ def completion_status():
 
 def _run_command(command):
     subprocess.run(command, check=True)
+
+
+def _install_powershell_completion():
+    module_path = _powershell_module_path()
+    profile_path = _powershell_profile_path()
+    import_line = _powershell_import_line()
+
+    register_cmd = shutil.which('register-python-argcomplete')
+    if register_cmd is not None:
+        command = [register_cmd, '--shell', 'powershell', 'seiscat']
+    else:
+        command = [
+            'uv', 'tool', 'run', '--from', 'argcomplete',
+            'register-python-argcomplete', '--shell', 'powershell', 'seiscat'
+        ]
+
+    shellcode = _run_capture(command)
+    module_path.write_text(shellcode + '\n', encoding='utf-8')
+
+    profile_path.parent.mkdir(parents=True, exist_ok=True)
+    profile_path.touch(exist_ok=True)
+    content = profile_path.read_text(encoding='utf-8', errors='ignore')
+    if import_line not in content:
+        if content and not content.endswith('\n'):
+            content += '\n'
+        content += import_line + '\n'
+        profile_path.write_text(content, encoding='utf-8')
+
+    ps_exec = _find_powershell_executable()
+    if ps_exec is not None:
+        try:
+            _run_command([
+                ps_exec,
+                '-NoProfile',
+                '-Command',
+                f'Import-Module "{module_path}" -Force'
+            ])
+        except subprocess.CalledProcessError:
+            # Profile has been updated; module will load in a new shell.
+            pass
 
 
 def _install_zsh_completion():
@@ -155,9 +246,10 @@ def install_completion():
             'Open a new terminal or run: source ~/.bashrc'
         )
     if shell == 'powershell':
+        _install_powershell_completion()
         return (
-            'PowerShell detected: global argcomplete was attempted. '
-            'For full shell hooks, prefer Git Bash or WSL.'
+            'Installed PowerShell completion. '
+            'Open a new terminal (or reload your profile) to apply changes.'
         )
     return f'Completion installation for shell "{shell}" is not supported.'
 
@@ -192,3 +284,19 @@ def uninstall_completion():
             '\n'.join(filtered).rstrip() + '\n',
             encoding='utf-8'
         )
+
+    ps_profile = _powershell_profile_path()
+    import_line = _powershell_import_line()
+    if ps_profile.exists():
+        lines = ps_profile.read_text(
+            encoding='utf-8', errors='ignore'
+        ).splitlines()
+        filtered = [line for line in lines if line.strip() != import_line]
+        ps_profile.write_text(
+            '\n'.join(filtered).rstrip() + '\n',
+            encoding='utf-8'
+        )
+
+    ps_module = _powershell_module_path()
+    if ps_module.exists():
+        ps_module.unlink()

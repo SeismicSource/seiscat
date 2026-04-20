@@ -11,7 +11,7 @@ This script:
 1) Checks if uv is installed and installs it if missing.
 2) Installs/updates SeisCat with optional plotting dependencies.
 3) Installs/updates argcomplete.
-4) Runs activate-global-python-argcomplete.
+4) Registers PowerShell argcomplete integration for seiscat.
 
 .PARAMETER DryRun
 Print planned commands without executing them.
@@ -84,7 +84,7 @@ Options:
         Write-Info "1) Check if uv is installed and install it if missing."
         Write-Info "2) Install/update seiscat with plotly, cartopy, folium, and pandas via uv tool install."
         Write-Info "3) Install/update argcomplete via uv tool install."
-        Write-Info "4) Run activate-global-python-argcomplete."
+        Write-Info "4) Register PowerShell argcomplete integration for seiscat."
 
         if ($DryRun) {
             Write-WarnMsg "Dry-run mode: commands and file changes will be printed but not executed."
@@ -153,38 +153,67 @@ function Install-Uv {
 }
 
 function Activate-Argcomplete {
-    Write-Info "Step 4/4: Running activate-global-python-argcomplete..."
+    Write-Info "Step 4/4: Registering argcomplete for PowerShell..."
 
-    $activationCmd = Get-Command "activate-global-python-argcomplete" -ErrorAction SilentlyContinue
+    $profilePath = $PROFILE.CurrentUserAllHosts
+    $profileDir = Split-Path -Parent $profilePath
+    $modulePath = Join-Path $HOME "seiscat-argcomplete.psm1"
+    $importLine = "Import-Module '$modulePath'"
 
-    if ($null -ne $activationCmd) {
-        try {
-            Invoke-StepCommand -Display "activate-global-python-argcomplete --user" -ScriptBlock {
-                & $activationCmd.Source --user
-            }
-            Write-Ok "Global argcomplete activation completed (--user mode)."
-        }
-        catch {
-            Write-WarnMsg "activate-global-python-argcomplete --user failed. Retrying without --user..."
-            Invoke-StepCommand -Display "activate-global-python-argcomplete" -ScriptBlock {
-                & $activationCmd.Source
-            }
-            Write-Ok "Global argcomplete activation completed."
-        }
-        return
-    }
-
-    Write-WarnMsg "activate-global-python-argcomplete is not on PATH. Trying via uv tool run..."
+    Write-Info "Generating completion module with register-python-argcomplete..."
     try {
-        Invoke-StepCommand -Display "uv tool run --from argcomplete activate-global-python-argcomplete --user" -ScriptBlock {
-            uv tool run --from argcomplete activate-global-python-argcomplete --user
+        Invoke-StepCommand -Display "register-python-argcomplete --shell powershell seiscat > $modulePath" -ScriptBlock {
+            register-python-argcomplete --shell powershell seiscat | Out-File -FilePath $modulePath -Encoding utf8
         }
-        Write-Ok "Global argcomplete activation completed via uv tool run (--user mode)."
+        Write-Ok "PowerShell completion module generated: $modulePath"
     }
     catch {
-        Write-WarnMsg "argcomplete activation command failed on this shell."
-        Write-WarnMsg "On Windows, this command mainly targets bash-like shells."
-        Write-WarnMsg "If you use Git Bash, run activate-global-python-argcomplete there."
+        Write-WarnMsg "register-python-argcomplete is not on PATH. Trying via uv tool run..."
+        Invoke-StepCommand -Display "uv tool run --from argcomplete register-python-argcomplete --shell powershell seiscat > $modulePath" -ScriptBlock {
+            uv tool run --from argcomplete register-python-argcomplete --shell powershell seiscat | Out-File -FilePath $modulePath -Encoding utf8
+        }
+        Write-Ok "PowerShell completion module generated via uv tool run: $modulePath"
+    }
+
+    if (-not (Test-Path $profileDir)) {
+        Invoke-StepCommand -Display "New-Item -ItemType Directory -Path $profileDir -Force" -ScriptBlock {
+            New-Item -ItemType Directory -Path $profileDir -Force | Out-Null
+        }
+    }
+
+    if (-not (Test-Path $profilePath)) {
+        Invoke-StepCommand -Display "New-Item -ItemType File -Path $profilePath -Force" -ScriptBlock {
+            New-Item -ItemType File -Path $profilePath -Force | Out-Null
+        }
+    }
+
+    $profileContent = if (Test-Path $profilePath) {
+        Get-Content -Path $profilePath -Raw
+    }
+    else {
+        ''
+    }
+
+    if ($profileContent -notmatch [regex]::Escape($importLine)) {
+        Invoke-StepCommand -Display "Append Import-Module line to $profilePath" -ScriptBlock {
+            Add-Content -Path $profilePath -Value "`r`n$importLine"
+        }
+        Write-Ok "Added argcomplete module import to profile: $profilePath"
+    }
+    else {
+        Write-Info "Profile already imports the argcomplete module."
+    }
+
+    Write-Info "Loading completion module in current session..."
+    try {
+        Invoke-StepCommand -Display "Import-Module '$modulePath'" -ScriptBlock {
+            Import-Module $modulePath -Force
+        }
+        Write-Ok "PowerShell completion is active in this session."
+    }
+    catch {
+        Write-WarnMsg "Could not import completion module in this session."
+        Write-WarnMsg "Open a new PowerShell terminal to load profile changes."
     }
 }
 
