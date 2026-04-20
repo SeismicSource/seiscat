@@ -16,13 +16,13 @@ Run one of the following commands:
 
 .. code-block:: sh
 
-   sh -c "$(curl -fsSL https://raw.githubusercontent.com/SeismicSource/seiscat/refs/heads/main/scripts/install_seiscat_uv.sh)"
+   bash -c "$(curl -fsSL https://raw.githubusercontent.com/SeismicSource/seiscat/refs/heads/main/scripts/install_seiscat_uv.sh)"
 
 or:
 
 .. code-block:: sh
 
-   sh -c "$(wget https://raw.githubusercontent.com/SeismicSource/seiscat/refs/heads/main/scripts/install_seiscat_uv.sh -O -)"
+   bash -c "$(wget https://raw.githubusercontent.com/SeismicSource/seiscat/refs/heads/main/scripts/install_seiscat_uv.sh -O -)"
 
 Windows (PowerShell)
 ~~~~~~~~~~~~~~~~~~~~

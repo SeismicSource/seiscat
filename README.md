@@ -99,13 +99,13 @@ your system Python (if any) and manages it via [uv][uv-link].
 Run one of the following commands:
 
 ```sh
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/SeismicSource/seiscat/refs/heads/main/scripts/install_seiscat_uv.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/SeismicSource/seiscat/refs/heads/main/scripts/install_seiscat_uv.sh)"
 ```
 
 or:
 
 ```sh
-sh -c "$(wget https://raw.githubusercontent.com/SeismicSource/seiscat/refs/heads/main/scripts/install_seiscat_uv.sh -O -)"
+bash -c "$(wget https://raw.githubusercontent.com/SeismicSource/seiscat/refs/heads/main/scripts/install_seiscat_uv.sh -O -)"
 ```
 
 #### Windows (PowerShell)
