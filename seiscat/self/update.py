@@ -1,0 +1,155 @@
+# -*- coding: utf8 -*-
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Update logic for seiscat self commands."""
+from __future__ import annotations
+
+import json
+import shutil
+import subprocess
+import sys
+from urllib.request import urlopen
+
+from .install_detection import detect_install_context
+
+SEISCAT_GIT_URL = 'git+https://github.com/SeismicSource/seiscat.git'
+
+
+def _parse_version(value):
+    try:
+        from packaging.version import Version
+        return Version(value)
+    except ImportError:
+        from pkg_resources import parse_version
+        return parse_version(value)
+
+
+def get_latest_release_version(timeout=5):
+    """Return latest release version from PyPI, or None on failure."""
+    try:
+        with urlopen(
+            'https://pypi.org/pypi/seiscat/json',
+            timeout=timeout
+        ) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+        return data['info']['version']
+    except Exception:
+        return None
+
+
+def _run_checked(command):
+    subprocess.run(command, check=True)
+
+
+def _pip_update_release():
+    _run_checked([
+        sys.executable, '-m', 'pip', 'install', '--upgrade', 'seiscat'
+    ])
+
+
+def _uv_update_release():
+    _run_checked(['uv', 'tool', 'install', 'seiscat', '--upgrade', '--force'])
+
+
+def _pip_update_git():
+    _run_checked([
+        sys.executable, '-m', 'pip', 'install', '--upgrade', SEISCAT_GIT_URL
+    ])
+
+
+def _uv_update_git():
+    _run_checked([
+        'uv', 'tool', 'install', SEISCAT_GIT_URL, '--upgrade', '--force'
+    ])
+
+
+def _is_release_higher(installed_version, latest_release_version):
+    return (
+        _parse_version(latest_release_version)
+        > _parse_version(installed_version)
+    )
+
+
+def update_seiscat(git=False):
+    """Update SeisCat using release or git policy.
+
+    Returns a user-facing status string.
+    """
+    context = detect_install_context()
+    latest_release = get_latest_release_version()
+    uv_available = shutil.which('uv') is not None
+
+    if context.channel == 'editable':
+        return 'Editable install detected: automatic update is disabled.'
+
+    if git:
+        if context.installer == 'uv' and uv_available:
+            _uv_update_git()
+            return 'Updated to latest git version using uv.'
+        _pip_update_git()
+        return 'Updated to latest git version using pip.'
+
+    # Release-track behavior
+    if context.channel == 'git' and latest_release:
+        if _is_release_higher(context.version_installed, latest_release):
+            # Switch back to release because release is newer
+            if context.installer == 'uv' and uv_available:
+                _uv_update_release()
+                return (
+                    f'Latest release ({latest_release}) '
+                    'is newer than installed git '
+                    f'version ({context.version_installed}); '
+                    'switched to release via uv.'
+                )
+            _pip_update_release()
+            return (
+                f'Latest release ({latest_release}) '
+                'is newer than installed git '
+                f'version ({context.version_installed}); '
+                'switched to release via pip.'
+            )
+        return (
+            f'Installed git version ({context.version_installed}) '
+            'is newer or equal '
+            f'to latest release ({latest_release}). '
+            'Use --git to keep git track explicitly.'
+        )
+
+    if context.installer == 'uv' and uv_available:
+        _uv_update_release()
+        return 'Updated to latest release using uv.'
+    _pip_update_release()
+    return 'Updated to latest release using pip.'
+
+
+def uninstall_seiscat(yes=False):
+    """Uninstall SeisCat from current environment/tool backend."""
+    from .completion import uninstall_completion
+
+    if not yes:
+        reply = input(
+            'This will uninstall seiscat from this environment. '
+            'Continue? [y/N]: '
+        )
+        if reply.strip().lower() not in {'y', 'yes'}:
+            return 'Uninstall cancelled.'
+
+    context = detect_install_context()
+    uv_available = shutil.which('uv') is not None
+    try:
+        if context.installer == 'uv' and uv_available:
+            _run_checked(['uv', 'tool', 'uninstall', 'seiscat'])
+            backend = 'uv'
+        else:
+            _run_checked([
+                sys.executable, '-m', 'pip', 'uninstall', '-y', 'seiscat'
+            ])
+            backend = 'pip'
+    finally:
+        uninstall_completion()
+
+    return (
+        f'\nSeiscat uninstalled using {backend}.\n'
+        'Managed completion snippets removed.\n'
+        'For reinstall instructions, visit:\n'
+        '  https://seiscat.seismicsource.org'
+    )

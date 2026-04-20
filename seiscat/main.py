@@ -34,9 +34,9 @@ def run():
         from .utils import write_sample_script
         write_sample_script()
         sys.exit(0)
-    if args.action == 'logo':
-        from .utils import print_logo
-        print_logo()
+    elif args.action == 'self':
+        from .self import run_self_command
+        run_self_command(args)
         sys.exit(0)
     config = read_config(args.configfile, configspec)
     config['args'] = args

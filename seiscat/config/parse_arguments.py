@@ -766,12 +766,81 @@ def _add_samplescript_parser(subparser):
     )
 
 
-def _add_logo_parser(subparser):
-    """Add the logo subparser."""
-    subparser.add_parser(
+def _add_self_parser(subparser):
+    """Add the self-management subparser tree."""
+    self_parser = subparser.add_parser(
+        'self',
+        formatter_class=RichHelpFormatter,
+        help='manage seiscat installation, updates, completion, and logo'
+    )
+    self_subparser = self_parser.add_subparsers(
+        dest='self_action',
+        title='self commands'
+    )
+    self_subparser.metavar = '<self-command> [options]'
+
+    self_subparser.add_parser(
+        'status',
+        formatter_class=RichHelpFormatter,
+        help='show self-management status'
+    )
+
+    update_parser = self_subparser.add_parser(
+        'update',
+        formatter_class=RichHelpFormatter,
+        help='update seiscat (release by default)'
+    )
+    update_parser.add_argument(
+        '--git',
+        action='store_true',
+        default=False,
+        help='update/switch to latest git version instead of release track'
+    )
+
+    uninstall_parser = self_subparser.add_parser(
+        'uninstall',
+        formatter_class=RichHelpFormatter,
+        help='uninstall seiscat from current environment/tool backend'
+    )
+    uninstall_parser.add_argument(
+        '--yes',
+        action='store_true',
+        default=False,
+        help='skip interactive confirmation'
+    )
+
+    completion_parser = self_subparser.add_parser(
+        'completion',
+        formatter_class=RichHelpFormatter,
+        help='manage shell completion'
+    )
+    completion_subparser = completion_parser.add_subparsers(
+        dest='self_completion_action',
+        title='completion commands'
+    )
+    completion_subparser.metavar = '<completion-command> [options]'
+    completion_subparser.add_parser(
+        'status',
+        formatter_class=RichHelpFormatter,
+        help='show shell completion status'
+    )
+    completion_subparser.add_parser(
+        'install',
+        formatter_class=RichHelpFormatter,
+        help='install/repair shell completion'
+    )
+
+    logo_parser = self_subparser.add_parser(
         'logo',
         formatter_class=RichHelpFormatter,
-        help='print the seiscat logo 🐱')
+        help='print the seiscat logo 🐱'
+    )
+    logo_parser.add_argument(
+        '--compact',
+        action='store_true',
+        default=False,
+        help='print compact logo variant'
+    )
 
 
 def _add_main_arguments(parser):
@@ -811,7 +880,7 @@ def parse_arguments():
     _add_run_parser(subparser, parents)
     _add_sampleconfig_parser(subparser)
     _add_samplescript_parser(subparser)
-    _add_logo_parser(subparser)
+    _add_self_parser(subparser)
     # Check if we're in completion mode before running argcomplete
     # This avoids unnecessary overhead when not doing shell completion
     if '_ARGCOMPLETE' in os.environ:
@@ -819,5 +888,15 @@ def parse_arguments():
     args = parser.parse_args()
     if args.action is None:
         parser.print_help()
+        sys.exit(0)
+    if args.action == 'self' and getattr(args, 'self_action', None) is None:
+        parser.parse_args(['self', '--help'])
+        sys.exit(0)
+    if (
+        args.action == 'self'
+        and getattr(args, 'self_action', None) == 'completion'
+        and getattr(args, 'self_completion_action', None) is None
+    ):
+        parser.parse_args(['self', 'completion', '--help'])
         sys.exit(0)
     return args
