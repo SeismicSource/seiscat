@@ -5,7 +5,7 @@ Keep a local seismic catalog.
 Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 
        /\_/\
-    ~~( ⊙.⊙ )~~ SeiScat
+    ~~( ⊙.⊙ )~~ SeisCat
 
 ## [unreleased]
 
