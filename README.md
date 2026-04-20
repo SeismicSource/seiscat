@@ -139,6 +139,9 @@ I'm very open to contributions: if you have new ideas, please open an
 [Issue][Issues].
 Don't hesitate sending me pull requests with new features and/or bugfixes!
 
+       /\_/\
+    ~~( ⊙.⊙ )~~ SeiScat
+
 <!-- Badges and project links -->
 [changelog-badge]: https://img.shields.io/badge/Changelog-136CB6.svg
 [changelog-link]: CHANGELOG.md

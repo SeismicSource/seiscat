@@ -4,6 +4,9 @@ Keep a local seismic catalog.
 
 Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 
+       /\_/\
+    ~~( ⊙.⊙ )~~ SeiScat
+
 ## [unreleased]
 
 ### Added
@@ -13,6 +16,7 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - New `seiscat self` workflows for self-management, including
   updates (`seiscat self update`, `seiscat self update --git`) and shell
   completion setup (`seiscat self completion install`).
+- New ascii-art small logo 🐱
 
 ## [0.9.1] - 2026-04-17
 

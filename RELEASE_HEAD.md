@@ -19,4 +19,7 @@ If you use SeisCat in your work, please cite:
 
 Replace X.Y with the specific SeisCat version number used in your study.
 
+       /\_/\
+    ~~( ⊙.⊙ )~~ SeiScat
+
 ## Changes in this version:
