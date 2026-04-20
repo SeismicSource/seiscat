@@ -1,120 +1,141 @@
 Installation
 ============
 
-Installing the latest release
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Recommended installation (system tool)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Using pip and PyPI (preferred method)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The easiest and recommended way to install **SeisCat** is as a system tool
+using the official installation script. This installs SeisCat independently of
+your system Python (if any) and manages it via
+`uv <https://docs.astral.sh/uv/>`_.
 
-The latest release of SeisCat is available on the
-`Python Package Index <https://pypi.org/project/seiscat/>`_.
+Linux & macOS
+~~~~~~~~~~~~~
 
-You can install it easily through ``pip``\ :
+Run one of the following commands:
 
-.. code-block::
+.. code-block:: sh
+
+   sh -c "$(curl -fsSL https://raw.githubusercontent.com/SeismicSource/seiscat/refs/heads/main/scripts/install_seiscat_uv.sh)"
+
+or:
+
+.. code-block:: sh
+
+   sh -c "$(wget https://raw.githubusercontent.com/SeismicSource/seiscat/refs/heads/main/scripts/install_seiscat_uv.sh -O -)"
+
+Windows (PowerShell)
+~~~~~~~~~~~~~~~~~~~~
+
+Run the following command in PowerShell:
+
+.. code-block:: powershell
+
+   powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/SeismicSource/seiscat/refs/heads/main/scripts/install_seiscat_uv.ps1 | iex"
+
+Updating SeisCat
+^^^^^^^^^^^^^^^^
+
+Once installed as a system tool, SeisCat can be updated directly:
+
+.. code-block:: sh
+
+   seiscat self update
+
+To switch to the development version:
+
+.. code-block:: sh
+
+   seiscat self update --git
+
+Alternative installation methods
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Using pip (PyPI)
+~~~~~~~~~~~~~~~~
+
+The latest stable release is available on the Python Package Index:
+
+.. code-block:: sh
 
    pip install seiscat
 
-Optional plotting backends can be installed with extras:
+Optional plotting backends:
 
-.. code-block::
+.. code-block:: sh
 
    pip install seiscat[cartopy]
    pip install seiscat[plotly]
    pip install seiscat[folium]
    pip install seiscat[cartopy,plotly,folium]
 
+To upgrade:
 
-To upgrade from a previously installed version:
-
-.. code-block::
+.. code-block:: sh
 
    pip install --upgrade seiscat
 
+Installing a development snapshot (pip + git)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-From SeisCat GitHub releases
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+To install the latest development version:
 
-Download the latest release from the
-`releases page <https://github.com/SeismicSource/seiscat/releases>`_\ ,
-in ``zip`` or ``tar.gz`` format, then:
-
-.. code-block::
-
-   pip install seiscat-X.Y.zip
-
-
-or
-
-.. code-block::
-
-   pip install seiscat-X.Y.tar.gz
-
-
-Where, ``X.Y`` is the version number (e.g., ``0.1``\ ).
-You don't need to uncompress the release files yourself.
-
-Installing a developer snapshot
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-If you need a recent feature that is not in the latest release (see the
-``unreleased`` section in :ref:`changelog`), you want to use the
-more recent development snapshot from the
-`SeisCat GitHub repository <https://github.com/SeismicSource/seiscat>`_.
-
-Using pip (preferred method)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The easiest way to install the most recent development snapshot is to download
-and install it through ``pip``\ , using its builtin ``git`` client:
-
-.. code-block::
+.. code-block:: sh
 
    pip install git+https://github.com/SeismicSource/seiscat.git
 
+From GitHub releases
+~~~~~~~~~~~~~~~~~~~~
 
-Run this command again, from times to times, to keep SeisCat updated with
-the development version.
+Download a release archive from the SeisCat releases page:
+https://github.com/SeismicSource/seiscat/releases
 
-Cloning the SeisCat GitHub repository
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Then install it directly:
 
-If you want to take a look at the source code (and possibly modify it 😉),
-clone the project using ``git``\ :
+.. code-block:: sh
 
-.. code-block::
+   pip install seiscat-X.Y.zip
+
+or:
+
+.. code-block:: sh
+
+   pip install seiscat-X.Y.tar.gz
+
+Working from source (editable install)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Clone the repository:
+
+.. code-block:: sh
 
    git clone https://github.com/SeismicSource/seiscat.git
 
+or via SSH:
 
-or, using SSH:
-
-.. code-block::
+.. code-block:: sh
 
    git clone git@github.com:SeismicSource/seiscat.git
 
+Then install in editable mode:
 
-(avoid using the "Download ZIP" option from the green "Code" button, since
-version number is lost).
-
-Then, go into the ``seiscat`` main directory and install the code in "editable
-mode" by running:
-
-.. code-block::
+.. code-block:: sh
 
    pip install -e .
 
-To install optional plotting backends in editable mode:
+Optional extras:
 
-.. code-block::
+.. code-block:: sh
 
    pip install -e .[cartopy]
    pip install -e .[plotly]
    pip install -e .[folium]
    pip install -e .[cartopy,plotly,folium]
 
+To update:
 
-You can keep your local SeisCat repository updated by running ``git pull``
-from times to times. Thanks to ``pip``\ 's "editable mode", you don't need to
-reinstall SeisCat after each update.
+.. code-block:: sh
+
+   git pull
+
+With editable installs, changes are reflected immediately without reinstalling.

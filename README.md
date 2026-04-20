@@ -82,103 +82,57 @@ As an example, to discover the options for the `plot` command, try:
 
     seiscat plot -h
 
-SeisCat supports command line tab completion for arguments, thanks to
-[argcomplete](https://kislyuk.github.io/argcomplete/).
 To enable command line tab completion run:
 
-    activate-global-python-argcomplete
-
-(This is a one-time command that needs to be run only once).
-
-Or, alternatively, add the following line to your `.bashrc` or `.zshrc`:
-
-    eval "$(register-python-argcomplete seiscat)"
+    seiscat self completion install
 
 ## Installation
 
-### Installing the latest release
+### Recommended installation (system tool)
 
-#### Using pip and PyPI (preferred method)
+The easiest and recommended way to install **SeisCat** is as a system tool
+using the official installation script. This installs SeisCat independently of
+your system Python (if any) and manages it via [uv][uv-link].
 
-The latest release of SeisCat is available on the
-[Python Package Index](https://pypi.org/project/seiscat/).
+#### Linux & macOS
 
-You can install it easily through `pip`:
+Run one of the following commands:
 
-    pip install seiscat
+```sh
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/SeismicSource/seiscat/refs/heads/main/scripts/install_seiscat_uv.sh)"
+```
 
-Optional plotting backends can be installed with extras:
+or:
 
-    pip install seiscat[cartopy]
-    pip install seiscat[plotly]
-    pip install seiscat[folium]
-    pip install seiscat[cartopy,plotly,folium]
+```sh
+sh -c "$(wget https://raw.githubusercontent.com/SeismicSource/seiscat/refs/heads/main/scripts/install_seiscat_uv.sh -O -)"
+```
 
-To upgrade from a previously installed version:
+#### Windows (PowerShell)
 
-    pip install --upgrade seiscat
+Run the following command in PowerShell:
 
-#### From SeisCat GitHub releases
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/SeismicSource/seiscat/refs/heads/main/scripts/install_seiscat_uv.ps1 | iex"
+```
 
-Download the latest release from the
-[releases page](https://github.com/SeismicSource/seiscat/releases),
-in `zip` or `tar.gz` format, then:
+### Updating SeisCat
 
-    pip install seiscat-X.Y.zip
+Once installed as a system tool, SeisCat can be updated directly:
 
-or
+```sh
+seiscat self update
+```
 
-    pip install seiscat-X.Y.tar.gz
+To switch to the development version:
 
-Where, `X.Y` is the version number (e.g., `0.1`).
-You don't need to uncompress the release files yourself.
+```sh
+seiscat self update --git
+```
 
-### Installing a developer snapshot
-
-If you need a recent feature that is not in the latest release (see the
-`unreleased` section in [CHANGELOG][changelog-link]), you want to use the more
-recent development snapshot from the
-[SeisCat GitHub repository](https://github.com/SeismicSource/seiscat).
-
-#### Using pip (preferred method)
-
-The easiest way to install the most recent development snapshot is to download
-and install it through `pip`, using its builtin `git` client:
-
-    pip install git+https://github.com/SeismicSource/seiscat.git
-
-Run this command again, from times to times, to keep SeisCat updated with
-the development version.
-
-### Cloning the SeisCat GitHub repository
-
-If you want to take a look at the source code (and possibly modify it 😉),
-clone the project using `git`:
-
-    git clone https://github.com/SeismicSource/seiscat.git
-
-or, using SSH:
-
-    git clone git@github.com:SeismicSource/seiscat.git
-
-(avoid using the "Download ZIP" option from the green "Code" button, since
-version number is lost).
-
-Then, go into the `seiscat` main directory and install the code in "editable
-mode" by running:
-
-    pip install -e .
-
-To install optional plotting backends in editable mode:
-
-    pip install -e .[cartopy]
-    pip install -e .[plotly]
-    pip install -e .[folium]
-    pip install -e .[cartopy,plotly,folium]
-
-You can keep your local SeisCat repository updated by running `git pull`
-from times to times. Thanks to `pip`'s "editable mode", you don't need to
-reinstall SeisCat after each update.
+For alternative installation methods (pip, development snapshots, releases,
+and editable source installs), see the full installation documentation:
+https://seiscat.readthedocs.io/en/latest/installation.html
 
 ## Getting Help / Reporting Bugs
 
@@ -212,3 +166,4 @@ Don't hesitate sending me pull requests with new features and/or bugfixes!
 [codecov-link]: https://codecov.io/github/SeismicSource/seiscat
 [DeepWiki-badge]: https://deepwiki.com/badge.svg
 [DeepWiki-link]: https://deepwiki.com/SeismicSource/seiscat
+[uv-link]: https://docs.astral.sh/uv/

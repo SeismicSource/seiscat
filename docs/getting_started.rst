@@ -4,6 +4,8 @@ Getting Started
 This page shows the typical first workflow with SeisCat:
 create a config file, initialize a local database, and keep it updated.
 
+If SeisCat is not installed yet, start with :doc:`installation`.
+
 
 Quick start
 -----------
@@ -112,20 +114,11 @@ last *n* days/hours/minutes/seconds.
 Tab completion
 --------------
 
-SeisCat supports shell tab completion through
-`argcomplete <https://kislyuk.github.io/argcomplete/>`__.
-
-Enable it globally (one-time setup):
+Enable shell tab completion with:
 
 .. code-block::
 
-   activate-global-python-argcomplete
-
-Or add this line to your ``.bashrc`` or ``.zshrc``:
-
-.. code-block::
-
-   eval "$(register-python-argcomplete seiscat)"
+   seiscat self completion install
 
 
 Next

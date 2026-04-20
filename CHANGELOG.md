@@ -6,6 +6,14 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 
 ## [unreleased]
 
+### Added
+
+- New installer script to install SeisCat
+  as a uv-managed system tool on Linux, macOS, and Windows (PowerShell).
+- New `seiscat self` workflows for self-management, including
+  updates (`seiscat self update`, `seiscat self update --git`) and shell
+  completion setup (`seiscat self completion install`).
+
 ## [0.9.1] - 2026-04-17
 
 ### Added
