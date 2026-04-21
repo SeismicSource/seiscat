@@ -137,7 +137,11 @@ def get_picked_station_codes(evid_dir, evid):
             # Fall back to pick.phase_hint if no arrival found
             if phase is None:
                 phase = pick.phase_hint
-            if phase is not None and phase[0].upper() in ('P', 'S'):
-                if pick.waveform_id and pick.waveform_id.station_code:
-                    station_codes.add(pick.waveform_id.station_code)
+            if (
+                phase is not None
+                and phase[0].upper() in ('P', 'S')
+                and pick.waveform_id
+                and pick.waveform_id.station_code
+            ):
+                station_codes.add(pick.waveform_id.station_code)
     return station_codes
