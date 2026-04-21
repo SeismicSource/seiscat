@@ -9,6 +9,15 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 
 ## [unreleased]
 
+### Added
+
+- New `station_codes` configuration parameter for filtering stations by name
+  when downloading waveforms (analogous to `channel_codes`).
+  Supports multiple codes and wildcard patterns (`?`, `*`).
+- New `picked_stations_only` configuration parameter to restrict waveform
+  downloads to stations that have at least one P or S-wave arrival in the
+  catalog (requires a QuakeML event details file to be present).
+
 ## [0.9.3] - 2026-04-20
 
 ### Fixed

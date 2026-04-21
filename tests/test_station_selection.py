@@ -1,0 +1,178 @@
+# -*- coding: utf8 -*-
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""
+Test station selection criteria for downloading waveforms.
+
+:copyright:
+    2022-2026 Claudio Satriano <satriano@ipgp.fr>
+:license:
+    GNU General Public License v3.0 or later
+    (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
+"""
+import pathlib
+import tempfile
+import unittest
+from seiscat.fetchdata.event_waveforms_utils import (
+    check_station, get_picked_station_codes
+)
+
+
+class TestCheckStation(unittest.TestCase):
+    """Test station code matching with wildcards."""
+
+    def test_exact_match(self):
+        """Test exact station code matching."""
+        self.assertTrue(check_station('STA1', 'STA1'))
+        self.assertFalse(check_station('STA2', 'STA1'))
+
+    def test_question_mark_wildcard(self):
+        """Test single-character wildcard '?'."""
+        self.assertTrue(check_station('STA1', 'STA?'))
+        self.assertTrue(check_station('STAB', 'STA?'))
+        self.assertFalse(check_station('STA12', 'STA?'))
+        self.assertFalse(check_station('ST', 'STA?'))
+
+    def test_asterisk_wildcard(self):
+        """Test multi-character wildcard '*'."""
+        self.assertTrue(check_station('STA1', 'STA*'))
+        self.assertTrue(check_station('STATION', 'STA*'))
+        self.assertTrue(check_station('STA', 'STA*'))
+        self.assertFalse(check_station('OTHER', 'STA*'))
+
+    def test_multiple_codes(self):
+        """Test multiple station codes separated by commas."""
+        self.assertTrue(check_station('STA1', 'STA1,STA2'))
+        self.assertTrue(check_station('STA2', 'STA1,STA2'))
+        self.assertFalse(check_station('STA3', 'STA1,STA2'))
+
+    def test_multiple_codes_with_wildcards(self):
+        """Test multiple station codes with wildcards."""
+        self.assertTrue(check_station('STA1', 'STA?,OTHER*'))
+        self.assertTrue(check_station('OTHERSTUFF', 'STA?,OTHER*'))
+        self.assertFalse(check_station('NOPE', 'STA?,OTHER*'))
+
+    def test_spaces_in_codes(self):
+        """Test that spaces in codes are handled."""
+        # Patterns with trailing/leading spaces in each code
+        self.assertTrue(check_station('STA1', ' STA1 , STA2 '))
+        self.assertTrue(check_station('STA2', 'STA1 , STA2'))
+
+    def test_case_sensitive(self):
+        """Test that matching is case sensitive."""
+        self.assertFalse(check_station('sta1', 'STA1'))
+        self.assertFalse(check_station('STA1', 'sta1'))
+
+
+class TestGetPickedStationCodes(unittest.TestCase):
+    """Test extracting station codes with picks from QuakeML."""
+
+    def _write_quakeml(self, tmpdir, evid, content):
+        """Write a QuakeML file in tmpdir/evid/evid.xml."""
+        evid_dir = pathlib.Path(tmpdir) / evid
+        evid_dir.mkdir()
+        xml_file = evid_dir / f'{evid}.xml'
+        xml_file.write_text(content)
+        return evid_dir
+
+    def test_no_xml_file(self):
+        """Returns None when QuakeML file does not exist."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evid_dir = pathlib.Path(tmpdir) / 'ev1'
+            evid_dir.mkdir()
+            result = get_picked_station_codes(evid_dir, 'ev1')
+            self.assertIsNone(result)
+
+    def test_picks_with_phase_hint(self):
+        """Returns station codes from picks with P/S phase hints."""
+        quakeml = """<?xml version="1.0" encoding="utf-8"?>
+<q:quakeml xmlns="http://quakeml.org/xmlns/bed/1.2"
+           xmlns:q="http://quakeml.org/xmlns/quakeml/1.2">
+  <eventParameters publicID="quakeml:test/eventParameters">
+    <event publicID="quakeml:test/ev1">
+      <pick publicID="quakeml:test/pick/1">
+        <time><value>2021-01-01T00:00:01Z</value></time>
+        <waveformID networkCode="XX" stationCode="STA1" channelCode="HHZ"/>
+        <phaseHint>P</phaseHint>
+      </pick>
+      <pick publicID="quakeml:test/pick/2">
+        <time><value>2021-01-01T00:00:05Z</value></time>
+        <waveformID networkCode="XX" stationCode="STA2" channelCode="HHZ"/>
+        <phaseHint>S</phaseHint>
+      </pick>
+      <pick publicID="quakeml:test/pick/3">
+        <time><value>2021-01-01T00:00:06Z</value></time>
+        <waveformID networkCode="XX" stationCode="STA3" channelCode="HHZ"/>
+        <phaseHint>amplitude</phaseHint>
+      </pick>
+      <origin publicID="quakeml:test/origin/1">
+        <time><value>2021-01-01T00:00:00Z</value></time>
+        <latitude><value>0.0</value></latitude>
+        <longitude><value>0.0</value></longitude>
+      </origin>
+    </event>
+  </eventParameters>
+</q:quakeml>"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evid_dir = self._write_quakeml(tmpdir, 'ev1', quakeml)
+            result = get_picked_station_codes(evid_dir, 'ev1')
+            self.assertIsNotNone(result)
+            self.assertIn('STA1', result)
+            self.assertIn('STA2', result)
+            # STA3 has 'amplitude' phase hint, not P or S
+            self.assertNotIn('STA3', result)
+
+    def test_empty_catalog(self):
+        """Returns an empty set when there are no picks."""
+        quakeml = """<?xml version="1.0" encoding="utf-8"?>
+<q:quakeml xmlns="http://quakeml.org/xmlns/bed/1.2"
+           xmlns:q="http://quakeml.org/xmlns/quakeml/1.2">
+  <eventParameters publicID="quakeml:test/eventParameters">
+    <event publicID="quakeml:test/ev2">
+      <origin publicID="quakeml:test/origin/1">
+        <time><value>2021-01-01T00:00:00Z</value></time>
+        <latitude><value>0.0</value></latitude>
+        <longitude><value>0.0</value></longitude>
+      </origin>
+    </event>
+  </eventParameters>
+</q:quakeml>"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evid_dir = self._write_quakeml(tmpdir, 'ev2', quakeml)
+            result = get_picked_station_codes(evid_dir, 'ev2')
+            self.assertIsNotNone(result)
+            self.assertEqual(len(result), 0)
+
+    def test_duplicate_station_picked_twice(self):
+        """Same station with both P and S picks is returned only once."""
+        quakeml = """<?xml version="1.0" encoding="utf-8"?>
+<q:quakeml xmlns="http://quakeml.org/xmlns/bed/1.2"
+           xmlns:q="http://quakeml.org/xmlns/quakeml/1.2">
+  <eventParameters publicID="quakeml:test/eventParameters">
+    <event publicID="quakeml:test/ev3">
+      <pick publicID="quakeml:test/pick/1">
+        <time><value>2021-01-01T00:00:01Z</value></time>
+        <waveformID networkCode="XX" stationCode="STA1" channelCode="HHZ"/>
+        <phaseHint>P</phaseHint>
+      </pick>
+      <pick publicID="quakeml:test/pick/2">
+        <time><value>2021-01-01T00:00:05Z</value></time>
+        <waveformID networkCode="XX" stationCode="STA1" channelCode="HHZ"/>
+        <phaseHint>S</phaseHint>
+      </pick>
+      <origin publicID="quakeml:test/origin/1">
+        <time><value>2021-01-01T00:00:00Z</value></time>
+        <latitude><value>0.0</value></latitude>
+        <longitude><value>0.0</value></longitude>
+      </origin>
+    </event>
+  </eventParameters>
+</q:quakeml>"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evid_dir = self._write_quakeml(tmpdir, 'ev3', quakeml)
+            result = get_picked_station_codes(evid_dir, 'ev3')
+            self.assertIsNotNone(result)
+            self.assertEqual(result, {'STA1'})
+
+
+if __name__ == '__main__':
+    unittest.main()

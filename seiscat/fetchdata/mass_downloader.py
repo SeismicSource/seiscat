@@ -16,7 +16,7 @@ from obspy.clients.fdsn import Client
 from obspy.clients.fdsn.mass_downloader import (
     CircularDomain, Restrictions, MassDownloader
 )
-from .event_waveforms_utils import prefer_high_sampling_rate
+from .event_waveforms_utils import prefer_high_sampling_rate, get_picked_station_codes
 from ..utils import ExceptionExit
 mdl_logger = logging.getLogger('obspy.clients.fdsn.mass_downloader')
 
@@ -208,6 +208,72 @@ def _unset_mdl_logger():
     mdl_logger.handlers = []
 
 
+def _build_station_restriction(
+        evid_dir, evid, station_codes, picked_stations_only):
+    """
+    Build the station restriction for the mass downloader.
+
+    Returns a set of station codes to restrict the download to, a raw
+    station codes string, or None (no restriction).
+
+    If ``picked_stations_only`` is True, reads the event QuakeML file and
+    extracts stations with P or S-wave picks.  If ``station_codes`` is also
+    provided, the result is further filtered to only include stations that
+    match ``station_codes``.
+
+    :param evid_dir: path to the event directory
+    :param evid: event ID
+    :param station_codes: station codes string (comma-separated, may contain
+        wildcards), or None
+    :param picked_stations_only: if True, restrict to stations with picks
+    :returns: set of station codes, raw station-codes string, or None
+    """
+    from .event_waveforms_utils import check_station, get_picked_station_codes
+    if not picked_stations_only and not station_codes:
+        return None
+    if picked_stations_only:
+        picked = get_picked_station_codes(evid_dir, evid)
+        if picked is None:
+            mdl_logger.warning(
+                'picked_stations_only is True but no event QuakeML file '
+                'found at %s. Ignoring pick-based station selection.',
+                evid_dir / f'{evid}.xml'
+            )
+            # Fall through to plain station_codes restriction (or None)
+            if not station_codes:
+                return None
+        else:
+            if not picked:
+                mdl_logger.warning(
+                    'No P/S picks found in the event QuakeML file. '
+                    'No waveforms will be downloaded.'
+                )
+                return set()  # empty set → no stations
+            mdl_logger.info(
+                'Restricting download to %d station(s) with picks: %s',
+                len(picked), ', '.join(sorted(picked))
+            )
+            if station_codes:
+                # Further filter picked stations by station_codes pattern
+                picked = {
+                    sta for sta in picked
+                    if check_station(sta, station_codes)
+                }
+                if not picked:
+                    mdl_logger.warning(
+                        'No picked stations match station_codes "%s". '
+                        'No waveforms will be downloaded.', station_codes
+                    )
+                    return set()  # empty set → no stations
+                mdl_logger.info(
+                    'After applying station_codes filter: %d station(s): %s',
+                    len(picked), ', '.join(sorted(picked))
+                )
+            return picked
+    # Only station_codes (no picked_stations_only)
+    return station_codes.replace(' ', '')
+
+
 def mass_download_waveforms(config, event):
     """
     Download waveforms for a single event using ObsPy mass downloader.
@@ -230,6 +296,8 @@ def mass_download_waveforms(config, event):
     duration_min = config['duration_min']
     interstation_distance_min = config['interstation_distance_min']
     channel_codes = config['channel_codes']
+    station_codes = config['station_codes']
+    picked_stations_only = config['picked_stations_only']
     event_dir = pathlib.Path(config['event_dir'])
     evid_dir = event_dir / f'{evid}'
     waveform_dir = pathlib.Path(evid_dir / config['waveform_dir'])
@@ -268,6 +336,18 @@ def mass_download_waveforms(config, event):
         restrictions['channel'] = channel_codes
     else:
         restrictions['channel'] = '*'
+    # Build station restriction
+    station_restriction = _build_station_restriction(
+        evid_dir, evid, station_codes, picked_stations_only)
+    if station_restriction is not None:
+        if not station_restriction:
+            # Empty set: no stations to download
+            mdl_logger.info('No stations match the selection criteria.')
+            _unset_mdl_logger()
+            return
+        restrictions['station'] = ','.join(station_restriction) \
+            if isinstance(station_restriction, set) \
+            else station_restriction
     restrictions = Restrictions(**restrictions)
     with ExceptionExit():
         mdl = MassDownloader(providers=providers, configure_logging=False)
