@@ -9,6 +9,8 @@ Uses ObsPy mass downloader to download event waveforms from FDSN web services.
     GNU General Public License v3.0 or later
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
+import re
+import pathlib
 from functools import cmp_to_key
 
 
@@ -71,3 +73,71 @@ def prefer_high_sampling_rate(waveform_dir, logger=None):
             else:
                 print(_info_msg)
             file.unlink()
+
+
+def check_station(station, station_codes):
+    """
+    Check if a station matches the specified station codes.
+    The station codes can contain wildcards:
+    - '*' matches any number of characters
+    - '?' matches a single character
+
+    :param station: station code
+    :type station: str
+    :param station_codes: string with station codes separated by commas
+    :type station_codes: str
+
+    :return: True if the station matches one of the specified patterns
+    :rtype: bool
+    """
+    regex_parts = [
+        code.strip()
+            .replace('.', r'\.')   # Escape dots if any
+            .replace('?', '.')     # Single-character wildcard
+            .replace('*', '.*')    # Multi-character wildcard
+        for code in station_codes.split(',')
+    ]
+    regex = f"^({'|'.join(regex_parts)})$"
+    return bool(re.match(regex, station))
+
+
+def get_picked_station_codes(evid_dir, evid):
+    """
+    Read the event QuakeML file and return the set of station codes
+    that have at least one P or S-wave pick.
+
+    :param evid_dir: path to the event directory
+    :type evid_dir: pathlib.Path
+    :param evid: event ID
+    :type evid: str
+
+    :return: set of station codes with picks, or None if the file is not found
+    :rtype: set or None
+    """
+    import warnings
+    from obspy import read_events
+    xml_file = pathlib.Path(evid_dir) / f'{evid}.xml'
+    if not xml_file.exists():
+        return None
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        catalog = read_events(str(xml_file))
+    station_codes = set()
+    for event in catalog:
+        for pick in event.picks:
+            phase = None
+            # Try to get phase hint from associated arrivals
+            for origin in event.origins:
+                for arrival in origin.arrivals:
+                    if arrival.pick_id == pick.resource_id:
+                        phase = arrival.phase
+                        break
+                if phase is not None:
+                    break
+            # Fall back to pick.phase_hint if no arrival found
+            if phase is None:
+                phase = pick.phase_hint
+            if phase is not None and phase[0].upper() in ('P', 'S'):
+                if pick.waveform_id and pick.waveform_id.station_code:
+                    station_codes.add(pick.waveform_id.station_code)
+    return station_codes

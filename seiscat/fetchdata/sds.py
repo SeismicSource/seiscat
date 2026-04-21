@@ -12,7 +12,9 @@ Fetch event waveforms from a local SDS archive.
 import pathlib
 import re
 from obspy.clients.filesystem.sds import Client
-from .event_waveforms_utils import prefer_high_sampling_rate
+from .event_waveforms_utils import (
+    prefer_high_sampling_rate, check_station, get_picked_station_codes
+)
 
 
 def get_sds_client(sds_root):
@@ -83,12 +85,49 @@ def fetch_sds_waveforms(config, event, client):
     t0 = event['time'] - seconds_before
     t1 = event['time'] + seconds_after
     channel_codes = config['channel_codes']
+    station_codes = config['station_codes']
+    picked_stations_only = config['picked_stations_only']
+    # Build set of allowed stations from picks, if requested
+    picked_stations = None
+    if picked_stations_only:
+        picked_stations = get_picked_station_codes(evid_dir, evid)
+        if picked_stations is None:
+            print(
+                f'{evid}: picked_stations_only is True but no event QuakeML '
+                f'file found at {evid_dir / f"{evid}.xml"}. '
+                'Ignoring pick-based station selection.'
+            )
+        elif not picked_stations:
+            print(
+                f'{evid}: No P/S picks found in the event QuakeML file. '
+                'No waveforms will be downloaded.'
+            )
+            return
+        else:
+            if station_codes:
+                picked_stations = {
+                    sta for sta in picked_stations
+                    if check_station(sta, station_codes)
+                }
+                if not picked_stations:
+                    print(
+                        f'{evid}: No picked stations match station_codes '
+                        f'"{station_codes}". No waveforms will be downloaded.'
+                    )
+                    return
     print(f'Fetching waveforms for event: {evid}')
     all_nslc = client.get_all_nslc()
     for nslc in all_nslc:
         net, sta, loc, chan = nslc
-        if not _check_channel(chan, channel_codes):
+        if channel_codes and not _check_channel(chan, channel_codes):
             continue
+        if station_codes and picked_stations is None:
+            # Only station_codes filter, no picks filter
+            if not check_station(sta, station_codes):
+                continue
+        if picked_stations is not None:
+            if sta not in picked_stations:
+                continue
         st = client.get_waveforms(net, sta, loc, chan, t0, t1)
         outfile = waveform_dir / f'{net}.{sta}.{loc}.{chan}.mseed'
         st.write(outfile, format='MSEED')
