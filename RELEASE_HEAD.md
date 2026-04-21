@@ -23,12 +23,3 @@ Replace X.Y with the specific SeisCat version number used in your study.
     ~~( ⊙.⊙ )~~ SeisCat
 
 ## Changes in this version:
-
-### Added
-
-- New `station_codes` configuration parameter for filtering stations by name
-  when downloading waveforms (analogous to `channel_codes`).
-  Supports multiple codes and wildcard patterns (`?`, `*`).
-- New `picked_stations_only` configuration parameter to restrict waveform
-  downloads to stations that have at least one P or S-wave arrival in the
-  catalog (requires a QuakeML event details file to be present).
