@@ -121,13 +121,15 @@ def fetch_sds_waveforms(config, event, client):
         net, sta, loc, chan = nslc
         if channel_codes and not _check_channel(chan, channel_codes):
             continue
-        if station_codes and picked_stations is None:
+        if (
+            station_codes
+            and picked_stations is None
+            and not check_station(sta, station_codes)
+        ):
             # Only station_codes filter, no picks filter
-            if not check_station(sta, station_codes):
-                continue
-        if picked_stations is not None:
-            if sta not in picked_stations:
-                continue
+            continue
+        if picked_stations is not None and sta not in picked_stations:
+            continue
         st = client.get_waveforms(net, sta, loc, chan, t0, t1)
         outfile = waveform_dir / f'{net}.{sta}.{loc}.{chan}.mseed'
         st.write(outfile, format='MSEED')
