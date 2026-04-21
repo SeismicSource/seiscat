@@ -1,8 +1,11 @@
 # Seiscat Tests
 
-This directory contains unit tests for the seiscat package.
+This directory contains both unit tests and integration tests
+for the seiscat package.
 
 ## Running Tests
+
+### Unit Tests
 
 ### Using unittest (built-in)
 
@@ -62,6 +65,23 @@ Run with coverage:
 pip install pytest-cov
 pytest tests/ --cov=seiscat --cov-report=html
 ```
+
+### CLI Integration Test (live FDSN)
+
+Run the shell integration test for waveform download and station filtering:
+
+```bash
+bash tests/integration_fdsnws_waveforms.sh
+```
+
+This test runs SeisCat as a command line tool against a real FDSN server
+(IRIS) and verifies that:
+
+- waveform download works end-to-end;
+- `picked_stations_only = True` is honored;
+- `station_codes = "AN*"` further filters downloaded stations.
+
+Prerequisite: `seiscat` must be available in your `PATH`.
 
 ## Test Coverage
 
