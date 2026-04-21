@@ -345,9 +345,12 @@ def mass_download_waveforms(config, event):
             mdl_logger.info('No stations match the selection criteria.')
             _unset_mdl_logger()
             return
-        restrictions['station'] = ','.join(station_restriction) \
-            if isinstance(station_restriction, set) \
+        station_str = (
+            ','.join(station_restriction)
+            if isinstance(station_restriction, set)
             else station_restriction
+        )
+        restrictions['station'] = station_str
     restrictions = Restrictions(**restrictions)
     with ExceptionExit():
         mdl = MassDownloader(providers=providers, configure_logging=False)
