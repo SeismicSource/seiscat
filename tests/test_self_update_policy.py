@@ -6,7 +6,12 @@ import unittest
 from unittest.mock import patch
 
 from seiscat.self.install_detection import InstallContext
-from seiscat.self.update import uninstall_seiscat, update_seiscat
+from seiscat.self.update import (
+    _pip_update_git,
+    _uv_update_git,
+    uninstall_seiscat,
+    update_seiscat,
+)
 
 
 class TestSelfUpdatePolicy(unittest.TestCase):
@@ -150,3 +155,32 @@ class TestSelfUpdatePolicy(unittest.TestCase):
         mock_run_checked.assert_not_called()
         mock_uninstall_completion.assert_called_once()
         self.assertIn('scheduled', msg)
+
+    @patch('seiscat.self.update._run_checked')
+    @patch('seiscat.self.update.sys.executable', '/usr/bin/python3')
+    def test_pip_update_git_installs_extras(self, mock_run_checked):
+        _pip_update_git()
+
+        mock_run_checked.assert_called_once_with([
+            '/usr/bin/python3',
+            '-m',
+            'pip',
+            'install',
+            '--upgrade',
+            'seiscat[cartopy,plotly,folium] @ '
+            'git+https://github.com/SeismicSource/seiscat.git',
+        ])
+
+    @patch('seiscat.self.update._run_checked')
+    def test_uv_update_git_installs_extras(self, mock_run_checked):
+        _uv_update_git()
+
+        mock_run_checked.assert_called_once_with([
+            'uv',
+            'tool',
+            'install',
+            'seiscat[cartopy,plotly,folium] @ '
+            'git+https://github.com/SeismicSource/seiscat.git',
+            '--upgrade',
+            '--force',
+        ])

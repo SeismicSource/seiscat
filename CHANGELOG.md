@@ -18,6 +18,12 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
   downloads to stations that have at least one P or S-wave arrival in the
   catalog (requires a QuakeML event details file to be present).
 
+### Fixed
+
+- Fixed `seiscat self update --git` to install optional plotting/data
+  dependencies (`cartopy`, `plotly`, `folium`) together with
+  SeisCat.
+
 ## [0.9.3] - 2026-04-20
 
 ### Fixed

@@ -13,6 +13,12 @@ from urllib.request import urlopen
 from .install_detection import detect_install_context
 
 SEISCAT_GIT_URL = 'git+https://github.com/SeismicSource/seiscat.git'
+SEISCAT_GIT_EXTRAS = ('cartopy', 'plotly', 'folium')
+
+
+def _git_install_spec_with_extras():
+    extras = ','.join(SEISCAT_GIT_EXTRAS)
+    return f'seiscat[{extras}] @ {SEISCAT_GIT_URL}'
 
 
 def _parse_version(value):
@@ -75,14 +81,16 @@ def _uv_update_release():
 
 
 def _pip_update_git():
+    git_spec = _git_install_spec_with_extras()
     _run_checked([
-        sys.executable, '-m', 'pip', 'install', '--upgrade', SEISCAT_GIT_URL
+        sys.executable, '-m', 'pip', 'install', '--upgrade', git_spec
     ])
 
 
 def _uv_update_git():
+    git_spec = _git_install_spec_with_extras()
     _run_checked([
-        'uv', 'tool', 'install', SEISCAT_GIT_URL, '--upgrade', '--force'
+        'uv', 'tool', 'install', git_spec, '--upgrade', '--force'
     ])
 
 
