@@ -11,7 +11,8 @@ This script:
 1) Checks if uv is installed and installs it if missing.
 2) Installs/updates SeisCat with optional plotting dependencies.
 3) Installs/updates argcomplete.
-4) Registers PowerShell argcomplete integration for seiscat.
+4) Runs uv tool update-shell so uv tool executables are on PATH in new shells.
+5) Registers PowerShell argcomplete integration for seiscat.
 
 .PARAMETER DryRun
 Print planned commands without executing them.
@@ -36,6 +37,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$UvHomepage = 'https://astral.sh/uv/'
 
 function Write-Info {
     param([Parameter(Mandatory = $true)][string]$Message)
@@ -79,10 +81,11 @@ Options:
 
     function Confirm-Proceed {
         Write-Info "This installer will perform the following actions:"
-        Write-Info "1) Check if uv is installed and install it if missing."
+        Write-Info "1) Check if uv ($UvHomepage) is installed and install it if missing."
         Write-Info "2) Install/update seiscat with plotly, cartopy, folium, and pandas via uv tool install."
         Write-Info "3) Install/update argcomplete via uv tool install."
-        Write-Info "4) Register PowerShell argcomplete integration for seiscat."
+        Write-Info "4) Run uv tool update-shell to ensure tool executables are added to your shell PATH setup."
+        Write-Info "5) Register PowerShell argcomplete integration for seiscat."
 
         if ($DryRun) {
             Write-WarnMsg "Dry-run mode: commands and file changes will be printed but not executed."
@@ -151,7 +154,7 @@ function Install-Uv {
 }
 
 function Activate-Argcomplete {
-    Write-Info "Step 4/4: Registering argcomplete for PowerShell..."
+    Write-Info "Step 5/5: Registering argcomplete for PowerShell..."
 
     $profilePath = $PROFILE.CurrentUserAllHosts
     $profileDir = Split-Path -Parent $profilePath
@@ -247,6 +250,17 @@ Invoke-StepCommand -Display "uv tool install argcomplete --upgrade --force" -Scr
     uv tool install argcomplete --upgrade --force
 }
 Write-Ok "argcomplete installed/updated successfully."
+
+Write-Info "Step 4/5: Updating shell PATH setup for uv tools..."
+try {
+    Invoke-StepCommand -Display "uv tool update-shell" -ScriptBlock {
+        uv tool update-shell
+    }
+    Write-Ok "uv shell PATH setup updated."
+}
+catch {
+    Write-WarnMsg "uv tool update-shell failed. You may need to add uv tool bin directory to PATH manually."
+}
 
 Activate-Argcomplete
 

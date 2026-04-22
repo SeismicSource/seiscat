@@ -5,6 +5,7 @@
 set -euo pipefail
 
 DRY_RUN=false
+UV_HOMEPAGE='https://astral.sh/uv/'
 
 if [ -t 1 ]; then
     C_RESET='\033[0m'
@@ -65,10 +66,11 @@ parse_args() {
 
 explain_and_confirm() {
     info 'This installer will perform the following actions:'
-    info '1) Check if uv is installed and install it if missing.'
+    info "1) Check if uv ($UV_HOMEPAGE) is installed and install it if missing."
     info '2) Install/update seiscat with plotly, cartopy, folium, and pandas via uv tool install.'
     info '3) Install/update argcomplete via uv tool install.'
-    info '4) Run activate-global-python-argcomplete and, on zsh, manage a seiscat completion block in ~/.zshrc.'
+    info '4) Run uv tool update-shell to ensure tool executables are added to your shell PATH setup.'
+    info '5) Run activate-global-python-argcomplete and, on zsh, manage a seiscat completion block in ~/.zshrc.'
 
     if [ "$DRY_RUN" = true ]; then
         warn 'Dry-run mode: commands and file changes will be printed but not executed.'
@@ -199,11 +201,23 @@ main() {
     run_cmd uv tool install argcomplete --upgrade --force
     ok 'argcomplete installed successfully.'
 
-    info 'Step 4/4: Running activate-global-python-argcomplete...'
+    info 'Step 4/5: Updating shell PATH setup for uv tools...'
+    if run_cmd uv tool update-shell; then
+        ok 'uv shell PATH setup updated.'
+    else
+        warn 'uv tool update-shell failed. You may need to add uv tool bin directory to PATH manually.'
+    fi
+
+    info 'Step 5/5: Running activate-global-python-argcomplete...'
     activate_argcomplete
 
     ok 'All done. SeisCat is ready to go.'
-    info 'If seiscat is not found in your shell, restart your terminal or ensure ~/.local/bin is in PATH.'
+    if command -v seiscat >/dev/null 2>&1; then
+        ok "seiscat is available in this session: $(command -v seiscat)"
+    else
+        warn 'seiscat is not on PATH in this current shell session yet.'
+    fi
+    info 'If seiscat is not found, open a new terminal or run: uv tool update-shell'
 }
 
 parse_args "$@"
