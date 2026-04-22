@@ -515,6 +515,29 @@ Print the SeisCat logo.
 
    seiscat logo
 
+seiscat self
+~~~~~~~~~~~~
+
+Manage SeisCat self-maintenance tasks (status, updates, completion,
+uninstall, logo).
+
+.. code-block::
+
+   seiscat self status
+   seiscat self update
+   seiscat self update --git
+   seiscat self completion status
+   seiscat self completion install
+   seiscat self uninstall --yes
+   seiscat self logo
+
+``seiscat self status`` reports:
+
+- installed version, installer backend, and update state
+- shell completion status
+- optional plotting module availability for ``cartopy``, ``plotly``,
+  ``pandas``, and ``folium``
+
 
 .. Links ---
 .. _Matplotlib colormaps: https://matplotlib.org/stable/users/explain/colors/colormaps.html

@@ -17,6 +17,8 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - New `picked_stations_only` configuration parameter to restrict waveform
   downloads to stations that have at least one P or S-wave arrival in the
   catalog (requires a QuakeML event details file to be present).
+- `seiscat self status` now reports installation status of optional plotting
+  modules (`cartopy`, `plotly`, `pandas`, `folium`).
 
 ### Fixed
 
