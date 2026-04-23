@@ -13,12 +13,17 @@ from urllib.request import urlopen
 from .install_detection import detect_install_context
 
 SEISCAT_GIT_URL = 'git+https://github.com/SeismicSource/seiscat.git'
-SEISCAT_GIT_EXTRAS = ('cartopy', 'plotly', 'folium')
+SEISCAT_EXTRAS = ('cartopy', 'plotly', 'folium')
 
 
 def _git_install_spec_with_extras():
-    extras = ','.join(SEISCAT_GIT_EXTRAS)
+    extras = ','.join(SEISCAT_EXTRAS)
     return f'seiscat[{extras}] @ {SEISCAT_GIT_URL}'
+
+
+def _release_install_spec_with_extras():
+    extras = ','.join(SEISCAT_EXTRAS)
+    return f'seiscat[{extras}]'
 
 
 def _manual_uv_command_message(package_spec):
@@ -84,7 +89,8 @@ def _pip_update_release():
 
 
 def _uv_update_release():
-    _run_checked(['uv', 'tool', 'install', 'seiscat', '--upgrade', '--force'])
+    spec = _release_install_spec_with_extras()
+    _run_checked(['uv', 'tool', 'install', spec, '--upgrade', '--force'])
 
 
 def _pip_update_git():
@@ -146,7 +152,9 @@ def update_seiscat(git=False):
                         f'version ({context.version_installed}).\n'
                         'Windows detected: automatic uv self-update '
                         'is disabled.\n'
-                        + _manual_uv_command_message('seiscat')
+                        + _manual_uv_command_message(
+                            _release_install_spec_with_extras()
+                        )
                     )
                 _uv_update_release()
                 return (
@@ -185,7 +193,9 @@ def update_seiscat(git=False):
         if os.name == 'nt':
             return (
                 'Windows detected: automatic uv self-update is disabled.\n'
-                + _manual_uv_command_message('seiscat')
+                + _manual_uv_command_message(
+                    _release_install_spec_with_extras()
+                )
             )
         _uv_update_release()
         return 'Updated to latest release using uv.'

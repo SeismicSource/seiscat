@@ -195,7 +195,8 @@ class TestSelfUpdatePolicy(unittest.TestCase):
         _uv_update_release()
 
         mock_run_checked.assert_called_once_with([
-            'uv', 'tool', 'install', 'seiscat', '--upgrade', '--force'
+            'uv', 'tool', 'install', 'seiscat[cartopy,plotly,folium]',
+            '--upgrade', '--force'
         ])
 
     @patch('seiscat.self.update.os.name', 'nt')

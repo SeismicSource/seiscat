@@ -9,6 +9,13 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 
 ## [unreleased]
 
+### Fixed
+
+- Fixed `seiscat self update` (release track) to install optional plotting/data
+  dependencies (`cartopy`, `plotly`, `folium`) together with SeisCat on
+  Linux/macOS. Windows users see the complete command with extras in the
+  manual update message.
+
 ## [0.9.4] - 2026-04-23
 
 ### Added
