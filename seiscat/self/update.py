@@ -21,6 +21,13 @@ def _git_install_spec_with_extras():
     return f'seiscat[{extras}] @ {SEISCAT_GIT_URL}'
 
 
+def _manual_uv_command_message(package_spec):
+    return (
+        'Run this command manually in a fresh terminal:\n'
+        f'  uv tool install "{package_spec}" --upgrade --force'
+    )
+
+
 def _parse_version(value):
     try:
         from packaging.version import Version
@@ -115,6 +122,13 @@ def update_seiscat(git=False):
 
     if git:
         if context.installer == 'uv' and uv_available:
+            if os.name == 'nt':
+                return (
+                    'Windows detected: automatic uv self-update is disabled.\n'
+                    + _manual_uv_command_message(
+                        _git_install_spec_with_extras()
+                    )
+                )
             _uv_update_git()
             return 'Updated to latest git version using uv.'
         _pip_update_git()
@@ -125,6 +139,15 @@ def update_seiscat(git=False):
         if _is_release_higher(context.version_installed, latest_release):
             # Switch back to release because release is newer
             if context.installer == 'uv' and uv_available:
+                if os.name == 'nt':
+                    return (
+                        f'Latest release ({latest_release}) '
+                        'is newer than installed git '
+                        f'version ({context.version_installed}).\n'
+                        'Windows detected: automatic uv self-update '
+                        'is disabled.\n'
+                        + _manual_uv_command_message('seiscat')
+                    )
                 _uv_update_release()
                 return (
                     f'Latest release ({latest_release}) '
@@ -159,6 +182,11 @@ def update_seiscat(git=False):
         )
 
     if context.installer == 'uv' and uv_available:
+        if os.name == 'nt':
+            return (
+                'Windows detected: automatic uv self-update is disabled.\n'
+                + _manual_uv_command_message('seiscat')
+            )
         _uv_update_release()
         return 'Updated to latest release using uv.'
     _pip_update_release()

@@ -9,6 +9,7 @@ from seiscat.self.install_detection import InstallContext
 from seiscat.self.update import (
     _pip_update_git,
     _uv_update_git,
+    _uv_update_release,
     uninstall_seiscat,
     update_seiscat,
 )
@@ -18,7 +19,8 @@ class TestSelfUpdatePolicy(unittest.TestCase):
     """Validate release/git policy for `seiscat self update`."""
 
     @patch('seiscat.self.update.shutil.which', return_value='/usr/bin/uv')
-    @patch('seiscat.self.update._uv_update_release')
+    @patch('seiscat.self.update.os.name', 'posix')
+    @patch('seiscat.self.update._uv_update_release', return_value=False)
     @patch('seiscat.self.update.detect_install_context')
     @patch(
         'seiscat.self.update.get_latest_release_version',
@@ -172,9 +174,9 @@ class TestSelfUpdatePolicy(unittest.TestCase):
         ])
 
     @patch('seiscat.self.update._run_checked')
+    @patch('seiscat.self.update.os.name', 'posix')
     def test_uv_update_git_installs_extras(self, mock_run_checked):
         _uv_update_git()
-
         mock_run_checked.assert_called_once_with([
             'uv',
             'tool',
@@ -184,3 +186,65 @@ class TestSelfUpdatePolicy(unittest.TestCase):
             '--upgrade',
             '--force',
         ])
+
+    @patch('seiscat.self.update._run_checked')
+    @patch('seiscat.self.update.os.name', 'posix')
+    def test_uv_update_release_runs_direct_on_non_windows(
+            self,
+            mock_run_checked):
+        _uv_update_release()
+
+        mock_run_checked.assert_called_once_with([
+            'uv', 'tool', 'install', 'seiscat', '--upgrade', '--force'
+        ])
+
+    @patch('seiscat.self.update.os.name', 'nt')
+    @patch('seiscat.self.update.shutil.which', return_value='uv')
+    @patch('seiscat.self.update.detect_install_context')
+    @patch('seiscat.self.update._uv_update_git')
+    def test_update_git_on_windows_prints_manual_uv_command(
+            self,
+            mock_uv_update_git,
+            mock_detect,
+            _mock_which):
+        mock_detect.return_value = InstallContext(
+            installer='uv',
+            channel='release',
+            version_installed='0.9.1',
+            source_url=None,
+            editable=False,
+            confidence='high',
+        )
+
+        msg = update_seiscat(git=True)
+
+        mock_uv_update_git.assert_not_called()
+        self.assertIn('automatic uv self-update is disabled', msg)
+        self.assertIn('uv tool install', msg)
+        self.assertIn('git+https://github.com/SeismicSource/seiscat.git', msg)
+
+    @patch('seiscat.self.update.os.name', 'nt')
+    @patch('seiscat.self.update.shutil.which', return_value='uv')
+    @patch('seiscat.self.update.get_latest_release_version', return_value=None)
+    @patch('seiscat.self.update.detect_install_context')
+    @patch('seiscat.self.update._uv_update_release')
+    def test_release_update_on_windows_prints_manual_uv_command(
+            self,
+            mock_uv_update_release,
+            mock_detect,
+            _mock_latest,
+            _mock_which):
+        mock_detect.return_value = InstallContext(
+            installer='uv',
+            channel='release',
+            version_installed='0.9.1',
+            source_url=None,
+            editable=False,
+            confidence='high',
+        )
+
+        msg = update_seiscat(git=False)
+
+        mock_uv_update_release.assert_not_called()
+        self.assertIn('automatic uv self-update is disabled', msg)
+        self.assertIn('uv tool install "seiscat" --upgrade --force', msg)
