@@ -49,6 +49,11 @@ SEISCAT_LOGO = r"""
 
 """
 
+SEISCAT_LOGO_SMALL_NO_TXT = r"""
+   /\_/\
+~~( ⊙.⊙ )~~
+"""
+
 SEISCAT_LOGO_SMALL = r"""
    /\_/\
 ~~( ⊙.⊙ )~~ SeisCat

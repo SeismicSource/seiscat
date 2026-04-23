@@ -99,8 +99,8 @@ class TestSelfStatus(unittest.TestCase):
         self.assertIn(
             (
                 'Optional plotting modules: '
-                'cartopy=missing, plotly=installed, '
-                'pandas=installed, folium=missing'
+                'cartopy= ✗missing, plotly= ✓installed, '
+                'pandas= ✓installed, folium= ✗missing'
             ),
             output,
         )
