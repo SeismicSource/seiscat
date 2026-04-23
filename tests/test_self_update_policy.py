@@ -248,4 +248,4 @@ class TestSelfUpdatePolicy(unittest.TestCase):
 
         mock_uv_update_release.assert_not_called()
         self.assertIn('automatic uv self-update is disabled', msg)
-        self.assertIn('uv tool install "seiscat" --upgrade --force', msg)
+        self.assertIn('uv tool install "seiscat[cartopy,plotly,folium]" --upgrade --force', msg)
