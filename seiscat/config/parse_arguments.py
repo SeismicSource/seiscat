@@ -800,6 +800,65 @@ def _add_run_parser(subparser, parents):
     )
 
 
+def _add_daemon_parser(subparser, parents):
+    """Add the daemon subparser tree."""
+    daemon_parser = subparser.add_parser(
+        'daemon',
+        parents=[parents['configfile_parser']],
+        formatter_class=RichHelpFormatter,
+        help='manage the seiscat scheduled daemon (launchd/systemd)'
+    )
+    daemon_subparser = daemon_parser.add_subparsers(
+        dest='daemon_action',
+        title='daemon commands'
+    )
+    daemon_subparser.metavar = '<daemon-command> [options]'
+
+    # daemon run
+    daemon_subparser.add_parser(
+        'run',
+        formatter_class=RichHelpFormatter,
+        help='execute one daemon cycle (updatedb + optional fetch stages). '
+             'Intended to be called by launchd or systemd, not interactively.'
+    )
+
+    # daemon install-service
+    install_parser = daemon_subparser.add_parser(
+        'install-service',
+        formatter_class=RichHelpFormatter,
+        help='generate and install a launchd plist (macOS) or systemd unit '
+             'and timer (Linux) for the current user'
+    )
+    install_parser.add_argument(
+        '--system',
+        action='store_true',
+        default=False,
+        help='install as a system-wide service instead of a user service '
+             '(requires root/sudo privileges)'
+    )
+
+    # daemon uninstall-service
+    uninstall_parser = daemon_subparser.add_parser(
+        'uninstall-service',
+        formatter_class=RichHelpFormatter,
+        help='remove the launchd plist or systemd unit/timer installed by '
+             'install-service'
+    )
+    uninstall_parser.add_argument(
+        '--system',
+        action='store_true',
+        default=False,
+        help='uninstall the system-wide service instead of the user service'
+    )
+
+    # daemon status
+    daemon_subparser.add_parser(
+        'status',
+        formatter_class=RichHelpFormatter,
+        help='show the service status and last-run metadata'
+    )
+
+
 def _add_sampleconfig_parser(subparser):
     """Add the sampleconfig subparser."""
     subparser.add_parser(
@@ -931,6 +990,7 @@ def parse_arguments():
     _add_set_parser(subparser, parents)
     _add_fetchdata_parser(subparser, parents)
     _add_run_parser(subparser, parents)
+    _add_daemon_parser(subparser, parents)
     _add_sampleconfig_parser(subparser)
     _add_samplescript_parser(subparser)
     _add_self_parser(subparser)
@@ -951,5 +1011,11 @@ def parse_arguments():
         and getattr(args, 'self_completion_action', None) is None
     ):
         parser.parse_args(['self', 'completion', '--help'])
+        sys.exit(0)
+    if (
+        args.action == 'daemon'
+        and getattr(args, 'daemon_action', None) is None
+    ):
+        parser.parse_args(['daemon', '--help'])
         sys.exit(0)
     return args

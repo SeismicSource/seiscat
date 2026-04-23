@@ -121,6 +121,83 @@ Enable shell tab completion with:
    seiscat self completion install
 
 
+Running seiscat on a schedule (daemon mode)
+-------------------------------------------
+
+SeisCat can be run automatically on a fixed schedule using the operating
+system's native scheduler: **launchd** on macOS and **systemd** on Linux.
+Each scheduled invocation runs exactly one cycle (``updatedb``, plus
+optional fetch stages) and then exits.
+
+1. **Enable daemon mode** in your ``seiscat.conf``:
+
+.. code-block::
+
+   daemon_enabled          = True
+   daemon_interval         = 15 minutes
+   daemon_run_fetch_event  = False   # set True to also fetch QuakeML files
+   daemon_run_fetch_data   = False   # set True to also fetch waveforms
+
+Other optional keys: ``daemon_jitter_seconds``,
+``daemon_lock_timeout_seconds``, ``daemon_log_file``,
+``daemon_state_file``.
+See :doc:`configuration_file` for full descriptions.
+
+2. **Install the OS service** (user-scoped, no root required):
+
+.. code-block::
+
+   seiscat daemon install-service
+
+The command generates the appropriate service artifact (launchd plist on
+macOS, systemd unit + timer on Linux), installs it in the user-scope
+service directory, and starts it immediately.
+It also prints the commands to check service status and run a cycle
+manually.
+
+For a system-wide installation (requires root/sudo):
+
+.. code-block::
+
+   sudo seiscat daemon install-service --system
+
+3. **Check status**:
+
+.. code-block::
+
+   seiscat daemon status
+
+This reports the last cycle timestamp, per-stage timings, lock file
+presence, and the OS service status.
+
+4. **Run a cycle manually** (useful for testing):
+
+.. code-block::
+
+   seiscat daemon run
+
+5. **Uninstall the service**:
+
+.. code-block::
+
+   seiscat daemon uninstall-service
+
+**Recommendations**
+
+- Keep your working directory (with ``seiscat.conf`` and the database) on a
+  persistent, local filesystem so the scheduler can always find it.
+- Use ``daemon_log_file`` to capture cycle output to a file (in addition to
+  stdout, which is captured by launchd/systemd by default).
+- Set a non-zero ``daemon_jitter_seconds`` if you run multiple seiscat
+  instances starting at the same time to avoid simultaneous FDSN requests.
+
+**Windows**
+
+Native Windows service support (Task Scheduler) is not yet implemented.
+On Windows, you can run ``seiscat daemon run`` manually or via a scheduled
+task configured through the Task Scheduler GUI.
+
+
 Next
 ----
 

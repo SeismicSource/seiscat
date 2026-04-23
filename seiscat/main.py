@@ -38,6 +38,10 @@ def run():
         from .self import run_self_command
         run_self_command(args)
         sys.exit(0)
+    elif args.action == 'daemon' and args.daemon_action == 'status':
+        from .daemon import run_daemon_command
+        run_daemon_command({'args': args})
+        sys.exit(0)
     config = read_config(args.configfile, configspec)
     config['args'] = args
     if args.action == 'initdb':
@@ -82,6 +86,9 @@ def run():
     elif args.action == 'run':
         from .run_command import run_command
         run_command(config)
+    elif args.action == 'daemon':
+        from .daemon import run_daemon_command
+        run_daemon_command(config)
 
 
 def main():

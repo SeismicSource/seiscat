@@ -67,6 +67,7 @@ def read_config(config_file, configspec=None):
             config_obj[k] = None
     if configspec is not None:
         _validate_config(config_obj)
+        _resolve_path_keys(config_obj, config_file)
     return config_obj
 
 
@@ -99,3 +100,24 @@ def _validate_config(config_obj):
         sys.exit(1)
     if not test:
         err_exit('No configuration value present!')
+
+
+# Keys whose values are file/directory paths that should be resolved
+# relative to the config file's directory when they are not absolute.
+_PATH_KEYS = ('db_file', 'event_dir', 'waveform_dir', 'station_dir')
+
+
+def _resolve_path_keys(config_obj, config_file):
+    """
+    Resolve relative path values in config_obj against the config file's
+    parent directory, so seiscat works correctly regardless of the current
+    working directory (e.g. when launched by launchd/systemd).
+
+    :param config_obj: validated config object
+    :param config_file: path to the config file that was read
+    """
+    config_dir = os.path.dirname(os.path.abspath(config_file))
+    for key in _PATH_KEYS:
+        value = config_obj.get(key)
+        if value and not os.path.isabs(value):
+            config_obj[key] = os.path.join(config_dir, value)

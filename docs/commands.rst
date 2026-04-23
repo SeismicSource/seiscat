@@ -485,6 +485,93 @@ Supports concurrent execution safely against the database.
 Options: ``--configfile``, ``--where``, ``--allversions``, ``--sortby``,
 ``--reverse``.
 
+seiscat daemon
+~~~~~~~~~~~~~~
+
+Manage the seiscat scheduled daemon. The daemon is designed to be invoked
+by a system scheduler (launchd on macOS, systemd on Linux). Each run
+executes exactly one cycle: ``updatedb`` always, and optionally fetch event
+details and/or waveform data depending on the configuration.
+
+seiscat daemon run
+^^^^^^^^^^^^^^^^^^
+
+Execute one daemon cycle. Intended to be called by launchd or systemd, not
+interactively (though it works fine when run manually for testing).
+
+.. code-block::
+
+   seiscat daemon run
+   seiscat daemon run -c /path/to/seiscat.conf
+
+The cycle performs the following steps in order:
+
+1. Apply startup jitter (if ``daemon_jitter_seconds > 0``).
+2. Acquire a single-instance file lock to prevent overlapping runs.
+3. Run ``updatedb``.
+4. Optionally run ``fetchdata --event`` (if ``daemon_run_fetch_event = True``).
+5. Optionally run ``fetchdata --data`` (if ``daemon_run_fetch_data = True``).
+6. Write a state file with stage timings and status.
+7. Release the lock.
+
+If another instance holds a live lock, the new invocation exits cleanly
+with code 0 (no duplicate work). If the lock is stale (holding process dead
+or lock age exceeds ``daemon_lock_timeout_seconds``), it is removed first.
+
+Options: ``--configfile``.
+
+seiscat daemon install-service
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Generate and install a launchd plist (macOS) or systemd unit + timer (Linux)
+for the current user.
+
+.. code-block::
+
+   seiscat daemon install-service                 # user-scoped (default)
+   seiscat daemon install-service --system        # system-wide (requires root)
+
+The command generates the service artifact from your current config
+(``daemon_interval``, ``daemon_log_file``, etc.) and enables/loads it
+immediately. After installation, the command prints the next steps
+(how to check status and run manually).
+
+Requires ``daemon_enabled = True`` in the configuration file.
+
+Options: ``--configfile``, ``--system``.
+
+seiscat daemon uninstall-service
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Remove the launchd plist or systemd unit/timer previously installed by
+``install-service``.
+
+.. code-block::
+
+   seiscat daemon uninstall-service               # user-scoped (default)
+   seiscat daemon uninstall-service --system      # system-wide
+
+This command is idempotent: missing files are silently skipped.
+
+Options: ``--configfile``, ``--system``.
+
+seiscat daemon status
+^^^^^^^^^^^^^^^^^^^^^
+
+Show the service status and last-run metadata.
+
+.. code-block::
+
+   seiscat daemon status
+
+Reports:
+
+- Last cycle start time, overall status, and per-stage timings.
+- Current lock file presence (indicates a running or stale instance).
+- OS service status (launchd plist or systemd timer) if installed.
+
+Options: ``--configfile``.
+
 seiscat sampleconfig
 ~~~~~~~~~~~~~~~~~~~~
 

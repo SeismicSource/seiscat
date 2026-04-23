@@ -9,6 +9,13 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 
 ## [unreleased]
 
+### Added
+
+- New `seiscat daemon` command for Linux and macOS to run scheduled
+  background catalog updates, inspect daemon status, and
+  install/uninstall `launchd` or `systemd` service units for periodic
+  `updatedb`, event-details, and waveform-fetch cycles.
+
 ### Fixed
 
 - Fixed `seiscat self update` (release track) to install optional plotting/data
