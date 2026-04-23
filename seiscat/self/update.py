@@ -8,6 +8,7 @@ import os
 import shutil
 import subprocess
 import sys
+from importlib import metadata
 from urllib.request import urlopen
 
 from .install_detection import detect_install_context
@@ -83,8 +84,11 @@ def _schedule_windows_pip_uninstall():
 
 
 def _pip_update_release():
+    package_spec = _release_install_spec_with_extras() if (
+        _pip_has_plotting_extras_installed()
+    ) else 'seiscat'
     _run_checked([
-        sys.executable, '-m', 'pip', 'install', '--upgrade', 'seiscat'
+        sys.executable, '-m', 'pip', 'install', '--upgrade', package_spec
     ])
 
 
@@ -94,10 +98,22 @@ def _uv_update_release():
 
 
 def _pip_update_git():
-    git_spec = _git_install_spec_with_extras()
+    git_spec = _git_install_spec_with_extras() if (
+        _pip_has_plotting_extras_installed()
+    ) else SEISCAT_GIT_URL
     _run_checked([
         sys.executable, '-m', 'pip', 'install', '--upgrade', git_spec
     ])
+
+
+def _pip_has_plotting_extras_installed():
+    """Return True only when all plotting extra distributions are installed."""
+    for dist_name in SEISCAT_EXTRAS:
+        try:
+            metadata.distribution(dist_name)
+        except metadata.PackageNotFoundError:
+            return False
+    return True
 
 
 def _uv_update_git():

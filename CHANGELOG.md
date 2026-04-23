@@ -15,6 +15,10 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
   dependencies (`cartopy`, `plotly`, `folium`) together with SeisCat on
   Linux/macOS. Windows users see the complete command with extras in the
   manual update message.
+- Fixed `seiscat self update` with pip backend to preserve optional
+  plotting/data dependencies choice: if plotting extras are not already
+  installed, update no longer adds them implicitly (applies to release and
+  `--git` update paths).
 
 ## [0.9.4] - 2026-04-23
 

@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from seiscat.self.install_detection import InstallContext
 from seiscat.self.update import (
+    _pip_update_release,
     _pip_update_git,
     _uv_update_git,
     _uv_update_release,
@@ -158,9 +159,16 @@ class TestSelfUpdatePolicy(unittest.TestCase):
         mock_uninstall_completion.assert_called_once()
         self.assertIn('scheduled', msg)
 
+    @patch(
+        'seiscat.self.update._pip_has_plotting_extras_installed',
+        return_value=True
+    )
     @patch('seiscat.self.update._run_checked')
     @patch('seiscat.self.update.sys.executable', '/usr/bin/python3')
-    def test_pip_update_git_installs_extras(self, mock_run_checked):
+    def test_pip_update_git_installs_extras_when_already_present(
+            self,
+            mock_run_checked,
+            _mock_has_extras):
         _pip_update_git()
 
         mock_run_checked.assert_called_once_with([
@@ -171,6 +179,69 @@ class TestSelfUpdatePolicy(unittest.TestCase):
             '--upgrade',
             'seiscat[cartopy,plotly,folium] @ '
             'git+https://github.com/SeismicSource/seiscat.git',
+        ])
+
+    @patch(
+        'seiscat.self.update._pip_has_plotting_extras_installed',
+        return_value=False
+    )
+    @patch('seiscat.self.update._run_checked')
+    @patch('seiscat.self.update.sys.executable', '/usr/bin/python3')
+    def test_pip_update_git_does_not_install_extras_when_missing(
+            self,
+            mock_run_checked,
+            _mock_has_extras):
+        _pip_update_git()
+
+        mock_run_checked.assert_called_once_with([
+            '/usr/bin/python3',
+            '-m',
+            'pip',
+            'install',
+            '--upgrade',
+            'git+https://github.com/SeismicSource/seiscat.git',
+        ])
+
+    @patch(
+        'seiscat.self.update._pip_has_plotting_extras_installed',
+        return_value=True
+    )
+    @patch('seiscat.self.update._run_checked')
+    @patch('seiscat.self.update.sys.executable', '/usr/bin/python3')
+    def test_pip_update_release_installs_extras_when_already_present(
+            self,
+            mock_run_checked,
+            _mock_has_extras):
+        _pip_update_release()
+
+        mock_run_checked.assert_called_once_with([
+            '/usr/bin/python3',
+            '-m',
+            'pip',
+            'install',
+            '--upgrade',
+            'seiscat[cartopy,plotly,folium]',
+        ])
+
+    @patch(
+        'seiscat.self.update._pip_has_plotting_extras_installed',
+        return_value=False
+    )
+    @patch('seiscat.self.update._run_checked')
+    @patch('seiscat.self.update.sys.executable', '/usr/bin/python3')
+    def test_pip_update_release_does_not_install_extras_when_missing(
+            self,
+            mock_run_checked,
+            _mock_has_extras):
+        _pip_update_release()
+
+        mock_run_checked.assert_called_once_with([
+            '/usr/bin/python3',
+            '-m',
+            'pip',
+            'install',
+            '--upgrade',
+            'seiscat',
         ])
 
     @patch('seiscat.self.update._run_checked')
@@ -248,4 +319,8 @@ class TestSelfUpdatePolicy(unittest.TestCase):
 
         mock_uv_update_release.assert_not_called()
         self.assertIn('automatic uv self-update is disabled', msg)
-        self.assertIn('uv tool install "seiscat[cartopy,plotly,folium]" --upgrade --force', msg)
+        self.assertIn(
+            'uv tool install "seiscat[cartopy,plotly,folium]" '
+            '--upgrade --force',
+            msg
+        )
