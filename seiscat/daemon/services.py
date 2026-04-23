@@ -156,6 +156,7 @@ _SYSTEMD_TIMER_TEMPLATE = """\
 Description=seiscat daemon timer
 
 [Timer]
+OnActiveSec={interval}
 OnUnitActiveSec={interval}
 Unit={service_name}
 Persistent=true

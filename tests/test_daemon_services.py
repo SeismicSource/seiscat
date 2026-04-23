@@ -136,6 +136,10 @@ class TestRenderSystemdService(unittest.TestCase):
 class TestRenderSystemdTimer(unittest.TestCase):
     """Test that the systemd timer unit renders correctly."""
 
+    def test_on_active_sec_15_minutes(self):
+        timer = render_systemd_timer(_make_config())
+        self.assertIn('OnActiveSec=900s', timer)
+
     def test_on_unit_active_sec_15_minutes(self):
         timer = render_systemd_timer(_make_config())
         # 15 minutes = 900s
