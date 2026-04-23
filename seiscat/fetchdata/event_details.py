@@ -17,6 +17,7 @@ from obspy.clients.fdsn.header import (
 from ..database.dbfunctions import read_events_from_db
 from ..sources.fdsnws import open_fdsn_connection
 from ..utils import ExceptionExit
+from .event_waveforms_utils import get_event_layout_paths
 
 
 def _get_events(client, evid):
@@ -88,9 +89,10 @@ def fetch_event_details(config):
         # .get() returns None if 'raw_evid' column doesn't exist
         raw_evid = event.get('raw_evid')
         print(f'{evid}:', end=' ')
-        evid_dir = pathlib.Path(event_dir / f'{evid}')
+        paths = get_event_layout_paths(config, evid)
+        evid_dir = pathlib.Path(paths['evid_dir'])
         evid_dir.mkdir(parents=True, exist_ok=True)
-        outfile = evid_dir / f'{evid}.xml'
+        outfile = paths['event_xml_file']
         if not overwrite_existing and outfile.exists():
             print(f'{outfile} exists, skipping')
             continue

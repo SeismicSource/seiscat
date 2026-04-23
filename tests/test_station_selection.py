@@ -13,7 +13,7 @@ import pathlib
 import tempfile
 import unittest
 from seiscat.fetchdata.event_waveforms_utils import (
-    check_station, get_picked_station_codes
+    check_station, get_picked_station_codes, get_event_layout_paths
 )
 
 
@@ -71,6 +71,14 @@ class TestGetPickedStationCodes(unittest.TestCase):
         evid_dir = pathlib.Path(tmpdir) / evid
         evid_dir.mkdir()
         xml_file = evid_dir / f'{evid}.xml'
+        xml_file.write_text(content)
+        return evid_dir
+
+    def _write_quakeml_event_xml(self, tmpdir, evid, content):
+        """Write a QuakeML file in tmpdir/evid/event.xml."""
+        evid_dir = pathlib.Path(tmpdir) / evid
+        evid_dir.mkdir()
+        xml_file = evid_dir / 'event.xml'
         xml_file.write_text(content)
         return evid_dir
 
@@ -172,6 +180,81 @@ class TestGetPickedStationCodes(unittest.TestCase):
             result = get_picked_station_codes(evid_dir, 'ev3')
             self.assertIsNotNone(result)
             self.assertEqual(result, {'STA1'})
+
+    def test_event_xml_fallback(self):
+        """Reads picks also when event file is named event.xml."""
+        quakeml = """<?xml version="1.0" encoding="utf-8"?>
+<q:quakeml xmlns="http://quakeml.org/xmlns/bed/1.2"
+           xmlns:q="http://quakeml.org/xmlns/quakeml/1.2">
+  <eventParameters publicID="quakeml:test/eventParameters">
+    <event publicID="quakeml:test/ev4">
+      <pick publicID="quakeml:test/pick/1">
+        <time><value>2021-01-01T00:00:01Z</value></time>
+        <waveformID networkCode="XX" stationCode="STA9" channelCode="HHZ"/>
+        <phaseHint>P</phaseHint>
+      </pick>
+      <origin publicID="quakeml:test/origin/1">
+        <time><value>2021-01-01T00:00:00Z</value></time>
+        <latitude><value>0.0</value></latitude>
+        <longitude><value>0.0</value></longitude>
+      </origin>
+    </event>
+  </eventParameters>
+</q:quakeml>"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evid_dir = self._write_quakeml_event_xml(tmpdir, 'ev4', quakeml)
+            result = get_picked_station_codes(evid_dir, 'ev4')
+            self.assertEqual(result, {'STA9'})
+
+
+class TestFetchdataLayoutPaths(unittest.TestCase):
+    """Test fetchdata layout path generation."""
+
+    def test_event_dirs_layout_paths(self):
+        """Legacy layout keeps evid.xml and subdirectories."""
+        config = {
+            'event_dir': '/tmp/events',
+            'waveform_dir': 'waveforms',
+            'station_dir': 'stations',
+            'fetchdata_layout': 'event_dirs',
+        }
+        paths = get_event_layout_paths(config, 'ev1')
+        self.assertEqual(paths['layout'], 'event_dirs')
+        self.assertEqual(
+            paths['event_xml_file'],
+            pathlib.Path('/tmp/events/ev1/ev1.xml')
+        )
+        self.assertEqual(
+            paths['waveform_dir'],
+            pathlib.Path('/tmp/events/ev1/waveforms')
+        )
+        self.assertEqual(
+            paths['station_dir'],
+            pathlib.Path('/tmp/events/ev1/stations')
+        )
+
+    def test_event_files_layout_paths(self):
+        """Bundled layout uses event.xml, event.mseed and stations.xml."""
+        config = {
+            'event_dir': '/tmp/events',
+            'waveform_dir': 'waveforms',
+            'station_dir': 'stations',
+            'fetchdata_layout': 'event_files',
+        }
+        paths = get_event_layout_paths(config, 'ev1')
+        self.assertEqual(paths['layout'], 'event_files')
+        self.assertEqual(
+            paths['event_xml_file'],
+            pathlib.Path('/tmp/events/ev1/event.xml')
+        )
+        self.assertEqual(
+            paths['waveform_file'],
+            pathlib.Path('/tmp/events/ev1/event.mseed')
+        )
+        self.assertEqual(
+            paths['station_file'],
+            pathlib.Path('/tmp/events/ev1/stations.xml')
+        )
 
 
 if __name__ == '__main__':

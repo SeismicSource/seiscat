@@ -15,6 +15,14 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
   background catalog updates, inspect daemon status, and
   install/uninstall `launchd` or `systemd` service units for periodic
   `updatedb`, event-details, and waveform-fetch cycles.
+- New `fetchdata_layout` configuration option to control how fetched data is
+  organized:
+  - `event_dirs` (default):
+    `events/<evid>/<evid>.xml`, `events/<evid>/waveforms/`,
+    `events/<evid>/stations/`
+  - `event_files`:
+    `events/<evid>/event.xml`, `events/<evid>/event.mseed`,
+    `events/<evid>/stations.xml`
 
 ### Fixed
 
@@ -26,6 +34,9 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
   plotting/data dependencies choice: if plotting extras are not already
   installed, update no longer adds them implicitly (applies to release and
   `--git` update paths).
+- Fixed `seiscat fetchdata` directory layout regression where `waveforms/` and
+  `stations/` could be created as top-level directories instead of
+  per-event subdirectories.
 
 ## [0.9.4] - 2026-04-23
 

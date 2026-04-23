@@ -12,11 +12,18 @@ Uses ObsPy mass downloader to download event waveforms from FDSN web services.
 import sys
 import pathlib
 import logging
+import shutil
 from obspy.clients.fdsn import Client
 from obspy.clients.fdsn.mass_downloader import (
     CircularDomain, Restrictions, MassDownloader
 )
-from .event_waveforms_utils import prefer_high_sampling_rate, get_picked_station_codes
+from .event_waveforms_utils import (
+    prefer_high_sampling_rate,
+    get_event_layout_paths,
+    get_event_xml_file,
+    bundle_waveforms_to_mseed,
+    bundle_stations_to_xml,
+)
 from ..utils import ExceptionExit
 mdl_logger = logging.getLogger('obspy.clients.fdsn.mass_downloader')
 
@@ -234,10 +241,13 @@ def _build_station_restriction(
     if picked_stations_only:
         picked = get_picked_station_codes(evid_dir, evid)
         if picked is None:
+            event_xml = get_event_xml_file(evid_dir, evid)
+            if event_xml is None:
+                event_xml = pathlib.Path(evid_dir) / f'{evid}.xml'
             mdl_logger.warning(
                 'picked_stations_only is True but no event QuakeML file '
                 'found at %s. Ignoring pick-based station selection.',
-                evid_dir / f'{evid}.xml'
+                event_xml
             )
             # Fall through to plain station_codes restriction (or None)
             if not station_codes:
@@ -298,11 +308,11 @@ def mass_download_waveforms(config, event):
     channel_codes = config['channel_codes']
     station_codes = config['station_codes']
     picked_stations_only = config['picked_stations_only']
-    event_dir = pathlib.Path(config['event_dir'])
-    evid_dir = event_dir / f'{evid}'
-    waveform_dir = pathlib.Path(evid_dir / config['waveform_dir'])
+    paths = get_event_layout_paths(config, evid)
+    evid_dir = paths['evid_dir']
+    waveform_dir = pathlib.Path(paths['waveform_dir'])
     waveform_dir.mkdir(parents=True, exist_ok=True)
-    station_dir = pathlib.Path(evid_dir / config['station_dir'])
+    station_dir = pathlib.Path(paths['station_dir'])
     station_dir.mkdir(parents=True, exist_ok=True)
 
     _set_mdl_logger(evid)
@@ -361,6 +371,23 @@ def mass_download_waveforms(config, event):
         )
     if config['prefer_high_sampling_rate']:
         prefer_high_sampling_rate(waveform_dir, mdl_logger)
+    if paths['layout'] == 'event_files':
+        waveforms_written = bundle_waveforms_to_mseed(
+            waveform_dir, paths['waveform_file'])
+        stations_written = bundle_stations_to_xml(
+            station_dir, paths['station_file'])
+        shutil.rmtree(waveform_dir, ignore_errors=True)
+        shutil.rmtree(station_dir, ignore_errors=True)
+        if waveforms_written:
+            mdl_logger.info(
+                'Bundled waveforms saved to %s',
+                paths['waveform_file']
+            )
+        if stations_written:
+            mdl_logger.info(
+                'Bundled stations saved to %s',
+                paths['station_file']
+            )
     _info_msg = f'Waveforms and station metadata saved to {evid_dir}'
     mdl_logger.info(_info_msg)
     _unset_mdl_logger()

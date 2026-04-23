@@ -104,7 +104,9 @@ def _validate_config(config_obj):
 
 # Keys whose values are file/directory paths that should be resolved
 # relative to the config file's directory when they are not absolute.
-_PATH_KEYS = ('db_file', 'event_dir', 'waveform_dir', 'station_dir')
+# waveform_dir and station_dir are event-subdirectory names and must stay
+# relative to each per-event folder.
+_PATH_KEYS = ('db_file', 'event_dir')
 
 
 def _resolve_path_keys(config_obj, config_file):

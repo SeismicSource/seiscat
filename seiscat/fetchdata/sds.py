@@ -11,9 +11,15 @@ Fetch event waveforms from a local SDS archive.
 """
 import pathlib
 import re
+import shutil
 from obspy.clients.filesystem.sds import Client
 from .event_waveforms_utils import (
-    prefer_high_sampling_rate, check_station, get_picked_station_codes
+    prefer_high_sampling_rate,
+    check_station,
+    get_picked_station_codes,
+    get_event_layout_paths,
+    get_event_xml_file,
+    bundle_waveforms_to_mseed,
 )
 
 
@@ -76,9 +82,9 @@ def fetch_sds_waveforms(config, event, client):
     :type client: obspy.clients.filesystem.sds.Client
     """
     evid = event['evid']
-    event_dir = pathlib.Path(config['event_dir'])
-    evid_dir = event_dir / f'{evid}'
-    waveform_dir = pathlib.Path(evid_dir / config['waveform_dir'])
+    paths = get_event_layout_paths(config, evid)
+    evid_dir = paths['evid_dir']
+    waveform_dir = pathlib.Path(paths['waveform_dir'])
     waveform_dir.mkdir(parents=True, exist_ok=True)
     seconds_before = config['seconds_before_origin']
     seconds_after = config['seconds_after_origin']
@@ -92,9 +98,12 @@ def fetch_sds_waveforms(config, event, client):
     if picked_stations_only:
         picked_stations = get_picked_station_codes(evid_dir, evid)
         if picked_stations is None:
+            event_xml = get_event_xml_file(evid_dir, evid)
+            if event_xml is None:
+                event_xml = evid_dir / f'{evid}.xml'
             print(
                 f'{evid}: picked_stations_only is True but no event QuakeML '
-                f'file found at {evid_dir / f"{evid}.xml"}. '
+                f'file found at {event_xml}. '
                 'Ignoring pick-based station selection.'
             )
         elif not picked_stations:
@@ -136,4 +145,8 @@ def fetch_sds_waveforms(config, event, client):
         print(f'  {outfile} written')
     if config['prefer_high_sampling_rate']:
         prefer_high_sampling_rate(waveform_dir)
+    if paths['layout'] == 'event_files':
+        if bundle_waveforms_to_mseed(waveform_dir, paths['waveform_file']):
+            print(f'  {paths["waveform_file"]} written')
+        shutil.rmtree(waveform_dir, ignore_errors=True)
     print()
