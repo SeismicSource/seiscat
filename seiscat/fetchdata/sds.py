@@ -135,7 +135,7 @@ def fetch_sds_waveforms(config, event, client):
         if (
             station_codes
             and picked_stations is None
-            and not check_station(sta, station_codes)
+            and not check_station(sta, station_codes, network=net)
         ):
             # Only station_codes filter, no picks filter
             continue

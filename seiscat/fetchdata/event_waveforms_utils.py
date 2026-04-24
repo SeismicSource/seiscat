@@ -210,30 +210,60 @@ def bundle_stations_to_xml(station_dir, outfile):
     return True
 
 
-def check_station(station, station_codes):
+def _wildcard_match(value, pattern):
+    """Return True if value matches pattern using ?/* wildcards."""
+    regex = (
+        pattern
+        .replace('.', r'\.')
+        .replace('?', '.')
+        .replace('*', '.*')
+    )
+    return bool(re.match(f'^{regex}$', value))
+
+
+def check_station(station, station_codes, network=None):
     """
     Check if a station matches the specified station codes.
     The station codes can contain wildcards:
     - '*' matches any number of characters
     - '?' matches a single character
 
+    Station patterns can be either:
+    - ``STA`` form (station-only, previous behavior)
+    - ``NET.STA`` form (network-qualified)
+
+    If a network-qualified pattern is provided and ``network`` is None,
+    only the station part is matched to preserve backward compatibility
+    in contexts where network codes are unavailable.
+
     :param station: station code
     :type station: str
     :param station_codes: string with station codes separated by commas
     :type station_codes: str
+    :param network: optional network code
+    :type network: str or None
 
     :return: True if the station matches one of the specified patterns
     :rtype: bool
     """
-    regex_parts = [
-        code.strip()
-            .replace('.', r'\.')   # Escape dots if any
-            .replace('?', '.')     # Single-character wildcard
-            .replace('*', '.*')    # Multi-character wildcard
-        for code in station_codes.split(',')
-    ]
-    regex = f"^({'|'.join(regex_parts)})$"
-    return bool(re.match(regex, station))
+    for code in station_codes.split(','):
+        code = code.strip()
+        if not code:
+            continue
+        if '.' in code:
+            net_pattern, station_pattern = code.split('.', 1)
+            if network is None:
+                if _wildcard_match(station, station_pattern):
+                    return True
+            elif (
+                _wildcard_match(network, net_pattern)
+                and _wildcard_match(station, station_pattern)
+            ):
+                return True
+            continue
+        if _wildcard_match(station, code):
+            return True
+    return False
 
 
 def get_picked_station_codes(evid_dir, evid):

@@ -71,6 +71,21 @@ class TestCheckStation(unittest.TestCase):
         self.assertFalse(check_station('sta1', 'STA1'))
         self.assertFalse(check_station('STA1', 'sta1'))
 
+    def test_network_station_pattern(self):
+        """Test explicit NET.STA matching when network is available."""
+        self.assertTrue(check_station('ABC1', 'FR.ABC1', network='FR'))
+        self.assertFalse(check_station('ABC1', 'FR.ABC1', network='IT'))
+
+    def test_network_wildcard_pattern(self):
+        """Test entire-network selection pattern like FR.*."""
+        self.assertTrue(check_station('STA1', 'FR.*', network='FR'))
+        self.assertFalse(check_station('STA1', 'FR.*', network='IT'))
+
+    def test_network_pattern_backward_compatibility(self):
+        """Without network info, NET.STA falls back to station-part match."""
+        self.assertTrue(check_station('STA1', 'FR.STA1'))
+        self.assertFalse(check_station('STA2', 'FR.STA1'))
+
 
 class TestGetPickedStationCodes(unittest.TestCase):
     """Test extracting station codes with picks from QuakeML."""

@@ -215,6 +215,13 @@ def _unset_mdl_logger():
     mdl_logger.handlers = []
 
 
+def _log_no_station_match_and_return_zero():
+    """Log no-match condition, clean up logger state, and return 0."""
+    mdl_logger.info('No stations match the selection criteria.')
+    _unset_mdl_logger()
+    return 0
+
+
 def _build_station_restriction(
         evid_dir, evid, station_codes, picked_stations_only):
     """
@@ -282,6 +289,32 @@ def _build_station_restriction(
             return picked
     # Only station_codes (no picked_stations_only)
     return station_codes.replace(' ', '')
+
+
+def _split_network_station_codes(station_codes):
+    """
+    Split station code patterns into network and station restrictions.
+
+    Supports station-only tokens (e.g., ``ABC*``) and network-qualified tokens
+    (e.g., ``FR.ABC*``). If at least one qualified token is present, returns
+    both network and station comma-separated patterns for MassDownloader
+    restrictions.
+
+    :param station_codes: comma-separated station patterns
+    :returns: (network_patterns_or_none, station_patterns)
+    """
+    tokens = [tok.strip() for tok in station_codes.split(',') if tok.strip()]
+    if all('.' not in tok for tok in tokens):
+        return None, ','.join(tokens)
+    networks = []
+    stations = []
+    for tok in tokens:
+        net, sta = tok.split('.', 1) if '.' in tok else ('*', tok)
+        networks.append(net)
+        stations.append(sta)
+    network_codes = ','.join(dict.fromkeys(networks))
+    station_patterns = ','.join(dict.fromkeys(stations))
+    return network_codes, station_patterns
 
 
 def mass_download_waveforms(config, event):
@@ -353,15 +386,15 @@ def mass_download_waveforms(config, event):
     if station_restriction is not None:
         if not station_restriction:
             # Empty set: no stations to download
-            mdl_logger.info('No stations match the selection criteria.')
-            _unset_mdl_logger()
-            return 0
-        station_str = (
-            ','.join(station_restriction)
-            if isinstance(station_restriction, set)
-            else station_restriction
-        )
-        restrictions['station'] = station_str
+            return _log_no_station_match_and_return_zero()
+        if isinstance(station_restriction, set):
+            restrictions['station'] = ','.join(station_restriction)
+        else:
+            network_codes, station_patterns = _split_network_station_codes(
+                station_restriction)
+            restrictions['station'] = station_patterns
+            if network_codes is not None:
+                restrictions['network'] = network_codes
     restrictions = Restrictions(**restrictions)
     with ExceptionExit():
         mdl = MassDownloader(providers=providers, configure_logging=False)

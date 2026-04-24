@@ -31,6 +31,8 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - `seiscat fetchdata` now prints a short end-of-run summary:
   - `--event`: events processed/fetched/skipped/failed
   - `--data`: events with downloaded waveforms and total stations downloaded
+- `station_codes` now supports network-qualified patterns using
+  `NET.STA` notation
 
 ### Fixed
 
