@@ -16,9 +16,11 @@ Supports:
 import json
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
+from contextlib import suppress
 
 from .cycle import parse_interval_seconds
 from ..utils import err_exit
@@ -326,30 +328,172 @@ def uninstall_service(config, system=False):
 
 def _uninstall_launchd(system=False):
     """Remove a launchd plist."""
-    plist_path = _launchd_plist_path(system)
-    if plist_path.exists():
-        _launchctl(['unload', str(plist_path)], check=False)
-        plist_path.unlink()
-        print(f'Removed launchd plist: {plist_path}')
-    else:
-        print(f'No launchd plist found at: {plist_path}')
+    plist_dir = _launchd_plist_path(system).parent
+    plist_paths = sorted(plist_dir.glob(f'{_LAUNCHD_LABEL}*.plist'))
+    plist_path = _choose_service_path(plist_paths, 'launchd plist')
+    if plist_path is None:
+        print(f'No launchd plist found at: {plist_dir}')
+        _remove_daemon_metadata(remove_all=True)
+        return
+    configfile = _launchd_configfile(plist_path)
+    tag = _launchd_tag(plist_path)
+    _launchctl(['unload', str(plist_path)], check=False)
+    plist_path.unlink()
+    print(f'Removed launchd plist: {plist_path}')
+    _remove_daemon_metadata(tag=tag, configfile=configfile)
 
 
 def _uninstall_systemd(system=False):
     """Remove systemd service + timer units."""
     unit_dir = _systemd_unit_dir(system)
     scope = [] if system else ['--user']
-    for unit in [_SYSTEMD_TIMER, _SYSTEMD_SERVICE]:
-        path = unit_dir / unit
+    timer_paths = sorted(unit_dir.glob('seiscat-daemon*.timer'))
+    timer_path = _choose_service_path(timer_paths, 'systemd timer')
+    if timer_path is None:
+        print(f'No systemd timer found in: {unit_dir}')
+        _remove_daemon_metadata(remove_all=True)
+        return
+    service_path = unit_dir / f'{timer_path.stem}.service'
+    configfile = _systemd_configfile(service_path)
+    tag = _systemd_tag(timer_path)
+    for path in [timer_path, service_path]:
         if path.exists():
             _systemctl(
-                scope + ['disable', '--now', unit], check=False
+                scope + ['disable', '--now', path.name], check=False
             )
             path.unlink()
             print(f'Removed: {path}')
         else:
             print(f'Not found (skipping): {path}')
     _systemctl(scope + ['daemon-reload'], check=False)
+    _remove_daemon_metadata(tag=tag, configfile=configfile)
+
+
+def _systemd_tag(timer_path):
+    """Extract daemon instance tag from a systemd timer filename."""
+    stem = timer_path.stem
+    if not stem.startswith('seiscat-daemon.'):
+        return None
+    return stem.split('seiscat-daemon.', maxsplit=1)[-1]
+
+
+def _launchd_tag(plist_path):
+    """Extract daemon instance tag from a launchd plist filename."""
+    stem = plist_path.stem
+    prefix = f'{_LAUNCHD_LABEL}.'
+    return (
+        stem.split(prefix, maxsplit=1)[-1]
+        if stem.startswith(prefix)
+        else None
+    )
+
+
+def _systemd_configfile(service_path):
+    """Extract -c <configfile> argument from a systemd service file."""
+    try:
+        content = service_path.read_text(encoding='utf-8')
+    except OSError:
+        return None
+    match = re.search(r'ExecStart=.*\s-c\s+(\S+)\s+run', content)
+    return os.path.abspath(match[1]) if match else None
+
+
+def _launchd_configfile(plist_path):
+    """Extract -c <configfile> argument from a launchd plist file."""
+    try:
+        content = plist_path.read_text(encoding='utf-8')
+    except OSError:
+        return None
+    args = re.findall(r'<string>([^<]+)</string>', content)
+    try:
+        idx = args.index('-c')
+        return os.path.abspath(args[idx + 1])
+    except (ValueError, IndexError):
+        return None
+
+
+def _remove_daemon_metadata(tag=None, configfile=None, remove_all=False):
+    """Remove registry/state/lock files for an instance or all instances."""
+    from .cycle import _default_state_dir
+
+    state_dir = _default_state_dir()
+    registry_files = sorted(state_dir.glob('daemon_instance*.json'))
+    removed = []
+
+    def _instance_matches(metadata):
+        if remove_all:
+            return True
+        if tag and metadata.get('tag') == tag:
+            return True
+        return bool(configfile and metadata.get('config_file') == configfile)
+
+    for registry_file in registry_files:
+        metadata = {}
+        with suppress(Exception):
+            metadata = json.loads(registry_file.read_text(encoding='utf-8'))
+
+        registry_tag = metadata.get('tag')
+        if not metadata and tag and tag in registry_file.name:
+            metadata['tag'] = tag
+            registry_tag = tag
+        if not _instance_matches(metadata):
+            continue
+
+        for key in ('state_file', 'lock_file'):
+            file_path = metadata.get(key)
+            if not file_path:
+                continue
+            path_obj = pathlib.Path(file_path)
+            if path_obj.exists():
+                path_obj.unlink()
+                removed.append(path_obj)
+
+        if registry_file.exists():
+            registry_file.unlink()
+            removed.append(registry_file)
+
+        if registry_tag:
+            inferred = [
+                state_dir / f'daemon_state.{registry_tag}.json',
+                state_dir / f'daemon.{registry_tag}.lock',
+            ]
+            for path_obj in inferred:
+                if path_obj.exists():
+                    path_obj.unlink()
+                    removed.append(path_obj)
+
+    if remove_all:
+        for pattern in ('daemon_state*.json', 'daemon*.lock'):
+            for path_obj in state_dir.glob(pattern):
+                if path_obj.exists():
+                    path_obj.unlink()
+                    removed.append(path_obj)
+
+    if removed:
+        print('Removed daemon metadata files:')
+        for path_obj in sorted(set(removed)):
+            print(f'  {path_obj}')
+
+
+def _choose_service_path(paths, kind):
+    """Pick a service path, prompting user when multiple choices exist."""
+    if not paths:
+        return None
+    if len(paths) == 1:
+        return paths[0]
+    print(f'Multiple {kind}s found:')
+    for idx, path in enumerate(paths, start=1):
+        print(f'  {idx}. {path.name}')
+    while True:
+        choice = input(
+            f'Select {kind} to uninstall [1-{len(paths)}] '
+            '(or q to cancel): '
+        ).strip().lower()
+        if choice in {'q', 'quit'}:
+            return None
+        if choice.isdigit() and 1 <= int(choice) <= len(paths):
+            return paths[int(choice) - 1]
+        print('Invalid selection. Please enter a valid number or q.')
 
 
 # ---------------------------------------------------------------------------
@@ -396,11 +540,20 @@ def show_status(config):
         else:
             print('\nNo lock file present (daemon is not running).')
 
+    def _service_installed():
+        platform = sys.platform
+        if platform == 'darwin':
+            return _launchd_plist_path().exists()
+        if platform.startswith('linux'):
+            timer_path = _systemd_unit_dir() / _SYSTEMD_TIMER
+            return timer_path.exists()
+        return False
+
     if config.get('db_file') or config.get('daemon_state_file'):
         state = _load_state(config)
         _print_last_run(state)
         _print_lock_status(_lock_file_path(config))
-    else:
+    elif _service_installed():
         instances = _discover_instances()
         if not instances:
             print('No daemon run recorded yet.')
@@ -425,6 +578,9 @@ def show_status(config):
             _print_lock_status(
                 pathlib.Path(lock_file) if lock_file else None
             )
+    else:
+        print('No daemon run recorded yet.')
+        print('\nNo lock file present (daemon is not running).')
 
     # --- OS service status ---
     platform = sys.platform

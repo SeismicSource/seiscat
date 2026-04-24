@@ -38,7 +38,10 @@ def run():
         from .self import run_self_command
         run_self_command(args)
         sys.exit(0)
-    elif args.action == 'daemon' and args.daemon_action == 'status':
+    elif (
+        args.action == 'daemon'
+        and args.daemon_action in {'status', 'uninstall-service'}
+    ):
         from .daemon import run_daemon_command
         run_daemon_command({'args': args})
         sys.exit(0)
@@ -83,7 +86,11 @@ def run():
     elif args.action == 'timeline':
         from .plot.plot_timeline import plot_catalog_timeline
         plot_catalog_timeline(config)
-        run_daemon_command({'args': args})
+    elif args.action == 'run':
+        from .run_command import run_command
+        run_command(config)
+    elif args.action == 'daemon':
+        from .daemon import run_daemon_command
         run_daemon_command(config)
 
 

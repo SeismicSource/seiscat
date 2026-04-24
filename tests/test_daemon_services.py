@@ -7,11 +7,12 @@ import json
 import pathlib
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from seiscat.daemon.services import (
     _LAUNCHD_LABEL,
     _SYSTEMD_SERVICE,
+    _uninstall_systemd,
     show_status,
     render_launchd_plist,
     render_systemd_service,
@@ -170,6 +171,19 @@ class TestRenderSystemdTimer(unittest.TestCase):
 class TestShowStatus(unittest.TestCase):
     """Test config-free daemon status discovery."""
 
+    @staticmethod
+    def _write_instance_files(tmp, state):
+        """Write state and registry files for one daemon instance."""
+        state_file = tmp / 'state.json'
+        registry_file = tmp / 'daemon_instance.abcd1234.json'
+        state['instance']['state_file'] = str(state_file)
+        state['instance']['lock_file'] = str(tmp / 'daemon.abcd1234.lock')
+        state_file.write_text(json.dumps(state), encoding='utf-8')
+        registry_file.write_text(
+            json.dumps(state['instance']),
+            encoding='utf-8',
+        )
+
     def test_status_discovers_instance_without_config(self):
         state = {
             'instance': {
@@ -192,15 +206,8 @@ class TestShowStatus(unittest.TestCase):
         }
         with tempfile.TemporaryDirectory() as d:
             tmp = pathlib.Path(d)
-            state_file = tmp / 'state.json'
-            registry_file = tmp / 'daemon_instance.abcd1234.json'
-            state['instance']['state_file'] = str(state_file)
-            state['instance']['lock_file'] = str(tmp / 'daemon.abcd1234.lock')
-            state_file.write_text(json.dumps(state), encoding='utf-8')
-            registry_file.write_text(
-                json.dumps(state['instance']),
-                encoding='utf-8',
-            )
+            self._write_instance_files(tmp, state)
+            (tmp / 'seiscat-daemon.timer').write_text('', encoding='utf-8')
             stdout = io.StringIO()
             with (
                 patch(
@@ -220,6 +227,158 @@ class TestShowStatus(unittest.TestCase):
         self.assertIn('Daemon instance 1: /tmp/demo/seiscat.conf', output)
         self.assertIn('Started at : 2026-04-24T09:00:00+00:00', output)
         self.assertIn('Status     : success', output)
+
+    def test_status_hides_instances_when_no_service_installed(self):
+        state = {
+            'instance': {
+                'tag': 'abcd1234',
+                'config_file': '/tmp/demo/seiscat.conf',
+                'db_file': '/tmp/demo/seiscat.sqlite',
+                'state_file': '/tmp/demo/state.json',
+                'lock_file': '/tmp/demo/daemon.lock',
+            },
+            'last_run': {
+                'started_at': '2026-04-24T09:00:00+00:00',
+                'status': 'success',
+                'stages': {
+                    'updatedb': {
+                        'status': 'success',
+                        'elapsed_s': 0.5,
+                    }
+                },
+            },
+        }
+        with tempfile.TemporaryDirectory() as d:
+            tmp = pathlib.Path(d)
+            self._write_instance_files(tmp, state)
+            stdout = io.StringIO()
+            with (
+                patch(
+                    'seiscat.daemon.cycle._default_state_dir',
+                    return_value=tmp,
+                ),
+                patch(
+                    'seiscat.daemon.services._systemd_unit_dir',
+                    return_value=tmp,
+                ),
+                patch('seiscat.daemon.services._systemctl'),
+                patch('seiscat.daemon.services.sys.platform', 'linux'),
+                patch('sys.stdout', new=stdout),
+            ):
+                show_status({'args': object()})
+        output = stdout.getvalue()
+        self.assertNotIn('Daemon instance 1:', output)
+        self.assertIn('No daemon run recorded yet.', output)
+
+
+class TestUninstallService(unittest.TestCase):
+    """Test uninstall-service behavior."""
+
+    def test_uninstall_systemd_asks_choice_when_multiple(self):
+        with tempfile.TemporaryDirectory() as d:
+            unit_dir = pathlib.Path(d)
+            timer1 = unit_dir / 'seiscat-daemon.timer'
+            service1 = unit_dir / 'seiscat-daemon.service'
+            timer2 = unit_dir / 'seiscat-daemon.abcd1234.timer'
+            service2 = unit_dir / 'seiscat-daemon.abcd1234.service'
+            timer1.write_text('', encoding='utf-8')
+            service1.write_text('', encoding='utf-8')
+            timer2.write_text('', encoding='utf-8')
+            service2.write_text('', encoding='utf-8')
+
+            with (
+                patch(
+                    'seiscat.daemon.services._systemd_unit_dir',
+                    return_value=unit_dir,
+                ),
+                patch('seiscat.daemon.services.input', return_value='2'),
+                patch('seiscat.daemon.services._systemctl') as mock_systemctl,
+            ):
+                _uninstall_systemd(system=False)
+
+            self.assertFalse(timer1.exists())
+            self.assertFalse(service1.exists())
+            self.assertTrue(timer2.exists())
+            self.assertTrue(service2.exists())
+            mock_systemctl.assert_has_calls(
+                [
+                    call(
+                        ['--user', 'disable', '--now', timer1.name],
+                        check=False,
+                    ),
+                    call(
+                        ['--user', 'disable', '--now', service1.name],
+                        check=False,
+                    ),
+                    call(['--user', 'daemon-reload'], check=False),
+                ]
+            )
+
+    def test_uninstall_systemd_removes_matching_metadata(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp = pathlib.Path(d)
+            unit_dir = tmp / 'units'
+            state_dir = tmp / 'state'
+            unit_dir.mkdir()
+            state_dir.mkdir()
+
+            timer = unit_dir / 'seiscat-daemon.timer'
+            service = unit_dir / 'seiscat-daemon.service'
+            timer.write_text('', encoding='utf-8')
+            service.write_text(
+                'ExecStart=/usr/bin/seiscat daemon -c /tmp/a.conf run\n',
+                encoding='utf-8',
+            )
+
+            keep_registry = state_dir / 'daemon_instance.keep.json'
+            keep_state = state_dir / 'daemon_state.keep.json'
+            keep_lock = state_dir / 'daemon.keep.lock'
+            keep_registry.write_text(
+                json.dumps({
+                    'tag': 'keep',
+                    'config_file': '/tmp/b.conf',
+                    'state_file': str(keep_state),
+                    'lock_file': str(keep_lock),
+                }),
+                encoding='utf-8',
+            )
+            keep_state.write_text('{}', encoding='utf-8')
+            keep_lock.write_text('{}', encoding='utf-8')
+
+            del_registry = state_dir / 'daemon_instance.del.json'
+            del_state = state_dir / 'daemon_state.del.json'
+            del_lock = state_dir / 'daemon.del.lock'
+            del_registry.write_text(
+                json.dumps({
+                    'tag': 'del',
+                    'config_file': '/tmp/a.conf',
+                    'state_file': str(del_state),
+                    'lock_file': str(del_lock),
+                }),
+                encoding='utf-8',
+            )
+            del_state.write_text('{}', encoding='utf-8')
+            del_lock.write_text('{}', encoding='utf-8')
+
+            with (
+                patch(
+                    'seiscat.daemon.services._systemd_unit_dir',
+                    return_value=unit_dir,
+                ),
+                patch(
+                    'seiscat.daemon.cycle._default_state_dir',
+                    return_value=state_dir,
+                ),
+                patch('seiscat.daemon.services._systemctl'),
+            ):
+                _uninstall_systemd(system=False)
+
+            self.assertTrue(keep_registry.exists())
+            self.assertTrue(keep_state.exists())
+            self.assertTrue(keep_lock.exists())
+            self.assertFalse(del_registry.exists())
+            self.assertFalse(del_state.exists())
+            self.assertFalse(del_lock.exists())
 
 
 if __name__ == '__main__':
