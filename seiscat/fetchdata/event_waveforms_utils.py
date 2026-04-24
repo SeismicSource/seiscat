@@ -89,11 +89,13 @@ def get_fetchdata_layout(config):
     :rtype: str
     """
     layout = str(config.get('fetchdata_layout', 'event_dirs')).strip().lower()
-    if layout in ('legacy', 'event_dirs', 'event_dir'):
+    if layout in {'legacy', 'event_dirs', 'event_dir'}:
         return 'event_dirs'
-    if layout in ('event_files', 'bundled'):
-        return 'event_files'
-    return 'event_dirs'
+    return (
+        'event_files'
+        if layout in {'event_files', 'bundled'}
+        else 'event_dirs'
+    )
 
 
 def get_event_xml_file(evid_dir, evid):
@@ -114,10 +116,10 @@ def get_event_xml_file(evid_dir, evid):
         evid_dir / f'{evid}.xml',
         evid_dir / 'event.xml',
     )
-    for xml_file in candidates:
-        if xml_file.exists():
-            return xml_file
-    return None
+    return next(
+        (xml_file for xml_file in candidates if xml_file.exists()),
+        None,
+    )
 
 
 def get_event_layout_paths(config, evid):
