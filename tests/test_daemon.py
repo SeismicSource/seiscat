@@ -11,6 +11,7 @@ from unittest.mock import MagicMock, patch
 
 from seiscat.daemon.cycle import (
     _acquire_lock,
+    _discover_instances,
     _instance_tag,
     _load_state,
     _pid_alive,
@@ -217,6 +218,48 @@ class TestStatePersistence(unittest.TestCase):
         config = {'daemon_state_file': None}
         # Should not raise
         _save_state(config, {'foo': 'bar'})
+
+    def test_run_cycle_persists_instance_metadata_and_registry(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            tmp = Path(d)
+            config = {
+                'db_file': str(tmp / 'seiscat.sqlite'),
+                'daemon_jitter_seconds': 0,
+                'daemon_lock_timeout_seconds': 300,
+                'daemon_state_file': str(tmp / 'state.json'),
+                'daemon_log_file': None,
+                'daemon_run_fetch_event': False,
+                'daemon_run_fetch_data': False,
+                'args': MagicMock(configfile=str(tmp / 'seiscat.conf')),
+            }
+            with (
+                patch(
+                    'seiscat.daemon.cycle._default_state_dir',
+                    return_value=tmp,
+                ),
+                patch('seiscat.daemon.cycle._run_updatedb', return_value=0.5),
+            ):
+                run_daemon_cycle(config)
+            state = _load_state(config)
+            self.assertEqual(
+                state['instance']['config_file'],
+                os.path.abspath(str(tmp / 'seiscat.conf')),
+            )
+            self.assertEqual(
+                state['instance']['db_file'],
+                str(tmp / 'seiscat.sqlite'),
+            )
+            with patch(
+                'seiscat.daemon.cycle._default_state_dir',
+                return_value=tmp,
+            ):
+                instances = _discover_instances()
+            self.assertEqual(len(instances), 1)
+            self.assertEqual(
+                instances[0]['config_file'],
+                os.path.abspath(str(tmp / 'seiscat.conf')),
+            )
 
 
 # ---------------------------------------------------------------------------

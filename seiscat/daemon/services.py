@@ -13,6 +13,7 @@ Supports:
     GNU General Public License v3.0 or later
     (https://www.gnu.org/licenses/gpl-3.0-standalone.html)
 """
+import json
 import os
 import pathlib
 import shutil
@@ -361,33 +362,69 @@ def show_status(config):
 
     :param config: seiscat config dict
     """
-    from .cycle import _load_state, _lock_file_path, _read_lock, _pid_alive
-    # --- last-run state ---
-    state = _load_state(config)
-    if last_run := state.get('last_run'):
-        print('Last daemon run:')
-        print(f'  Started at : {last_run.get("started_at", "unknown")}')
-        print(f'  Status     : {last_run.get("status", "unknown")}')
-        if stages := last_run.get('stages', {}):
-            print('  Stages:')
-            for name, info in stages.items():
-                elapsed = info.get('elapsed_s', '')
-                status = info.get('status', '')
-                elapsed_str = f' ({elapsed}s)' if elapsed else ''
-                print(f'    {name}: {status}{elapsed_str}')
-    else:
-        print('No daemon run recorded yet.')
+    from .cycle import (
+        _discover_instances,
+        _load_state,
+        _lock_file_path,
+        _pid_alive,
+        _read_lock,
+    )
 
-    # --- lock file ---
-    lock_path = _lock_file_path(config)
-    if lock_path.exists():
-        pid, ts = _read_lock(lock_path)
-        if pid and _pid_alive(pid):
-            print(f'\nLock held by running process: pid={pid}')
+    def _print_last_run(state):
+        last_run = state.get('last_run', {})
+        if last_run:
+            print('Last daemon run:')
+            print(f'  Started at : {last_run.get("started_at", "unknown")}')
+            print(f'  Status     : {last_run.get("status", "unknown")}')
+            if stages := last_run.get('stages', {}):
+                print('  Stages:')
+                for name, info in stages.items():
+                    elapsed = info.get('elapsed_s', '')
+                    status = info.get('status', '')
+                    elapsed_str = f' ({elapsed}s)' if elapsed else ''
+                    print(f'    {name}: {status}{elapsed_str}')
         else:
-            print(f'\nStale lock file present: {lock_path}')
+            print('No daemon run recorded yet.')
+
+    def _print_lock_status(lock_path):
+        if lock_path and lock_path.exists():
+            pid, _ = _read_lock(lock_path)
+            if pid and _pid_alive(pid):
+                print(f'\nLock held by running process: pid={pid}')
+            else:
+                print(f'\nStale lock file present: {lock_path}')
+        else:
+            print('\nNo lock file present (daemon is not running).')
+
+    if config.get('db_file') or config.get('daemon_state_file'):
+        state = _load_state(config)
+        _print_last_run(state)
+        _print_lock_status(_lock_file_path(config))
     else:
-        print('\nNo lock file present (daemon is not running).')
+        instances = _discover_instances()
+        if not instances:
+            print('No daemon run recorded yet.')
+            print('\nNo lock file present (daemon is not running).')
+        for index, instance in enumerate(instances, start=1):
+            if index > 1:
+                print()
+            label = instance.get('config_file') or instance.get('db_file')
+            if label:
+                print(f'Daemon instance {index}: {label}')
+            else:
+                print(f'Daemon instance {index}:')
+            state_file = instance.get('state_file')
+            try:
+                state = json.loads(pathlib.Path(state_file).read_text(
+                    encoding='utf-8'
+                )) if state_file else {}
+            except Exception:  # noqa: BLE001
+                state = {}
+            _print_last_run(state)
+            lock_file = instance.get('lock_file')
+            _print_lock_status(
+                pathlib.Path(lock_file) if lock_file else None
+            )
 
     # --- OS service status ---
     platform = sys.platform

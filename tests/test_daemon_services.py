@@ -2,12 +2,17 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Tests for seiscat daemon service artifact generation."""
 
+import io
+import json
 import pathlib
+import tempfile
 import unittest
+from unittest.mock import patch
 
 from seiscat.daemon.services import (
     _LAUNCHD_LABEL,
     _SYSTEMD_SERVICE,
+    show_status,
     render_launchd_plist,
     render_systemd_service,
     render_systemd_timer,
@@ -160,6 +165,61 @@ class TestRenderSystemdTimer(unittest.TestCase):
     def test_persistent_true(self):
         timer = render_systemd_timer(_make_config())
         self.assertIn('Persistent=true', timer)
+
+
+class TestShowStatus(unittest.TestCase):
+    """Test config-free daemon status discovery."""
+
+    def test_status_discovers_instance_without_config(self):
+        state = {
+            'instance': {
+                'tag': 'abcd1234',
+                'config_file': '/tmp/demo/seiscat.conf',
+                'db_file': '/tmp/demo/seiscat.sqlite',
+                'state_file': '/tmp/demo/state.json',
+                'lock_file': '/tmp/demo/daemon.lock',
+            },
+            'last_run': {
+                'started_at': '2026-04-24T09:00:00+00:00',
+                'status': 'success',
+                'stages': {
+                    'updatedb': {
+                        'status': 'success',
+                        'elapsed_s': 0.5,
+                    }
+                },
+            },
+        }
+        with tempfile.TemporaryDirectory() as d:
+            tmp = pathlib.Path(d)
+            state_file = tmp / 'state.json'
+            registry_file = tmp / 'daemon_instance.abcd1234.json'
+            state['instance']['state_file'] = str(state_file)
+            state['instance']['lock_file'] = str(tmp / 'daemon.abcd1234.lock')
+            state_file.write_text(json.dumps(state), encoding='utf-8')
+            registry_file.write_text(
+                json.dumps(state['instance']),
+                encoding='utf-8',
+            )
+            stdout = io.StringIO()
+            with (
+                patch(
+                    'seiscat.daemon.cycle._default_state_dir',
+                    return_value=tmp,
+                ),
+                patch(
+                    'seiscat.daemon.services._systemd_unit_dir',
+                    return_value=tmp,
+                ),
+                patch('seiscat.daemon.services._systemctl'),
+                patch('seiscat.daemon.services.sys.platform', 'linux'),
+                patch('sys.stdout', new=stdout),
+            ):
+                show_status({'args': object()})
+        output = stdout.getvalue()
+        self.assertIn('Daemon instance 1: /tmp/demo/seiscat.conf', output)
+        self.assertIn('Started at : 2026-04-24T09:00:00+00:00', output)
+        self.assertIn('Status     : success', output)
 
 
 if __name__ == '__main__':

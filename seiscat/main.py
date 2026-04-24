@@ -83,11 +83,7 @@ def run():
     elif args.action == 'timeline':
         from .plot.plot_timeline import plot_catalog_timeline
         plot_catalog_timeline(config)
-    elif args.action == 'run':
-        from .run_command import run_command
-        run_command(config)
-    elif args.action == 'daemon':
-        from .daemon import run_daemon_command
+        run_daemon_command({'args': args})
         run_daemon_command(config)
 
 

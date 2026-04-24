@@ -64,6 +64,70 @@ def _lock_file_path(config):
     return _default_state_dir() / f'daemon.{_instance_tag(config)}.lock'
 
 
+def _instance_registry_file(config):
+    """Return the Path for the daemon instance registry file."""
+    registry_name = f'daemon_instance.{_instance_tag(config)}.json'
+    return _default_state_dir() / registry_name
+
+
+def _instance_metadata(config):
+    """Return persisted metadata describing this daemon instance."""
+    args = config.get('args')
+    configfile = getattr(args, 'configfile', None) if args else None
+    return {
+        'tag': _instance_tag(config),
+        'config_file': (
+            os.path.abspath(configfile) if configfile else None
+        ),
+        'db_file': config.get('db_file'),
+        'state_file': str(_resolve_state_file(config)),
+        'lock_file': str(_lock_file_path(config)),
+    }
+
+
+def _save_instance_registry(config):
+    """Persist instance metadata for config-free daemon status lookup."""
+    registry_file = _instance_registry_file(config)
+    registry_file.parent.mkdir(parents=True, exist_ok=True)
+    registry_file.write_text(
+        json.dumps(_instance_metadata(config), indent=2),
+        encoding='utf-8',
+    )
+
+
+def _discover_instances():
+    """Return discovered daemon instances from registry files or state."""
+    state_dir = _default_state_dir()
+    instances = []
+    for registry_file in sorted(state_dir.glob('daemon_instance.*.json')):
+        try:
+            instances.append(
+                json.loads(registry_file.read_text(encoding='utf-8'))
+            )
+        except Exception:  # noqa: BLE001
+            continue
+    if instances:
+        return instances
+    for state_file in sorted(state_dir.glob('daemon_state*.json')):
+        tag = (
+            state_file.stem.split('.')[-1]
+            if '.' in state_file.stem
+            else None
+        )
+        instances.append({
+            'tag': tag,
+            'config_file': None,
+            'db_file': None,
+            'state_file': str(state_file),
+            'lock_file': (
+                str(state_dir / f'daemon.{tag}.lock')
+                if tag
+                else None
+            ),
+        })
+    return instances
+
+
 # ---------------------------------------------------------------------------
 # Logging setup
 # ---------------------------------------------------------------------------
@@ -381,6 +445,7 @@ def run_daemon_cycle(config):
 def _persist_and_release(config, state, cycle_start, stages, final_status):
     """Save state and release the lock."""
     from datetime import datetime, timezone
+    state['instance'] = _instance_metadata(config)
     state['last_run'] = {
         'started_at': datetime.fromtimestamp(
             cycle_start, tz=timezone.utc
@@ -389,6 +454,7 @@ def _persist_and_release(config, state, cycle_start, stages, final_status):
         'stages': stages,
     }
     try:
+        _save_instance_registry(config)
         _save_state(config, state)
     except Exception as exc:  # noqa: BLE001
         logger.warning('Could not save daemon state: %s', exc)
