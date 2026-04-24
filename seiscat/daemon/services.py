@@ -398,6 +398,16 @@ def _systemd_configfile(service_path):
     return os.path.abspath(match[1]) if match else None
 
 
+def _systemd_log_file(service_path):
+    """Extract daemon log file path from a systemd service file."""
+    try:
+        content = service_path.read_text(encoding='utf-8')
+    except OSError:
+        return None
+    match = re.search(r'^StandardOutput=append:(.+)$', content, re.MULTILINE)
+    return match[1].strip() if match else None
+
+
 def _launchd_configfile(plist_path):
     """Extract -c <configfile> argument from a launchd plist file."""
     try:
@@ -410,6 +420,19 @@ def _launchd_configfile(plist_path):
         return os.path.abspath(args[idx + 1])
     except (ValueError, IndexError):
         return None
+
+
+def _launchd_log_file(plist_path):
+    """Extract daemon log file path from a launchd plist file."""
+    try:
+        content = plist_path.read_text(encoding='utf-8')
+    except OSError:
+        return None
+    match = re.search(
+        r'<key>StandardOutPath</key>\s*<string>([^<]+)</string>',
+        content,
+    )
+    return match[1] if match else None
 
 
 def _remove_daemon_metadata(tag=None, configfile=None, remove_all=False):
@@ -514,31 +537,38 @@ def show_status(config):
         _read_lock,
     )
 
-    def _print_last_run(state):
+    def _print_last_run(state, indent=''):
         last_run = state.get('last_run', {})
         if last_run:
-            print('Last daemon run:')
-            print(f'  Started at : {last_run.get("started_at", "unknown")}')
-            print(f'  Status     : {last_run.get("status", "unknown")}')
+            print(f'{indent}Last daemon run:')
+            started_at = last_run.get('started_at', 'unknown')
+            status = last_run.get('status', 'unknown')
+            print(f'{indent}  Started at : {started_at}')
+            print(f'{indent}  Status     : {status}')
             if stages := last_run.get('stages', {}):
-                print('  Stages:')
+                print(f'{indent}  Stages:')
                 for name, info in stages.items():
                     elapsed = info.get('elapsed_s', '')
                     status = info.get('status', '')
                     elapsed_str = f' ({elapsed}s)' if elapsed else ''
-                    print(f'    {name}: {status}{elapsed_str}')
+                    print(f'{indent}    {name}: {status}{elapsed_str}')
         else:
-            print('No daemon run recorded yet.')
+            print(f'{indent}No daemon run recorded yet.')
 
-    def _print_lock_status(lock_path):
+    def _print_lock_status(lock_path, indent=''):
         if lock_path and lock_path.exists():
             pid, _ = _read_lock(lock_path)
             if pid and _pid_alive(pid):
-                print(f'\nLock held by running process: pid={pid}')
+                print(
+                    f'{indent}Daemon cycle currently running: pid={pid}'
+                )
             else:
-                print(f'\nStale lock file present: {lock_path}')
+                print(f'{indent}Lock file is stale: {lock_path}')
         else:
-            print('\nNo lock file present (daemon is not running).')
+            print(
+                f'{indent}No daemon cycle currently running '
+                '(normal between scheduled runs).'
+            )
 
     def _service_installed():
         platform = sys.platform
@@ -549,6 +579,35 @@ def show_status(config):
             return timer_path.exists()
         return False
 
+    def _instance_log_file(instance):
+        instance_config = instance.get('config_file')
+        platform = sys.platform
+        if platform == 'darwin':
+            plist_dir = _launchd_plist_path().parent
+            plist_paths = sorted(plist_dir.glob(f'{_LAUNCHD_LABEL}*.plist'))
+            for plist_path in plist_paths:
+                if (
+                    instance_config
+                    and _launchd_configfile(plist_path) == instance_config
+                ):
+                    return _launchd_log_file(plist_path)
+            if len(plist_paths) == 1:
+                return _launchd_log_file(plist_paths[0])
+        if platform.startswith('linux'):
+            unit_dir = _systemd_unit_dir()
+            timer_paths = sorted(unit_dir.glob('seiscat-daemon*.timer'))
+            for timer_path in timer_paths:
+                service_path = unit_dir / f'{timer_path.stem}.service'
+                if (
+                    instance_config
+                    and _systemd_configfile(service_path) == instance_config
+                ):
+                    return _systemd_log_file(service_path)
+            if len(timer_paths) == 1:
+                service_path = unit_dir / f'{timer_paths[0].stem}.service'
+                return _systemd_log_file(service_path)
+        return None
+
     if config.get('db_file') or config.get('daemon_state_file'):
         state = _load_state(config)
         _print_last_run(state)
@@ -557,7 +616,10 @@ def show_status(config):
         instances = _discover_instances()
         if not instances:
             print('No daemon run recorded yet.')
-            print('\nNo lock file present (daemon is not running).')
+            print(
+                'No daemon cycle currently running '
+                '(normal between scheduled runs).'
+            )
         for index, instance in enumerate(instances, start=1):
             if index > 1:
                 print()
@@ -566,6 +628,8 @@ def show_status(config):
                 print(f'Daemon instance {index}: {label}')
             else:
                 print(f'Daemon instance {index}:')
+            if log_file := _instance_log_file(instance):
+                print(f'  Log file: {log_file}')
             state_file = instance.get('state_file')
             try:
                 state = json.loads(pathlib.Path(state_file).read_text(
@@ -573,35 +637,41 @@ def show_status(config):
                 )) if state_file else {}
             except Exception:  # noqa: BLE001
                 state = {}
-            _print_last_run(state)
+            _print_last_run(state, indent='  ')
+            print('  Runtime status:')
             lock_file = instance.get('lock_file')
             _print_lock_status(
-                pathlib.Path(lock_file) if lock_file else None
+                pathlib.Path(lock_file) if lock_file else None,
+                indent='    ',
             )
     else:
         print('No daemon run recorded yet.')
-        print('\nNo lock file present (daemon is not running).')
+        print(
+            'No daemon cycle currently running '
+            '(normal between scheduled runs).'
+        )
 
     # --- OS service status ---
     platform = sys.platform
     print()
+    print('OS service status:')
     if platform == 'darwin':
         plist_path = _launchd_plist_path()
         if plist_path.exists():
-            print(f'launchd plist installed: {plist_path}')
+            print(f'  launchd plist installed: {plist_path}')
             _launchctl(['list', _LAUNCHD_LABEL], check=False)
         else:
-            print('launchd plist not installed.')
+            print('  launchd plist not installed.')
     elif platform.startswith('linux'):
         unit_dir = _systemd_unit_dir()
         timer_path = unit_dir / _SYSTEMD_TIMER
         if timer_path.exists():
-            print(f'systemd timer installed: {timer_path}')
+            print(f'  systemd timer installed: {timer_path}')
             _systemctl(['--user', 'status', _SYSTEMD_TIMER], check=False)
         else:
-            print('systemd timer not installed.')
+            print('  systemd timer not installed.')
     else:
-        print(f'OS service status not available on {platform}.')
+        print(f'  OS service status not available on {platform}.')
 
 
 # ---------------------------------------------------------------------------
