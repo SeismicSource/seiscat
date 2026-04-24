@@ -81,7 +81,8 @@ def get_fetchdata_layout(config):
 
     Supported values:
     - ``event_dirs``: legacy layout with per-event waveform/station folders
-    - ``event_files``: bundled per-event files (event.mseed/stations.xml)
+        - ``event_files``: bundled per-event files
+            (event_<evid>.mseed/stations_<evid>.xml)
 
     :param config: config object
     :type config: dict
@@ -102,7 +103,8 @@ def get_event_xml_file(evid_dir, evid):
     """
     Return the event QuakeML file path for an event directory.
 
-    Tries ``{evid}.xml`` first, then ``event.xml``.
+    Tries ``{evid}.xml`` first, then ``event_{evid}.xml``, then
+    ``event.xml``.
 
     :param evid_dir: event directory
     :type evid_dir: pathlib.Path
@@ -114,6 +116,7 @@ def get_event_xml_file(evid_dir, evid):
     evid_dir = pathlib.Path(evid_dir)
     candidates = (
         evid_dir / f'{evid}.xml',
+        evid_dir / f'event_{evid}.xml',
         evid_dir / 'event.xml',
     )
     return next(
@@ -142,9 +145,9 @@ def get_event_layout_paths(config, evid):
             'evid_dir': evid_dir,
             'waveform_dir': evid_dir / '.waveforms',
             'station_dir': evid_dir / '.stations',
-            'event_xml_file': evid_dir / 'event.xml',
-            'waveform_file': evid_dir / 'event.mseed',
-            'station_file': evid_dir / 'stations.xml',
+            'event_xml_file': evid_dir / f'event_{evid}.xml',
+            'waveform_file': evid_dir / f'event_{evid}.mseed',
+            'station_file': evid_dir / f'stations_{evid}.xml',
         }
     return {
         'layout': layout,
