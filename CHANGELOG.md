@@ -47,6 +47,8 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - Fixed `seiscat fetchdata` directory layout regression where `waveforms/` and
   `stations/` could be created as top-level directories instead of
   per-event subdirectories.
+- Do proper bound checking for `station_radius_min` and `station_radius_max`
+  configuration options (between 0 and 180 degrees)
 
 ## [0.9.4] - 2026-04-23
 
