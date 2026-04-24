@@ -129,6 +129,12 @@ system's native scheduler: **launchd** on macOS and **systemd** on Linux.
 Each scheduled invocation runs exactly one cycle (``updatedb``, plus
 optional fetch stages) and then exits.
 
+.. note::
+
+   Daemon mode is currently supported only on macOS and Linux.
+   On Windows, the ``daemon`` command is not available and will not appear
+   in ``seiscat --help``.
+
 1. **Enable daemon mode** in your ``seiscat.conf``:
 
 .. code-block::
@@ -193,9 +199,8 @@ presence, and the OS service status.
 
 **Windows**
 
-Native Windows service support (Task Scheduler) is not yet implemented.
-On Windows, you can run ``seiscat daemon run`` manually or via a scheduled
-task configured through the Task Scheduler GUI.
+Windows daemon integration is not currently implemented.
+The ``seiscat daemon`` command tree is hidden on Windows.
 
 
 Next

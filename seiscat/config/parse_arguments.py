@@ -13,6 +13,7 @@ import os
 import sys
 import textwrap
 import argparse
+import platform
 import argcomplete
 from rich_argparse import RichHelpFormatter
 from rich.console import Console
@@ -806,7 +807,7 @@ def _add_daemon_parser(subparser, parents):
         'daemon',
         parents=[parents['configfile_parser']],
         formatter_class=RichHelpFormatter,
-        help='manage the seiscat scheduled daemon (launchd/systemd)'
+        help='manage the seiscat scheduled daemon'
     )
     daemon_subparser = daemon_parser.add_subparsers(
         dest='daemon_action',
@@ -990,7 +991,8 @@ def parse_arguments():
     _add_set_parser(subparser, parents)
     _add_fetchdata_parser(subparser, parents)
     _add_run_parser(subparser, parents)
-    _add_daemon_parser(subparser, parents)
+    if platform.system().lower() != 'windows':
+        _add_daemon_parser(subparser, parents)
     _add_sampleconfig_parser(subparser)
     _add_samplescript_parser(subparser)
     _add_self_parser(subparser)

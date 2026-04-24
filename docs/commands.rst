@@ -493,6 +493,12 @@ by a system scheduler (launchd on macOS, systemd on Linux). Each run
 executes exactly one cycle: ``updatedb`` always, and optionally fetch event
 details and/or waveform data depending on the configuration.
 
+.. note::
+
+   The ``daemon`` command is available only on macOS and Linux.
+   On Windows, daemon mode is not supported and the ``daemon`` command does
+   not appear in the CLI.
+
 seiscat daemon run
 ^^^^^^^^^^^^^^^^^^
 
