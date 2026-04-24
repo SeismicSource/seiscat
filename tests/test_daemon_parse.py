@@ -72,8 +72,7 @@ class TestDaemonParse(unittest.TestCase):
             parse_arguments()
         self.assertEqual(cm.exception.code, 0)
 
-    @patch('seiscat.config.parse_arguments.platform.system',
-           return_value='Windows')
+    @patch('platform.system', return_value='Windows')
     @patch('sys.argv', ['seiscat', '--help'])
     def test_daemon_not_shown_in_help_on_windows(self, _mock_platform):
         with patch('sys.stdout') as mock_stdout:
@@ -83,8 +82,7 @@ class TestDaemonParse(unittest.TestCase):
             call.args[0] for call in mock_stdout.write.call_args_list)
         self.assertNotIn('daemon', printed)
 
-    @patch('seiscat.config.parse_arguments.platform.system',
-           return_value='Windows')
+    @patch('platform.system', return_value='Windows')
     @patch('sys.argv', ['seiscat', 'daemon', 'status'])
     def test_daemon_command_unavailable_on_windows(self, _mock_platform):
         with self.assertRaises(SystemExit) as cm:
