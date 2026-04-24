@@ -28,10 +28,24 @@ def fetch_event_waveforms(config):
         event_dir = pathlib.Path(config['event_dir'])
         event_dir.mkdir(parents=True, exist_ok=True)
         args = config['args']
+        n_events_processed = len(events)
+        n_events_downloaded = 0
+        n_stations_downloaded = 0
         if args.sds:
             sds_client = get_sds_client(args.sds)
             for event in events:
-                fetch_sds_waveforms(config, event, sds_client)
+                n_stations = fetch_sds_waveforms(config, event, sds_client)
+                n_stations_downloaded += n_stations
+                if n_stations > 0:
+                    n_events_downloaded += 1
         else:
             for event in events:
-                mass_download_waveforms(config, event)
+                n_stations = mass_download_waveforms(config, event)
+                n_stations_downloaded += n_stations
+                if n_stations > 0:
+                    n_events_downloaded += 1
+        print(
+            f'\nfetchdata summary: {n_events_downloaded}/{n_events_processed} '
+            f'events with downloaded waveforms, '
+            f'{n_stations_downloaded} stations downloaded'
+        )

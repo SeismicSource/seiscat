@@ -23,6 +23,13 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
   - `event_files`:
     `events/<evid>/event.xml`, `events/<evid>/event.mseed`,
     `events/<evid>/stations.xml`
+- New `fetchdata_force_raw_evid` configuration option for
+  `seiscat fetchdata --event` to force event-details requests to use
+  `raw_evid` directly (when available), skipping the initial normalized
+  `evid` attempt.
+- `seiscat fetchdata` now prints a short end-of-run summary:
+  - `--event`: events processed/fetched/skipped/failed
+  - `--data`: events with downloaded waveforms and total stations downloaded
 
 ### Fixed
 

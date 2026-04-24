@@ -35,7 +35,7 @@ def _get_events(client, evid):
         return client.get_events(eventid=evid)
 
 
-def _fetch_event(client, evid, raw_evid):
+def _fetch_event(client, evid, raw_evid, force_raw_evid=False):
     """
     Fetch a single event from the FDSN client, retrying with raw_evid on fail.
 
@@ -44,8 +44,20 @@ def _fetch_event(client, evid, raw_evid):
     :param client: FDSN client
     :param evid: normalized event id
     :param raw_evid: raw (original) resource_id string, or None
+    :param force_raw_evid: if True, use raw_evid directly without trying
+        the normalized evid first
     :returns: obspy catalog, or None on failure
     """
+    if force_raw_evid:
+        evid_to_use = raw_evid if (raw_evid and raw_evid != evid) else evid
+        try:
+            return _get_events(client, evid_to_use)
+        except (ValueError, FDSNNoDataException) as e:
+            print(
+                f'Cannot fetch event details for {evid} '
+                f'from server {client.base_url}: {e}'
+            )
+            return None
     try:
         return _get_events(client, evid)
     except (ValueError, FDSNNoDataException) as e:
@@ -84,6 +96,11 @@ def fetch_event_details(config):
     event_dir = pathlib.Path(config['event_dir'])
     event_dir.mkdir(parents=True, exist_ok=True)
     overwrite_existing = config['args'].overwrite_existing
+    force_raw_evid = config.get('fetchdata_force_raw_evid', False)
+    n_total = len(events)
+    n_fetched = 0
+    n_skipped = 0
+    n_failed = 0
     for event in events:
         evid = event['evid']
         # .get() returns None if 'raw_evid' column doesn't exist
@@ -95,11 +112,18 @@ def fetch_event_details(config):
         outfile = paths['event_xml_file']
         if not overwrite_existing and outfile.exists():
             print(f'{outfile} exists, skipping')
+            n_skipped += 1
             continue
-        fetched = _fetch_event(client, evid, raw_evid)
+        fetched = _fetch_event(client, evid, raw_evid, force_raw_evid)
         if fetched is None:
+            n_failed += 1
             continue
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             fetched.write(outfile, format='QUAKEML')
         print(f'event details saved to {outfile}')
+        n_fetched += 1
+    print(
+        f'\nfetchdata summary: {n_total} events processed, '
+        f'{n_fetched} fetched, {n_skipped} skipped, {n_failed} failed'
+    )

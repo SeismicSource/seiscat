@@ -80,6 +80,7 @@ def fetch_sds_waveforms(config, event, client):
     :type event: dict
     :param client: SDS client
     :type client: obspy.clients.filesystem.sds.Client
+    :returns: number of stations downloaded for this event
     """
     evid = event['evid']
     paths = get_event_layout_paths(config, evid)
@@ -111,7 +112,7 @@ def fetch_sds_waveforms(config, event, client):
                 f'{evid}: No P/S picks found in the event QuakeML file. '
                 'No waveforms will be downloaded.'
             )
-            return
+            return 0
         else:
             if station_codes:
                 picked_stations = {
@@ -123,8 +124,9 @@ def fetch_sds_waveforms(config, event, client):
                         f'{evid}: No picked stations match station_codes '
                         f'"{station_codes}". No waveforms will be downloaded.'
                     )
-                    return
+                    return 0
     print(f'Fetching waveforms for event: {evid}')
+    downloaded_stations = set()
     all_nslc = client.get_all_nslc()
     for nslc in all_nslc:
         net, sta, loc, chan = nslc
@@ -142,6 +144,7 @@ def fetch_sds_waveforms(config, event, client):
         st = client.get_waveforms(net, sta, loc, chan, t0, t1)
         outfile = waveform_dir / f'{net}.{sta}.{loc}.{chan}.mseed'
         st.write(outfile, format='MSEED')
+        downloaded_stations.add((net, sta))
         print(f'  {outfile} written')
     if config['prefer_high_sampling_rate']:
         prefer_high_sampling_rate(waveform_dir)
@@ -150,3 +153,4 @@ def fetch_sds_waveforms(config, event, client):
             print(f'  {paths["waveform_file"]} written')
         shutil.rmtree(waveform_dir, ignore_errors=True)
     print()
+    return len(downloaded_stations)

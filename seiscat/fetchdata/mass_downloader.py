@@ -290,6 +290,7 @@ def mass_download_waveforms(config, event):
 
     :param config: config object
     :param event: event object
+    :returns: number of station metadata files downloaded for this event
     """
     _check_fdsn_providers(config['fdsn_providers'])
     evid = event['evid']
@@ -354,7 +355,7 @@ def mass_download_waveforms(config, event):
             # Empty set: no stations to download
             mdl_logger.info('No stations match the selection criteria.')
             _unset_mdl_logger()
-            return
+            return 0
         station_str = (
             ','.join(station_restriction)
             if isinstance(station_restriction, set)
@@ -369,6 +370,7 @@ def mass_download_waveforms(config, event):
             mseed_storage=str(waveform_dir),
             stationxml_storage=str(station_dir)
         )
+    n_stations = len(list(station_dir.glob('*.xml')))
     if config['prefer_high_sampling_rate']:
         prefer_high_sampling_rate(waveform_dir, mdl_logger)
     if paths['layout'] == 'event_files':
@@ -391,3 +393,4 @@ def mass_download_waveforms(config, event):
     _info_msg = f'Waveforms and station metadata saved to {evid_dir}'
     mdl_logger.info(_info_msg)
     _unset_mdl_logger()
+    return n_stations
