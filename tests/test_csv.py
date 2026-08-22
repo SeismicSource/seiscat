@@ -20,6 +20,8 @@ from seiscat.sources.csv import (
     _field_match_score,
     _remove_redundant_fields,
     _guess_field_names,
+    _guess_mag_type,
+    KNOWN_MAG_TYPES,
     _csv_file_info,
     _read_orig_time_from_ymdhms,
     _split_date_time,
@@ -180,6 +182,41 @@ class TestFieldMatchScore(unittest.TestCase):
         """Test abbreviation "lat" matches when "latitude" is present."""
         score = _field_match_score('origin_latitude', ['lat', 'latitude'])
         self.assertEqual(score, 8)  # len('latitude')
+
+    def test_short_magnitude_types_are_not_abbreviations(self):
+        """Test "mw" still matches "mag_mw" alongside "mww"-like types."""
+        mag_guesses = ['mag', 'magnitude'] + list(KNOWN_MAG_TYPES)
+        score = _field_match_score('mag_mw', mag_guesses)
+        self.assertGreater(score, 0)
+
+
+class TestGuessMagType(unittest.TestCase):
+    """Test _guess_mag_type function."""
+
+    def test_returns_none_for_empty_or_generic_names(self):
+        """Test generic names return no magnitude type."""
+        self.assertIsNone(_guess_mag_type(None))
+        self.assertIsNone(_guess_mag_type('mag'))
+        self.assertIsNone(_guess_mag_type('magnitude'))
+
+    def test_returns_bare_magnitude_type(self):
+        """Test bare magnitude type names are detected."""
+        self.assertEqual(_guess_mag_type('mb'), 'mb')
+        self.assertEqual(_guess_mag_type('ms'), 'ms')
+        self.assertEqual(_guess_mag_type('md'), 'md')
+        self.assertEqual(_guess_mag_type('mjma'), 'mjma')
+
+    def test_is_case_insensitive(self):
+        """Test magnitude type detection is case insensitive."""
+        self.assertEqual(_guess_mag_type('ML'), 'ml')
+        self.assertEqual(_guess_mag_type('Mw'), 'mw')
+
+    def test_returns_type_from_prefixed_names(self):
+        """Test prefixed names like mag_mw and magnitude_mb are detected."""
+        self.assertEqual(_guess_mag_type('mag_mw'), 'mw')
+        self.assertEqual(_guess_mag_type('magnitude_mb'), 'mb')
+        self.assertEqual(_guess_mag_type('mag mw'), 'mw')
+        self.assertEqual(_guess_mag_type('mag_mj'), 'mj')
 
 
 class TestRemoveRedundantFields(unittest.TestCase):
@@ -851,6 +888,26 @@ class TestReadCSV(unittest.TestCase):
         cat = self._read_catalog(csv_content)
 
         self.assertEqual(cat[0].magnitudes[0].magnitude_type, 'ml')
+
+    def test_guesses_more_mag_types_from_field_name(self):
+        """Test guesses additional magnitude types from field name."""
+        csv_content = """\
+latitude,longitude,depth,mb,origin_time
+42.5,13.2,10.0,3.5,2023-05-15T14:30:45
+"""
+        cat = self._read_catalog(csv_content)
+
+        self.assertEqual(cat[0].magnitudes[0].magnitude_type, 'mb')
+
+    def test_guesses_mag_type_from_prefixed_field_name(self):
+        """Test guesses magnitude type from a prefixed field name."""
+        csv_content = """\
+latitude,longitude,depth,mag_mw,origin_time
+42.5,13.2,10.0,3.5,2023-05-15T14:30:45
+"""
+        cat = self._read_catalog(csv_content)
+
+        self.assertEqual(cat[0].magnitudes[0].magnitude_type, 'mw')
 
     def test_applies_no_value_markers(self):
         """Test configured no-value markers are converted to missing values."""

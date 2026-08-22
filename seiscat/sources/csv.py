@@ -21,6 +21,14 @@ from ..utils import float_or_none, int_or_none
 from .evid import generate_evid
 
 
+# Known magnitude types that can be autodetected from CSV column names.
+KNOWN_MAG_TYPES = (
+    'mw', 'ml', 'mb', 'ms', 'md', 'mc',
+    'mwp', 'mww', 'mwc', 'mwb', 'mwr',
+    'me', 'mi', 'mn', 'mj', 'mjma',
+)
+
+
 def _read_first_lines(fp, max_lines=10):
     """Read and strip up to max_lines lines from a text file pointer."""
     first_lines = []
@@ -120,14 +128,17 @@ def _field_match_score(field, field_list):
     best = 0
     for guess in field_list:
         # Find the longest guess that starts with `guess`.
-        # If it is longer than `guess`, then `guess` is an abbreviation.
+        # If it is sufficiently longer than `guess`, then `guess` is an
+        # abbreviation of it.
         full_form = max(
             (g for g in field_list if g.startswith(guess)),
             key=len, default=guess
         )
         # `guess` is an abbreviation: only match it when the full name
-        # appears in the field (avoids matching "min" in "minDist")
-        if len(full_form) > len(guess) and full_form not in field_norm:
+        # appears in the field (avoids matching "min" in "minDist").
+        # The `+ 2` avoids treating near-ties (e.g. "mw" vs "mww",
+        # "mj" vs "mjma") as abbreviations.
+        if len(full_form) > len(guess) + 2 and full_form not in field_norm:
             continue
         if guess in field_norm:
             best = max(best, len(guess))
@@ -178,7 +189,7 @@ def _guess_field_names(input_fields):
         'lat': ['lat', 'latitude'],
         'lon': ['lon', 'longitude'],
         'depth': ['depth', 'depth_km', 'dep', 'evz'],
-        'mag': ['mag', 'magnitude', 'mw', 'ml'],
+        'mag': ['mag', 'magnitude'] + list(KNOWN_MAG_TYPES),
         'mag_type': ['mag_type', 'magnitude_type'],
         'event_type': ['event_type', 'ev_type'],
     }
@@ -252,6 +263,34 @@ def _guess_field_names(input_fields):
         raise ValueError(
             'Unable to identify all the necessary date-time fields')
     return output_fields
+
+
+def _guess_mag_type(mag_field):
+    """
+    Guess the magnitude type from the magnitude field name.
+
+    Supports bare type names (e.g. "mw", "ml", "mb") as well as prefixed
+    forms such as "mag_mw", "magnitude_mb" or "mag mw".
+
+    :param mag_field: magnitude field name
+    :type mag_field: str or None
+
+    :return: guessed magnitude type, or None if it cannot be determined
+    :rtype: str or None
+    """
+    if not mag_field:
+        return None
+    field = mag_field.lower().strip()
+    if field in KNOWN_MAG_TYPES:
+        return field
+    # try "mag_<type>", "magnitude_<type>", "mag <type>", ...
+    for prefix in ('magnitude', 'mag'):
+        if field.startswith(prefix):
+            remainder = field[len(prefix):].strip(' _-')
+            if remainder in KNOWN_MAG_TYPES:
+                return remainder
+            break
+    return None
 
 
 def _csv_file_info(filename):
@@ -611,9 +650,7 @@ def _read_csv(
     # if magtype is missing, try to guess it from the magnitude field name
     mag_type = None
     if fields['mag_type'] is None:
-        mag_field = fields['mag']
-        if mag_field is not None and mag_field.lower() in ['mw', 'ml']:
-            mag_type = mag_field
+        mag_type = _guess_mag_type(fields['mag'])
     if column_names is None:
         nrows -= 1  # first row is the header
     cat = Catalog()

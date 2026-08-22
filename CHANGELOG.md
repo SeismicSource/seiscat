@@ -33,6 +33,9 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
   - `--data`: events with downloaded waveforms and total stations downloaded
 - `station_codes` now supports network-qualified patterns using
   `NET.STA` notation
+- CSV reader now autodetects more magnitude types from the header column name
+  (`mb`, `ms`, `md`, `mc`, `mww`, `mwp`, `mjma`, and others), including
+  prefixed forms such as `mag_mw` or `magnitude_mb`
 
 ### Fixed
 
