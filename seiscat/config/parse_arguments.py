@@ -53,23 +53,28 @@ Where:
 Comparison operators must be quoted to avoid shell interpretation.
 A bare key (e.g., [cyan]mag[/cyan]) uses SQL truthiness, so it means
 [italic]non-null and non-zero[/italic]."""  # noqa: E501 (ignore long line)
-    panel = Panel(help_text, title="--where", expand=False, padding=(1, 2))
+    panel = Panel(help_text, title='--where', expand=False, padding=(1, 2))
     console.print(panel)
     sys.exit(0)
 
 
 class WhereHelpAction(argparse.Action):
     """Custom action for --where-help that displays detailed help and exits."""
+
     def __init__(self, option_strings, dest, **kwargs):
+        """Initialize the action."""
         super().__init__(option_strings, dest, nargs=0, **kwargs)
 
     def __call__(self, parser, namespace, values, option_string=None):
+        """Print the --where help and exit."""
         print_where_help_and_exit()
 
 
 class CustomArgumentParser(argparse.ArgumentParser):
     """Custom parser that adds helpful hints to error messages."""
+
     def error(self, message):
+        """Print an error message, adding hints when relevant."""
         # Add hint about --where-help if it's a --where error
         if '--where' in message or '-w' in message:
             message += '\n(see --where-help for details)'
@@ -83,6 +88,7 @@ class SubcommandHelpFormatter(RichHelpFormatter):
 
     See: https://stackoverflow.com/a/13429281/2021880
     """
+
     def _split_lines(self, text, width):
         lines = []
         for line in text.splitlines():  # Split the text by newlines first

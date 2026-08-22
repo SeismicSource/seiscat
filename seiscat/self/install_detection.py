@@ -12,6 +12,7 @@ from .._version import get_versions
 @dataclass
 class InstallContext:
     """Detected install context for SeisCat."""
+
     installer: str
     channel: str
     version_installed: str

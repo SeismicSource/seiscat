@@ -138,7 +138,7 @@ class TestReadCatalogFromObspyEvents(unittest.TestCase):
 
     def test_raises_error_for_invalid_format(self):
         """Test raises ValueError for unsupported format."""
-        invalid_content = "This is not a valid event file format"
+        invalid_content = 'This is not a valid event file format'
         with tempfile.NamedTemporaryFile(
             mode='w', delete=False, suffix='.txt'
         ) as f:

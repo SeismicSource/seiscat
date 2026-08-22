@@ -153,6 +153,7 @@ def _copy_to_clipboard(text):
     # pylint: disable=import-outside-toplevel
     import platform
     import subprocess
+
     def _is_wsl():
         """Detect if running under Windows Subsystem for Linux."""
         try:
@@ -293,14 +294,19 @@ def _display_message_popup(stdscr, message):
         stdscr.addstr(popup_y, popup_x, top_border, curses.A_BOLD)
         for i, line in enumerate(message_lines):
             message_line = _format_centered_popup_line(popup_width, line)
-            stdscr.addstr(popup_y + 1 + i, popup_x, message_line, curses.A_BOLD)
+            stdscr.addstr(
+                popup_y + 1 + i, popup_x, message_line, curses.A_BOLD
+            )
         # Draw instruction
         instruction = 'Press any key'
         inst_line = _format_centered_popup_line(popup_width, instruction)
         stdscr.addstr(popup_y + 1 + len(message_lines), popup_x, inst_line)
         # Draw bottom border
         bottom_border = f'╚{"═" * (popup_width - 2)}╝'
-        stdscr.addstr(popup_y + 2 + len(message_lines), popup_x, bottom_border, curses.A_BOLD)
+        stdscr.addstr(
+            popup_y + 2 + len(message_lines), popup_x, bottom_border,
+            curses.A_BOLD
+        )
         stdscr.refresh()
         # Wait for any keypress
         stdscr.getch()
@@ -585,7 +591,6 @@ def _draw_sort_popup_and_get_input(
 
 
 def _display_sort_selector(stdscr, raw_data):
-
     """
     Display an interactive sort field selector popup.
 
@@ -1098,4 +1103,4 @@ def display_table_pager(
     try:
         curses.wrapper(_display_table_pager_wrapper)
     except (curses.error, OSError, KeyboardInterrupt) as e:
-        raise PagerException(f"Pager failed: {e}") from e
+        raise PagerException(f'Pager failed: {e}') from e

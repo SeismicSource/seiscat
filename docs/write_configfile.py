@@ -15,7 +15,7 @@ import os
 def write_configfile(_app):
     """Write configuration file documentation page."""
     with open('configuration_file.rst', 'w', encoding='utf-8') as fp:
-        fp.write('''.. _configuration_file:
+        fp.write(""".. _configuration_file:
 
 ##################
 Configuration File
@@ -27,7 +27,7 @@ Comment lines start with ``#``.
 
 Here is the default config file::
 
-''')
+""")
         configspec = os.path.join(
             '..', 'seiscat', 'config', 'configspec.conf')
         for line in open(configspec, encoding='utf-8'):

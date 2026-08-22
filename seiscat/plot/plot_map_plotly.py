@@ -408,7 +408,7 @@ def plot_catalog_map_with_plotly(events, config):
     :type config: configspec.ConfigObj
     """
     # Set plotly renderer to browser to avoid notebook-style HTML output
-    pio.renderers.default = "browser"
+    pio.renderers.default = 'browser'
     out_file = config['args'].out_file
     if out_file:
         if not out_file.endswith('.html'):

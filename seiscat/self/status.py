@@ -49,11 +49,11 @@ def _status_label(installed, color_enabled):
 def _update_label(update_state, color_enabled):
     if update_state == 'up to date':
         mark = _colorize('✓', _ANSI_GREEN, color_enabled)
-        return f"{mark}{_colorize(update_state, _ANSI_GREEN, color_enabled)}"
+        return f'{mark}{_colorize(update_state, _ANSI_GREEN, color_enabled)}'
     if update_state == 'update available':
         mark = _colorize('!', _ANSI_YELLOW, color_enabled)
-        return f"{mark} {_colorize(update_state, _ANSI_YELLOW, color_enabled)}"
-    return _colorize(update_state, _ANSI_CYAN, color_enabled)
+        return f'{mark} {_colorize(update_state, _ANSI_YELLOW, color_enabled)}'
+    return _colorize(update_state, _ANSI_DARK_CYAN, color_enabled)
 
 
 def _update_state(context, latest_release):
@@ -120,7 +120,7 @@ def print_self_status():
     )
     print(
         f"{_key_label('Optional plotting modules:', color_enabled)} "
-        f"{optional_text}"
+        f'{optional_text}'
     )
     print(
         f"{_key_label('Completion:', color_enabled)} "

@@ -91,7 +91,7 @@ def _write_sample_script_unix():
         return
     with open(SAMPLE_SCRIPT_UNIX_FILENAME, 'w', encoding='utf8') as f:
         f.write(SAMPLE_SCRIPT_UNIX)
-    print(f'''\
+    print(f"""\
 Sample script "{SAMPLE_SCRIPT_UNIX_FILENAME}" written.
 
 Make sure the script is executable:
@@ -101,7 +101,7 @@ Make sure the script is executable:
 Usage:
 
     seiscat run ./{SAMPLE_SCRIPT_UNIX_FILENAME} [eventid]
-''')
+""")
 
 
 def _write_sample_script_windows():
@@ -112,13 +112,13 @@ def _write_sample_script_windows():
         return
     with open(SAMPLE_SCRIPT_WINDOWS_FILENAME, 'w', encoding='utf8') as f:
         f.write(SAMPLE_SCRIPT_WINDOWS)
-    print(f'''\
+    print(f"""\
 Sample script "{SAMPLE_SCRIPT_WINDOWS_FILENAME}" written.
 
 Usage:
 
     seiscat run {SAMPLE_SCRIPT_WINDOWS_FILENAME} [eventid]
-''')
+""")
 
 
 def write_sample_script():

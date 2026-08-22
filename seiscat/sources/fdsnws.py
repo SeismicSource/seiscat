@@ -96,6 +96,7 @@ class InvalidQuery(Exception):
 
 class QueryArgs():
     """Build query arguments for FDSN client."""
+
     def __init__(self, config, suffix, first_query):
         """
         Initialize query arguments.

@@ -39,11 +39,11 @@ class TestProcessWhereOption(unittest.TestCase):
         self.assertEqual(values, expected_values)
 
     def test_translates_equal_none_to_is_null(self):
-        """key = None or key == None should become IS NULL."""
+        """Translate key = None or key == None into IS NULL."""
         self._assert_where_conversion('mag==None', 'mag IS NULL', [])
 
     def test_translates_not_equal_none_to_is_not_null(self):
-        """key != None should become IS NOT NULL."""
+        """Translate key != None into IS NOT NULL."""
         self._assert_where_conversion('mag != None', 'mag IS NOT NULL', [])
 
     def test_keeps_regular_comparisons_parameterized(self):
@@ -264,7 +264,10 @@ class TestKeepRawEvid(unittest.TestCase):
             write_catalog_to_db(
                 self._catalog(), self._config(keep_raw_evid=True), initdb=True
             )
-        self.assertIn('raw_evid', get_db_columns(self._config(keep_raw_evid=True)))
+        self.assertIn(
+            'raw_evid',
+            get_db_columns(self._config(keep_raw_evid=True)),
+        )
 
     def test_keep_raw_evid_stores_full_resource_id(self):
         """raw_evid stores the full resource_id; evid remains normalized."""

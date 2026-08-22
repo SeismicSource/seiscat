@@ -200,14 +200,14 @@ def _install_zsh_completion():
         content = '\n'.join(out).rstrip() + '\n'
 
     snippet = (
-        f"\n{ZSH_MARKER}\n"
+        f'\n{ZSH_MARKER}\n'
         'autoload -U compinit\n'
         'if ! typeset -f compdef >/dev/null 2>&1; then\n'
         '  compinit\n'
         'fi\n'
         'autoload -U +X bashcompinit && bashcompinit\n'
         'eval "$(register-python-argcomplete seiscat)"\n'
-        f"{ZSH_END_MARKER}\n"
+        f'{ZSH_END_MARKER}\n'
     )
     zshrc.write_text(content + snippet, encoding='utf-8')
 
