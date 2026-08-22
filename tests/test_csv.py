@@ -21,6 +21,7 @@ from seiscat.sources.csv import (
     _remove_redundant_fields,
     _guess_field_names,
     _guess_mag_type,
+    _normalize_event_type,
     KNOWN_MAG_TYPES,
     _csv_file_info,
     _read_orig_time_from_ymdhms,
@@ -113,6 +114,13 @@ date,latitude,longitude,depth,RMS,pdfVolume,minDist,maxDist,medDist,Gap_before,e
 2023-02-07T15:14:36.021400,37.407951,36.962921,7.552083,,8.74876,11.5949,121.29,22.9757,114.283,2.1600329164158585,1.2270611802188185,3.097243322698428,2.4842345581687733,21,,37.408907,36.958895,7.812971,None
 """
 
+CSV_CONTENT_LDG = """\
+orid;etype;datetime;stime;lat;slat;lon;slon;depth;deptype;ML;nbmagML;smagML;MD;nbmagMD;smagMD;nbsta;nbpha;gap1;gap2;minax;majax;strike;mindist;rms;GT5;distcity
+71048;eq;20/01/1963 19:50:44;2.50;47.4780;12.3000;4.4770;6.5600;2.0;-;3.06;3;0.05;-999.00;0;-99.00;4;8;304;353;16.20;38.40;71;1.84;1.3;0;None
+71049;eq;22/01/1963 02:29:30;1.70;45.9800;21.4100;6.4200;18.6900;2.0;-;-999.00;0;-99.00;3.16;2;0.07;3;7;177;352;9.90;86.90;49;0.17;1.3;0;None
+71051;eq;10/02/1963 05:51:38;1.10;50.7310;4.9000;5.3550;7.4400;19.0;-;-999.00;0;-99.00;3.85;5;0.12;5;9;314;317;11.60;23.30;24;3.42;0.6;0;None
+"""
+
 
 def create_mock_config(
     filename, depth_units='km', delimiter=None, column_names=None,
@@ -183,6 +191,15 @@ class TestFieldMatchScore(unittest.TestCase):
         score = _field_match_score('origin_latitude', ['lat', 'latitude'])
         self.assertEqual(score, 8)  # len('latitude')
 
+    def test_word_matches_at_token_boundaries_only(self):
+        """Test a full-word guess does not match inside a longer word."""
+        self.assertEqual(_field_match_score('runtime', ['time']), 0)
+        self.assertEqual(_field_match_score('grid', ['id']), 0)
+
+    def test_word_matches_camel_case_token(self):
+        """Test a full-word guess matches a camelCase token."""
+        self.assertGreater(_field_match_score('StartTime', ['time']), 0)
+
     def test_short_magnitude_types_are_not_abbreviations(self):
         """Test "mw" still matches "mag_mw" alongside "mww"-like types."""
         mag_guesses = ['mag', 'magnitude'] + list(KNOWN_MAG_TYPES)
@@ -217,6 +234,35 @@ class TestGuessMagType(unittest.TestCase):
         self.assertEqual(_guess_mag_type('magnitude_mb'), 'mb')
         self.assertEqual(_guess_mag_type('mag mw'), 'mw')
         self.assertEqual(_guess_mag_type('mag_mj'), 'mj')
+
+
+class TestNormalizeEventType(unittest.TestCase):
+    """Test _normalize_event_type function."""
+
+    def test_returns_none_for_empty_values(self):
+        """Test None and empty values return None."""
+        self.assertIsNone(_normalize_event_type(None))
+        self.assertIsNone(_normalize_event_type(''))
+
+    def test_keeps_valid_obspy_event_type(self):
+        """Test an already-valid ObsPy event type is kept."""
+        self.assertEqual(
+            _normalize_event_type('earthquake'), 'earthquake')
+        self.assertEqual(
+            _normalize_event_type('quarry blast'), 'quarry blast')
+
+    def test_maps_common_codes(self):
+        """Test common event-type codes map to ObsPy event types."""
+        self.assertEqual(_normalize_event_type('eq'), 'earthquake')
+        self.assertEqual(_normalize_event_type('ke'), 'earthquake')
+        self.assertEqual(
+            _normalize_event_type('si'), 'induced or triggered event')
+        self.assertEqual(_normalize_event_type('rb'), 'rock burst')
+        self.assertEqual(_normalize_event_type('sr'), 'rock burst')
+
+    def test_returns_none_for_unknown_codes(self):
+        """Test unknown event-type codes return None."""
+        self.assertIsNone(_normalize_event_type('unknown-code'))
 
 
 class TestRemoveRedundantFields(unittest.TestCase):
@@ -346,6 +392,53 @@ class TestGuessFieldNames(unittest.TestCase):
             fields = _guess_field_names(input_fields)
         self.assertEqual(fields['date'], 'date')
         self.assertIsNone(fields['time'])
+        self.assertIsNone(fields['minute'])
+        self.assertIsNone(fields['seconds'])
+
+    def test_does_not_match_unrelated_columns(self):
+        """Test unrelated columns are not matched as event/time/magnitude."""
+        input_fields = [
+            'date', 'lat', 'lon', 'depth', 'mag', 'grid', 'runtime'
+        ]
+        with patch('builtins.print'):
+            fields = _guess_field_names(input_fields)
+        self.assertIsNone(fields['evid'])
+        self.assertIsNone(fields['time'])
+        self.assertEqual(fields['mag'], 'mag')
+
+    def test_does_not_match_volume_as_magnitude(self):
+        """Test pdfVolume is not matched as a magnitude column."""
+        input_fields = [
+            'date', 'latitude', 'longitude', 'depth', 'pdfVolume'
+        ]
+        with patch('builtins.print'):
+            fields = _guess_field_names(input_fields)
+        self.assertIsNone(fields['mag'])
+
+    def test_matches_camel_case_time(self):
+        """Test a camelCase time column is recognized."""
+        input_fields = ['StartTime', 'lat', 'lon', 'depth', 'mag']
+        with patch('builtins.print'):
+            fields = _guess_field_names(input_fields)
+        self.assertEqual(fields['time'], 'StartTime')
+
+    def test_identifies_ldg_catalogue_fields(self):
+        """Test field identification for a LDG semicolon catalogue header."""
+        input_fields = [
+            'orid', 'etype', 'datetime', 'stime', 'lat', 'slat', 'lon',
+            'slon', 'depth', 'deptype', 'ML', 'nbmagML', 'smagML', 'MD',
+            'nbmagMD', 'smagMD', 'nbsta', 'nbpha', 'gap1', 'gap2', 'minax',
+            'majax', 'strike', 'mindist', 'rms', 'GT5', 'distcity',
+        ]
+        with patch('builtins.print'):
+            fields = _guess_field_names(input_fields)
+        self.assertEqual(fields['evid'], 'orid')
+        self.assertEqual(fields['event_type'], 'etype')
+        self.assertEqual(fields['time'], 'datetime')
+        self.assertEqual(fields['lat'], 'lat')
+        self.assertEqual(fields['lon'], 'lon')
+        self.assertEqual(fields['depth'], 'depth')
+        self.assertEqual(fields['mag'], 'ML')
         self.assertIsNone(fields['minute'])
         self.assertIsNone(fields['seconds'])
 
@@ -1138,6 +1231,41 @@ class TestReadCatalogFromCSV(unittest.TestCase):
             )
             self.assertEqual(cat[0].extra['quality']['value'], 'A')
             self.assertEqual(cat[0].extra['reviewer']['value'], 'alice')
+        finally:
+            os.unlink(filename)
+
+    def test_reads_ldg_catalogue(self):
+        """Test reading a LDG semicolon-separated catalogue file."""
+        with tempfile.NamedTemporaryFile(
+            mode='w', delete=False, suffix='.txt'
+        ) as f:
+            f.write(CSV_CONTENT_LDG)
+            filename = f.name
+
+        try:
+            config = create_mock_config(
+                filename, depth_units='km', delimiter=';',
+                no_value=['-999', '-99']
+            )
+
+            with patch('builtins.print'):
+                cat = read_catalog_from_csv(config)
+
+            self.assertEqual(len(cat), 3)
+            ev = cat[0]
+            self.assertEqual(
+                ev.origins[0].time,
+                UTCDateTime('1963-01-20T19:50:44')
+            )
+            self.assertEqual(ev.origins[0].latitude, 47.4780)
+            self.assertEqual(ev.origins[0].longitude, 4.4770)
+            self.assertEqual(ev.origins[0].depth, 2000.0)  # km -> meters
+            self.assertEqual(ev.resource_id.id, '71048')
+            self.assertEqual(ev.event_type, 'earthquake')
+            self.assertEqual(ev.magnitudes[0].mag, 3.06)
+            self.assertEqual(ev.magnitudes[0].magnitude_type, 'ml')
+            # second event has a missing ML magnitude (-999.00)
+            self.assertIsNone(cat[1].magnitudes[0].mag)
         finally:
             os.unlink(filename)
 

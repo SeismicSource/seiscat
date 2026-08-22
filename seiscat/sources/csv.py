@@ -13,10 +13,12 @@ This code is modified from Requake (https://github.com/SeismicSource/requake)
 """
 import csv
 import contextlib
+import re
 from io import StringIO
 import numpy as np
 from obspy import UTCDateTime
 from obspy.core.event import Origin, Event, Catalog, Magnitude
+from obspy.core.event.header import EventType
 from ..utils import float_or_none, int_or_none
 from .evid import generate_evid
 
@@ -27,6 +29,18 @@ KNOWN_MAG_TYPES = (
     'mwp', 'mww', 'mwc', 'mwb', 'mwr',
     'me', 'mi', 'mn', 'mj', 'mjma',
 )
+
+# Mapping of common event-type codes to ObsPy-valid event types.
+EVENT_TYPE_MAP = {
+    'eq': 'earthquake',
+    'ke': 'earthquake',
+    'si': 'induced or triggered event',
+    'rb': 'rock burst',
+    'sr': 'rock burst',
+    'qb': 'quarry blast',
+    'ex': 'explosion',
+    'ne': 'nuclear explosion',
+}
 
 
 def _read_first_lines(fp, max_lines=10):
@@ -103,6 +117,24 @@ def _is_csv_like(filename, delimiter=None):
         return False
 
 
+def _camel_tokens(field):
+    """
+    Split a field name into lowercase tokens at separators and case changes.
+
+    :param field: field name
+    :type field: str
+
+    :return: list of lowercase tokens
+    :rtype: list of str
+    """
+    spaced = re.sub(r'([a-z0-9])([A-Z])', r'\1 \2', field.strip())
+    return [
+        token.lower()
+        for token in re.split(r'[^a-zA-Z0-9]+', spaced)
+        if token
+    ]
+
+
 def _field_match_score(field, field_list):
     """
     Return the score of the best match between a field and guessed names.
@@ -111,7 +143,8 @@ def _field_match_score(field, field_list):
     the score is the length of the longest matching guess. A guess that is
     an abbreviation of a longer guess (e.g. "min" for "minute") only scores
     when the full name appears in the field, so that unrelated names such as
-    "minDist" are not matched.
+    "minDist" are not matched. Full-word guesses are matched at token
+    boundaries (e.g. "time" matches "StartTime" but not "runtime").
 
     :param field: field name
     :type field: str
@@ -125,6 +158,10 @@ def _field_match_score(field, field_list):
     # return a very high score for a perfect match
     if field_norm in field_list:
         return 999
+    sep_tokens = [
+        token for token in re.split(r'[^a-z0-9]+', field_norm) if token
+    ]
+    tokens = _camel_tokens(field)
     best = 0
     for guess in field_list:
         # Find the longest guess that starts with `guess`.
@@ -135,13 +172,19 @@ def _field_match_score(field, field_list):
             key=len, default=guess
         )
         # `guess` is an abbreviation: only match it when the full name
-        # appears in the field (avoids matching "min" in "minDist").
+        # appears in the field, or the guess is a standalone token.
         # The `+ 2` avoids treating near-ties (e.g. "mw" vs "mww",
         # "mj" vs "mjma") as abbreviations.
-        if len(full_form) > len(guess) + 2 and full_form not in field_norm:
-            continue
-        if guess in field_norm:
-            best = max(best, len(guess))
+        if len(full_form) > len(guess) + 2:
+            if full_form in field_norm or guess in sep_tokens:
+                best = max(best, len(guess))
+        else:
+            # match at token boundaries (camelCase-aware)
+            if any(
+                token == guess or token.startswith(guess)
+                for token in tokens
+            ):
+                best = max(best, len(guess))
     return best
 
 
@@ -189,9 +232,9 @@ def _guess_field_names(input_fields):
         'lat': ['lat', 'latitude'],
         'lon': ['lon', 'longitude'],
         'depth': ['depth', 'depth_km', 'dep', 'evz'],
-        'mag': ['mag', 'magnitude'] + list(KNOWN_MAG_TYPES),
+        'mag': ['mag', 'magnitude'],
         'mag_type': ['mag_type', 'magnitude_type'],
-        'event_type': ['event_type', 'ev_type'],
+        'event_type': ['event_type', 'ev_type', 'etype'],
     }
     fields_to_ignore = ['rms', 'gap', 'scatter_volume']
     # update the above lists with spaces instead of underscores
@@ -239,6 +282,10 @@ def _guess_field_names(input_fields):
         for key2, value2 in output_fields.items():
             if value2 == value and score > output_field_scores[key2]:
                 output_fields[key2] = None
+    # fallback for magnitude columns named after the magnitude type
+    # (e.g. "ml", "mb"), which are not matched by the generic names above
+    if output_fields['mag'] is None:
+        output_fields['mag'] = _guess_mag_field(input_fields)
     # remove redundant fields
     _remove_redundant_fields(
         output_fields, 'date', ['year', 'month', 'day'])
@@ -291,6 +338,42 @@ def _guess_mag_type(mag_field):
                 return remainder
             break
     return None
+
+
+def _guess_mag_field(input_fields):
+    """
+    Identify the magnitude column from the input field names.
+
+    Recognizes generic names ("mag", "magnitude") and known magnitude type
+    names (e.g. "mw", "ml", "mb"), either bare or with a "mag_" /
+    "magnitude_" prefix.
+
+    :param input_fields: list of field names
+    :type input_fields: list of str
+
+    :return: the magnitude field name, or None if it cannot be identified
+    :rtype: str or None
+    """
+    best_field = None
+    best_score = 0
+    for in_field in input_fields:
+        field = in_field.lower().strip()
+        score = 0
+        if field in ('mag', 'magnitude'):
+            score = 10
+        elif field in KNOWN_MAG_TYPES:
+            score = 9
+        else:
+            for prefix in ('magnitude', 'mag'):
+                if field.startswith(prefix):
+                    remainder = field[len(prefix):].strip(' _-')
+                    if remainder in KNOWN_MAG_TYPES:
+                        score = 8
+                    break
+        if score > best_score:
+            best_score = score
+            best_field = in_field
+    return best_field
 
 
 def _csv_file_info(filename):
@@ -539,6 +622,28 @@ def _apply_no_value_markers(row, text_markers, numeric_markers):
     return out_row
 
 
+def _normalize_event_type(event_type):
+    """
+    Map common event-type codes to ObsPy-valid event types.
+
+    :param event_type: event type value read from a CSV row
+    :type event_type: str or None
+
+    :return: normalized event type, or None if it cannot be mapped
+    :rtype: str or None
+    """
+    if event_type is None:
+        return None
+    value = str(event_type).strip()
+    if not value:
+        return None
+    lower = value.lower()
+    if lower in EventType:
+        # already a valid ObsPy event type
+        return value
+    return EVENT_TYPE_MAP.get(lower)
+
+
 def _read_csv_row(row, fields, depth_units, mag_type, extra_column_names=None):
     """
     Read a row from a CSV file.
@@ -567,10 +672,11 @@ def _read_csv_row(row, fields, depth_units, mag_type, extra_column_names=None):
     )
     evtype = row[fields['event_type']]
     if evtype not in [None, '']:
-        try:
-            ev.event_type = row[fields['event_type']]
-        except ValueError:
-            print(f'Ignoring unknown event type: {ev.event_type}')
+        normalized = _normalize_event_type(evtype)
+        if normalized is None:
+            print(f'Ignoring unknown event type: {evtype}')
+        else:
+            ev.event_type = normalized
     orig = Origin()
     orig.time = orig_time
     orig.longitude = float_or_none(row[fields['lon']])

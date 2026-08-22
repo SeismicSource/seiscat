@@ -36,6 +36,9 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - CSV reader now autodetects more magnitude types from the header column name
   (`mb`, `ms`, `md`, `mc`, `mww`, `mwp`, `mjma`, and others), including
   prefixed forms such as `mag_mw` or `magnitude_mb`
+- CSV reader now recognizes `etype` as an event-type column and maps common
+  event-type codes to ObsPy event types (e.g. `eq` → `earthquake`,
+  `si` → `induced or triggered event`, `rb`/`sr` → `rock burst`)
 
 ### Fixed
 
@@ -55,6 +58,9 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - Improved CSV header detection: a date-only column containing a full ISO
   date-time is now accepted for the origin time, and short abbreviations
   (e.g. `min`) no longer match unrelated columns (e.g. `minDist`)
+- Harden CSV header detection against false positives: unrelated columns such
+  as `grid` (event id), `runtime` (time) or `pdfVolume` (magnitude) are no
+  longer misidentified
 
 ## [0.9.4] - 2026-04-23
 
