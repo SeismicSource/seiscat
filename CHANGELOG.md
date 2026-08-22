@@ -49,6 +49,9 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
   per-event subdirectories.
 - Do proper bound checking for `station_radius_min` and `station_radius_max`
   configuration options (between 0 and 180 degrees)
+- Improved CSV header detection: a date-only column containing a full ISO
+  date-time is now accepted for the origin time, and short abbreviations
+  (e.g. `min`) no longer match unrelated columns (e.g. `minDist`)
 
 ## [0.9.4] - 2026-04-23
 

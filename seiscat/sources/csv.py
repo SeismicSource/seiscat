@@ -97,30 +97,41 @@ def _is_csv_like(filename, delimiter=None):
 
 def _field_match_score(field, field_list):
     """
-    Return the length of the longest substring of field that matches any of
-    the field names in field_list.
+    Return the score of the best match between a field and guessed names.
+
+    A perfect (case-insensitive) match returns 999. For partial matches,
+    the score is the length of the longest matching guess. A guess that is
+    an abbreviation of a longer guess (e.g. "min" for "minute") only scores
+    when the full name appears in the field, so that unrelated names such as
+    "minDist" are not matched.
 
     :param field: field name
     :type field: str
     :param field_list: list of field names
     :type field_list: list of str
 
-    :return: the length of the longest substring of field that matches any of
-        the field names in field_list
+    :return: the match score
     :rtype: int
     """
+    field_norm = field.lower().strip()
     # return a very high score for a perfect match
-    if field.lower().strip() in field_list:
+    if field_norm in field_list:
         return 999
-    scores = [
-        len(guess)
-        for guess in field_list
-        if guess in field.lower().strip()
-    ]
-    try:
-        return max(scores)
-    except ValueError:
-        return 0
+    best = 0
+    for guess in field_list:
+        # Find the longest guess that starts with `guess`.
+        # If it is longer than `guess`, then `guess` is an abbreviation.
+        full_form = max(
+            (g for g in field_list if g.startswith(guess)),
+            key=len, default=guess
+        )
+        # `guess` is an abbreviation: only match it when the full name
+        # appears in the field (avoids matching "min" in "minDist")
+        if len(full_form) > len(guess) and full_form not in field_norm:
+            continue
+        if guess in field_norm:
+            best = max(best, len(guess))
+    return best
 
 
 def _remove_redundant_fields(output_fields, main_field, redundant_fields):
@@ -229,14 +240,15 @@ def _guess_field_names(input_fields):
         if matched_field is None:
             continue
         print(f'  "{matched_field}" --> "{in_field}"')
-    if (
-        output_fields['time'] is None
-        and None in (
-            output_fields['year'], output_fields['month'],
-            output_fields['day'], output_fields['hour'],
-            output_fields['minute'], output_fields['seconds']
+    has_date = output_fields['date'] is not None
+    has_time = output_fields['time'] is not None
+    has_ymdhms = all(
+        output_fields[field_name] is not None
+        for field_name in (
+            'year', 'month', 'day', 'hour', 'minute', 'seconds'
         )
-    ):
+    )
+    if not (has_date or has_time or has_ymdhms):
         raise ValueError(
             'Unable to identify all the necessary date-time fields')
     return output_fields
@@ -430,11 +442,9 @@ def _read_orig_time_from_row(row, fields):
 
     :raises ValueError: if the origin time cannot be parsed
     """
-    return (
-        _read_orig_time_from_ymdhms(row, fields)
-        if fields['time'] is None
-        else _read_orig_time_from_datetime(row, fields)
-    )
+    if fields.get('date') is not None or fields.get('time') is not None:
+        return _read_orig_time_from_datetime(row, fields)
+    return _read_orig_time_from_ymdhms(row, fields)
 
 
 def _normalize_no_values(no_value):

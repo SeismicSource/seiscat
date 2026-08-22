@@ -105,6 +105,12 @@ latitude,longitude,depth,magnitude,origin_time,quality,reviewer
 42.5,13.2,10.0,3.5,2023-05-15T14:30:45,A,alice
 """
 
+CSV_CONTENT_NLL_SSST_LIKE = """\
+date,latitude,longitude,depth,RMS,pdfVolume,minDist,maxDist,medDist,Gap_before,errX,errY,errZ,errH,Nphs,Nstations,expect_lat,expect_lon,expect_depth,event_id
+2023-02-07T15:14:13.292539,38.05479,36.532444,4.947917,,130.565,36.1955,210.449,71.2556,147.224,2.9762757432737983,2.19356050748549,11.149914753037352,3.697286166906749,23,,38.057954,36.532409,10.795364,None
+2023-02-07T15:14:36.021400,37.407951,36.962921,7.552083,,8.74876,11.5949,121.29,22.9757,114.283,2.1600329164158585,1.2270611802188185,3.097243322698428,2.4842345581687733,21,,37.408907,36.958895,7.812971,None
+"""
+
 
 def create_mock_config(
     filename, depth_units='km', delimiter=None, column_names=None,
@@ -164,6 +170,16 @@ class TestFieldMatchScore(unittest.TestCase):
         """Test returns longest matching substring."""
         score = _field_match_score('origin_time', ['time', 'origin'])
         self.assertEqual(score, 6)  # 'origin' is longer than 'time'
+
+    def test_abbreviation_does_not_match_unrelated_field(self):
+        """Test abbreviation "min" does not match "minDist"."""
+        score = _field_match_score('minDist', ['minute', 'min'])
+        self.assertEqual(score, 0)
+
+    def test_abbreviation_matches_when_full_name_present(self):
+        """Test abbreviation "lat" matches when "latitude" is present."""
+        score = _field_match_score('origin_latitude', ['lat', 'latitude'])
+        self.assertEqual(score, 8)  # len('latitude')
 
 
 class TestRemoveRedundantFields(unittest.TestCase):
@@ -283,6 +299,18 @@ class TestGuessFieldNames(unittest.TestCase):
         # Both 'mag' and 'magnitude' match perfectly,
         # but the function picks the first perfect match
         self.assertIn(fields['mag'], ['mag', 'magnitude'])
+
+    def test_accepts_date_only_field(self):
+        """Test a date-only field (ISO datetime) is sufficient."""
+        input_fields = [
+            'date', 'latitude', 'longitude', 'depth', 'minDist', 'event_id'
+        ]
+        with patch('builtins.print'):
+            fields = _guess_field_names(input_fields)
+        self.assertEqual(fields['date'], 'date')
+        self.assertIsNone(fields['time'])
+        self.assertIsNone(fields['minute'])
+        self.assertIsNone(fields['seconds'])
 
 
 class TestCSVFileInfo(unittest.TestCase):
@@ -603,6 +631,14 @@ class TestReadOrigTimeFromRow(unittest.TestCase):
         expected = UTCDateTime('2023-05-15T14:30:45')
         self.assertEqual(result, expected)
 
+    def test_uses_datetime_when_date_field_present(self):
+        """Test parses combined datetime from a date-only field."""
+        fields = {'date': 'date', 'time': None}
+        row = {'date': '2023-05-15T14:30:45', 'time': None}
+        result = _read_orig_time_from_row(row, fields)
+        expected = UTCDateTime('2023-05-15T14:30:45')
+        self.assertEqual(result, expected)
+
 
 class TestReadCSVRow(unittest.TestCase):
     """Test _read_csv_row function."""
@@ -835,6 +871,18 @@ class TestReadCSV(unittest.TestCase):
         self.assertEqual(len(cat), 1)
         self.assertIsNone(cat[0].origins[0].depth)
         self.assertIsNone(cat[0].magnitudes[0].mag)
+
+    def test_reads_nll_ssst_like_csv(self):
+        """Test reading CSV with combined ISO date and unrelated columns."""
+        cat = self._read_catalog(
+            CSV_CONTENT_NLL_SSST_LIKE, nrows=3, depth_units='km')
+
+        self.assertEqual(len(cat), 2)
+        self.assertEqual(cat[0].origins[0].latitude, 38.05479)
+        self.assertEqual(
+            cat[0].origins[0].time,
+            UTCDateTime('2023-02-07T15:14:13.292539')
+        )
 
 
 class TestReadCatalogFromCSV(unittest.TestCase):
