@@ -22,6 +22,7 @@ from seiscat.database.dbfunctions import (
     delete_column_from_db,
     rename_column_in_db,
     write_catalog_to_db,
+    get_catalog_stats,
 )
 from seiscat.sources.csv import read_catalog_from_csv
 from obspy import Catalog, UTCDateTime
@@ -278,6 +279,68 @@ class TestKeepRawEvid(unittest.TestCase):
         evid, raw_evid = self._fetch_row('evid', 'raw_evid')
         self.assertEqual(evid, 'abc123')
         self.assertEqual(raw_evid, self._RAW_RESOURCE_ID)
+
+
+class TestCatalogStats(unittest.TestCase):
+    """Test get_catalog_stats output."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.db_file = Path(self.tmpdir.name) / 'test.sqlite'
+        conn = sqlite3.connect(self.db_file)
+        cursor = conn.cursor()
+        cursor.execute(
+            'CREATE TABLE events '
+            '(evid TEXT, ver INTEGER, time TEXT, lat REAL, lon REAL, '
+            'depth REAL, mag REAL, mag_type TEXT, event_type TEXT, '
+            'PRIMARY KEY (evid, ver))'
+        )
+        rows = [
+            (
+                'evid1', 1, '2023-01-01T00:00:00.000000Z',
+                42.5, 13.2, 10.0, 3.5, 'ml', 'earthquake'
+            ),
+            (
+                'evid2', 1, '2023-06-01T12:00:00.000000Z',
+                40.0, 15.0, 25.5, None, None, 'earthquake'
+            ),
+        ]
+        cursor.executemany(
+            'INSERT INTO events VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', rows)
+        conn.commit()
+        conn.close()
+        self.config = {
+            'db_file': str(self.db_file),
+            'args': SimpleNamespace(
+                eventid=None,
+                event_version=None,
+                where=None,
+                sortby='time',
+                allversions=True,
+                reverse=False,
+            ),
+        }
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def test_stats_include_bounding_box(self):
+        """Statistics should include the bounding box."""
+        stats = get_catalog_stats(self.config)
+        self.assertIn(
+            'Bounding box: lat 40.000 -- 42.500, lon 13.200 -- 15.000',
+            stats
+        )
+
+    def test_stats_include_depth_range(self):
+        """Statistics should include the depth range."""
+        stats = get_catalog_stats(self.config)
+        self.assertIn('Depth range: 10.0 -- 25.5 km', stats)
+
+    def test_stats_include_magnitude_range(self):
+        """Statistics should still include the magnitude range."""
+        stats = get_catalog_stats(self.config)
+        self.assertIn('Magnitude range: 3.5 -- 3.5', stats)
 
 
 if __name__ == '__main__':

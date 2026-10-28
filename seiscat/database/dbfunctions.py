@@ -948,6 +948,20 @@ def get_catalog_stats(config):
     tmin = tmin.strftime('%Y-%m-%dT%H:%M:%S')
     tmax = tmax.strftime('%Y-%m-%dT%H:%M:%S')
     stats_str = f'{nevents} events from {tmin} to {tmax}'
+    lats = [event['lat'] for event in events if event['lat'] is not None]
+    lons = [event['lon'] for event in events if event['lon'] is not None]
+    if lats and lons:
+        stats_str += (
+            f'\nBounding box: lat {min(lats):.3f} -- {max(lats):.3f}, '
+            f'lon {min(lons):.3f} -- {max(lons):.3f}'
+        )
+    depths = [
+        event['depth'] for event in events if event['depth'] is not None
+    ]
+    if depths:
+        stats_str += (
+            f'\nDepth range: {min(depths):.1f} -- {max(depths):.1f} km'
+        )
     if mags := [event['mag'] for event in events if event['mag'] is not None]:
         mag_min = min(mags)
         mag_max = max(mags)

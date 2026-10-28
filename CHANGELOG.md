@@ -39,6 +39,9 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - CSV reader now recognizes `etype` as an event-type column and maps common
   event-type codes to ObsPy event types (e.g. `eq` → `earthquake`,
   `si` → `induced or triggered event`, `rb`/`sr` → `rock burst`)
+- `seiscat print -f stats` now reports the catalog bounding box and depth
+  range, in addition to the number of events, time range, and magnitude
+  range
 
 ### Fixed
 

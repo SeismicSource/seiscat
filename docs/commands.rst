@@ -248,6 +248,10 @@ Print the catalog to the console in various formats.
    seiscat print -w "mag >= 3.0"        # Filter and print
    seiscat print --sortby mag -r        # Sort by magnitude (largest first)
 
+With ``-f stats``, ``seiscat print`` reports the number of events, the time
+range, the bounding box, the depth range, and the magnitude range. When
+``--where`` is used, the statistics are computed on the filtered catalog.
+
 Options: ``--configfile``, ``--where``, ``--allversions``, ``--sortby``,
 ``--reverse``, ``--format {table,stats}``, ``--max-col-width N``.
 
