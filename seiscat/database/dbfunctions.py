@@ -955,10 +955,9 @@ def get_catalog_stats(config):
             f'\nBounding box: lat {min(lats):.3f} -- {max(lats):.3f}, '
             f'lon {min(lons):.3f} -- {max(lons):.3f}'
         )
-    depths = [
+    if depths := [
         event['depth'] for event in events if event['depth'] is not None
-    ]
-    if depths:
+    ]:
         stats_str += (
             f'\nDepth range: {min(depths):.1f} -- {max(depths):.1f} km'
         )

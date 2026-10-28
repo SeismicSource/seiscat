@@ -178,13 +178,11 @@ def _field_match_score(field, field_list):
         if len(full_form) > len(guess) + 2:
             if full_form in field_norm or guess in sep_tokens:
                 best = max(best, len(guess))
-        else:
-            # match at token boundaries (camelCase-aware)
-            if any(
-                token == guess or token.startswith(guess)
-                for token in tokens
-            ):
-                best = max(best, len(guess))
+        elif any(
+            token == guess or token.startswith(guess)
+            for token in tokens
+        ):
+            best = max(best, len(guess))
     return best
 
 
@@ -638,10 +636,7 @@ def _normalize_event_type(event_type):
     if not value:
         return None
     lower = value.lower()
-    if lower in EventType:
-        # already a valid ObsPy event type
-        return value
-    return EVENT_TYPE_MAP.get(lower)
+    return value if lower in EventType else EVENT_TYPE_MAP.get(lower)
 
 
 def _read_csv_row(row, fields, depth_units, mag_type, extra_column_names=None):

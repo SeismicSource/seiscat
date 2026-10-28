@@ -167,9 +167,7 @@ def _parse_degrees(field):
     text = field.strip()
     sign = -1 if text.startswith('-') else 1
     degrees = int_or_none(text.lstrip('+-').strip())
-    if degrees is None:
-        return None
-    return sign * abs(degrees)
+    return None if degrees is None else sign * abs(degrees)
 
 
 def _parse_angle(degrees_field, minutes_field):
