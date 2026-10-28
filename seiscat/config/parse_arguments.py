@@ -177,8 +177,9 @@ def _get_parent_parsers():
         nargs='+',
         help='read events from file(s). '
              'Accepts multiple filenames. '
-             'Tries CSV format first, then falls back to '
-             'ObsPy format auto-detection (QuakeML, SC3ML, NLLOC, etc.)'
+             'Tries the JMA hypocenter format and the CSV format first, '
+             'then falls back to ObsPy format auto-detection '
+             '(QuakeML, SC3ML, NLLOC, etc.)'
     )
     fromfile_parser.add_argument(
         '-d',

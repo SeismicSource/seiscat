@@ -14,7 +14,35 @@ from .cropdb import filter_catalog_by_config
 from ..sources.fdsnws import open_fdsn_connection, query_events
 from ..sources.obspy_events import read_catalog_from_obspy_events
 from ..sources.csv import read_catalog_from_csv
+from ..sources.jma import is_jma_hypocenter_file, read_catalog_from_jma
 from ..utils import ExceptionExit, err_exit
+
+
+def _read_catalog_from_file(config, filename):
+    """
+    Read a catalog from a file, auto-detecting its format.
+
+    The JMA hypocenter format is recognized by its fixed-width records.
+    Otherwise, the CSV reader is tried first, and the ObsPy reader is used
+    as a fallback.
+
+    :param config: config object
+    :param filename: name of the file to read
+
+    :return: a tuple with the catalog, the name of the reader that was
+        tried first, and the exception raised by that reader (if any)
+    :rtype: tuple(obspy.Catalog, str, Exception or None)
+    """
+    if is_jma_hypocenter_file(filename):
+        reader_name = 'JMA'
+        reader = read_catalog_from_jma
+    else:
+        reader_name = 'CSV'
+        reader = read_catalog_from_csv
+    try:
+        return reader(config, filename), reader_name, None
+    except ValueError as e:
+        return None, reader_name, e
 
 
 def _feed_from_file(config, initdb=False):
@@ -30,20 +58,19 @@ def _feed_from_file(config, initdb=False):
     csv_extra_columns = []
     for filename in args.fromfile:
         print(f'Reading event file: {filename}')
-        # Try CSV first, then fall back to ObsPy
-        csv_error = None
         try:
-            file_cat = read_catalog_from_csv(config, filename)
+            file_cat, reader_name, reader_error =\
+                _read_catalog_from_file(config, filename)
         except FileNotFoundError:
             err_exit(f'File not found: {filename}')
-        except ValueError as e:
-            # CSV reader failed, save the error and try ObsPy
-            csv_error = e
+        if file_cat is None:
+            # the first reader failed, fall back to ObsPy
             try:
                 file_cat = read_catalog_from_obspy_events(config, filename)
             except ValueError as obspy_error:
-                # Both readers failed, skip this file and continue
-                failed_files.append((filename, csv_error, obspy_error))
+                # both readers failed, skip this file and continue
+                failed_files.append(
+                    (filename, reader_name, reader_error, obspy_error))
                 continue
         # Collect extra CSV columns discovered by the CSV reader.
         for col in getattr(file_cat, 'seiscat_extra_column_names', []):
@@ -57,9 +84,9 @@ def _feed_from_file(config, initdb=False):
     # Print errors for files that couldn't be read
     if failed_files:
         print('\nWarning: The following files could not be read:')
-        for filename, csv_err, obspy_err in failed_files:
+        for filename, reader_name, reader_err, obspy_err in failed_files:
             print(f'\n  {filename}:')
-            print(f'    CSV reader: {csv_err}')
+            print(f'    {reader_name} reader: {reader_err}')
             print(f'    ObsPy reader: {obspy_err}')
     # Check if at least one file was successfully read
     if cat is None:
@@ -71,8 +98,10 @@ def _feed_from_file(config, initdb=False):
 
 def feeddb(config, initdb):
     """
-    Feed the database with events from file(s) (CSV or any ObsPy-supported
-    format) or FDSN web services.
+    Feed the database with events from file(s) or FDSN web services.
+
+    Supported file formats are the JMA hypocenter format, CSV, and any
+    ObsPy-supported format.
 
     Multiple files can be provided with --fromfile and will be merged into
     a single catalog before writing to the database.

@@ -43,13 +43,19 @@ see :doc:`configuration_file`.
    seiscat initdb
 
 You can also initialize the database from local event files
-(CSV, QuakeML, SC3ML, NLLOC, etc.):
+(JMA hypocenter format, CSV, QuakeML, SC3ML, NLLOC, etc.):
 
 .. code-block::
 
    seiscat initdb -f /path/to/your/catalog.csv
    seiscat initdb -f /path/to/your/events.xml
+   seiscat initdb -f /path/to/h2024
    seiscat initdb -f /path/to/your/catalog.csv -C
+
+The JMA hypocenter format is the fixed-width ``hYYYY`` file distributed
+by the Japan Meteorological Agency as part of its bulletin
+(see :ref:`event-file-formats`). It is detected automatically and does
+not require any option.
 
 Use ``-C/--crop`` to apply the geographic/depth/magnitude/event-type
 selection criteria from your configuration file when importing from local

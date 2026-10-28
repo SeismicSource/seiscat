@@ -104,6 +104,27 @@ Comprehensive unit tests for the CSV reader module (`seiscat/sources/csv.py`):
 
 Total: 58 tests covering all functions in the CSV reader module.
 
+### test_jma.py
+
+Unit tests for the JMA hypocenter format reader module
+(`seiscat/sources/jma.py`):
+
+- **TestParseFixedDecimal**: Tests fixed-point fields with implied decimals
+- **TestParseAngle**: Tests degrees + minutes coordinates, including negative
+  values
+- **TestParseDepth**: Tests the depth-free and depth-slice depth encodings
+- **TestParseMagnitude**: Tests magnitudes, including the letter codes used
+  for values below -0.9
+- **TestParseMagnitudeType**: Tests JMA magnitude type codes
+- **TestReadJMARecord**: Tests complete record parsing into ObsPy Event
+  objects (JMA and USGS records)
+- **TestLooksLikeJMARecord**: Tests record recognition
+- **TestIsJMAHypocenterFile**: Tests file detection
+- **TestReadCatalogFromJMA**: Tests the main entry point, evid uniqueness,
+  and error handling
+
+Total: 35 tests covering all functions in the JMA reader module.
+
 ## Adding New Tests
 
 When adding new functionality to seiscat:

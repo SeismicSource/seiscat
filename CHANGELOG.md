@@ -39,6 +39,16 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - CSV reader now recognizes `etype` as an event-type column and maps common
   event-type codes to ObsPy event types (e.g. `eq` → `earthquake`,
   `si` → `induced or triggered event`, `rb`/`sr` → `rock burst`)
+- New reader for the JMA (Japan Meteorological Agency) hypocenter data
+  format, i.e. the fixed-width 96-character `hYYYY` files of the JMA
+  bulletin (format specification:
+  https://www.data.jma.go.jp/eqev/data/bulletin/data/format/hypfmt_e.html).
+  The format is auto-detected by `seiscat initdb -f` and
+  `seiscat updatedb -f`; JST origin times are converted to UTC, degrees +
+  minutes coordinates and both depth encodings (depth-free and
+  depth-slice) are decoded, JMA magnitude type codes are converted to
+  ObsPy magnitude types, and JMA-specific fields (region name, number of
+  stations, determination flag, etc.) are stored as event extra fields.
 - `seiscat print -f stats` now reports the catalog bounding box and depth
   range, in addition to the number of events, time range, and magnitude
   range

@@ -13,8 +13,8 @@ Common options
 - Event file input (``initdb``, ``updatedb``):
 
    - ``-f, --fromfile FILE [FILE ...]``: read events from one or more files.
-     Accepts multiple filenames. Tries CSV format first, then falls back to
-     ObsPy format auto-detection (QuakeML, SC3ML, NLLOC, etc.).
+     Accepts multiple filenames. The format of each file is auto-detected
+     (JMA hypocenter format, CSV, or any ObsPy-supported format).
    - **CSV field and delimiter auto-detection**: When reading CSV files,
      the tool automatically attempts to detect column meanings based on
      common name patterns (e.g., recognizes ``longitude``, ``lon``, as
@@ -40,7 +40,6 @@ Common options
      Has no effect when importing from FDSN (criteria are already applied
      at query time).
 - Selection and ordering (where supported: see per-command):
-
    - ``-w, --where "KEY OP VALUE [AND|OR KEY OP VALUE ...]"``:
      filter events.
    - ``--where-help``: display detailed help for the ``--where`` syntax
@@ -50,6 +49,42 @@ Common options
      Common fields: ``time``, ``lat``, ``lon``, ``depth``, ``mag``, ``evid``.
      Supports tab-completion of available field names.
    - ``-r, --reverse``: reverse output order.
+
+.. _event-file-formats:
+
+Event file formats
+~~~~~~~~~~~~~~~~~~
+
+Files passed with ``-f/--fromfile`` are auto-detected and can be in any of
+the following formats:
+
+- **JMA hypocenter format**: the fixed-width (96 characters) hypocenter
+  data files distributed by the Japan Meteorological Agency (JMA) as part
+  of its bulletin, i.e. the yearly files named ``hYYYY`` (e.g. ``h2024``).
+  See the `JMA hypocenter format specification
+  <https://www.data.jma.go.jp/eqev/data/bulletin/data/format/hypfmt_e.html>`_.
+  SeisCat converts the JST (UTC+9) origin times to UTC, decodes the
+  degrees + minutes coordinates, both depth encodings (depth-free and
+  depth-slice methods) and the JMA magnitude coding (including the letter
+  codes for magnitudes below -0.9), and converts the JMA magnitude type
+  codes to ObsPy magnitude types (``J`` → ``mjma``, ``D``/``d`` → ``md``,
+  ``V``/``v`` → ``mv``, ``W`` → ``mw``, ``B`` → ``mb``, ``S`` → ``ms``).
+  Since JMA files carry no event ID, one is generated from the origin
+  time. The JMA subsidiary information is mapped to ObsPy event types
+  (natural, low-frequency, and insufficient-station earthquakes →
+  ``earthquake``, artificial events → ``anthropogenic event``,
+  eruption-related events → ``volcanic eruption``). JMA-specific fields
+  (epicenter region name and number, district number, number of stations,
+  determination flag, location precision, travel time table, maximum
+  intensity, damage and tsunami classes) are stored in the event
+  ``extra`` attributes as ``jma_*`` fields.
+- **CSV** and CSV-like (comma-, semicolon-, tab- or space-separated)
+  files, with automatic field and delimiter detection (see above);
+- **any format supported by ObsPy** (QuakeML, SC3ML, NLLOC, etc.).
+
+Note that ``--delimiter``, ``--column_names``, ``--missing-value``, and
+``--depth_units`` only apply to CSV files and are ignored for the JMA
+hypocenter format (where depths are always in km).
 
 Filtering with ``--where``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -138,6 +173,7 @@ Initialize the database (from configured sources or an event file).
    seiscat initdb -f catalog.csv -x -999    # one missing-value marker
    seiscat initdb -f catalog.csv -x -999 N/A  # two missing-value markers
    seiscat initdb -f catalog.csv -z km      # explicit depth units
+   seiscat initdb -f h2024                  # JMA hypocenter format
    seiscat initdb -f catalog.xml            # QuakeML (ObsPy auto-detect)
    seiscat initdb -f events.quakeml         # QuakeML (ObsPy auto-detect)
    seiscat initdb -f events.sc3ml           # SC3ML format

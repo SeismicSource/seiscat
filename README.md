@@ -20,9 +20,11 @@ SeisCat is a command-line tool to build, maintain, and query a local seismic
 catalog.
 
 It builds and updates the catalog from FDSNWS event web services or local
-event files. Input formats include CSV and any format handled by ObsPy
-(QuakeML, SC3ML, NLLOC, etc.). The catalog is stored in a SQLite
-single-file database and can be used as a basis for further analysis.
+event files. Input formats include the JMA hypocenter format (the
+fixed-width `hYYYY` hypocenter files of the JMA bulletin), CSV, and any
+format handled by ObsPy (QuakeML, SC3ML, NLLOC, etc.). The catalog is
+stored in a SQLite single-file database and can be used as a basis for
+further analysis.
 
 SeisCat also provides tools to plot and export the catalog, fetch waveforms
 and station metadata for catalog events, and run user-defined scripts on those
@@ -47,11 +49,12 @@ Then, edit the configuration file and init the database:
 
     seiscat initdb
 
-Alternatively, you can init the database from an event file (CSV, QuakeML,
-SC3ML, NLLOC, etc.):
+Alternatively, you can init the database from an event file (JMA
+hypocenter format, CSV, QuakeML, SC3ML, NLLOC, etc.):
 
     seiscat initdb -f /path/to/your/catalog.csv
     seiscat initdb -f /path/to/your/events.xml
+    seiscat initdb -f /path/to/h2024
 
 To update an existing database from an FDSN webservice, run:
 
