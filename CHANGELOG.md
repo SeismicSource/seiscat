@@ -74,6 +74,9 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - Harden CSV header detection against false positives: unrelated columns such
   as `grid` (event id), `runtime` (time) or `pdfVolume` (magnitude) are no
   longer misidentified
+- CSV header detection now recognizes field names where the qualifier is
+  merged with the field name, without any separator (e.g. `origintime`,
+  `eventdate`), so that these columns can be used as origin-time columns
 
 ## [0.9.4] - 2026-04-23
 

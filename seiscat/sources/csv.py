@@ -30,6 +30,14 @@ KNOWN_MAG_TYPES = (
     'me', 'mi', 'mn', 'mj', 'mjma',
 )
 
+# Qualifiers that are often merged with a field name, without any
+# separator (e.g. "origintime", "eventdate", "hypocentertime").
+FIELD_QUALIFIERS = (
+    'origin', 'orig', 'hypo', 'hypocenter', 'event', 'eq', 'quake',
+    'start', 'end', 'first', 'last', 'source', 'reference', 'ref',
+    'preferred', 'creation', 'modification', 'update',
+)
+
 # Mapping of common event-type codes to ObsPy-valid event types.
 EVENT_TYPE_MAP = {
     'eq': 'earthquake',
@@ -135,6 +143,26 @@ def _camel_tokens(field):
     ]
 
 
+def _has_qualifier_prefix(token, guess):
+    """
+    Check if a token is a guess preceded by a known qualifier.
+
+    Handles field names where the qualifier and the field name are merged
+    into a single word (e.g. "origintime", "eventdate").
+
+    :param token: lowercase token from a field name
+    :type token: str
+    :param guess: field name guess
+    :type guess: str
+
+    :return: True if the token is a qualified guess, False otherwise
+    :rtype: bool
+    """
+    if not token.endswith(guess):
+        return False
+    return token[:-len(guess)] in FIELD_QUALIFIERS
+
+
 def _field_match_score(field, field_list):
     """
     Return the score of the best match between a field and guessed names.
@@ -144,7 +172,9 @@ def _field_match_score(field, field_list):
     an abbreviation of a longer guess (e.g. "min" for "minute") only scores
     when the full name appears in the field, so that unrelated names such as
     "minDist" are not matched. Full-word guesses are matched at token
-    boundaries (e.g. "time" matches "StartTime" but not "runtime").
+    boundaries (e.g. "time" matches "StartTime" but not "runtime") and when
+    they are preceded by a known qualifier (e.g. "time" matches
+    "origintime").
 
     :param field: field name
     :type field: str
@@ -180,6 +210,7 @@ def _field_match_score(field, field_list):
                 best = max(best, len(guess))
         elif any(
             token == guess or token.startswith(guess)
+            or _has_qualifier_prefix(token, guess)
             for token in tokens
         ):
             best = max(best, len(guess))

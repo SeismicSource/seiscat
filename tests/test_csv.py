@@ -208,6 +208,12 @@ class TestFieldMatchScore(unittest.TestCase):
         """Test a full-word guess matches a camelCase token."""
         self.assertGreater(_field_match_score('StartTime', ['time']), 0)
 
+    def test_word_matches_merged_qualifier(self):
+        """Test a full-word guess matches a token with a merged qualifier."""
+        self.assertGreater(_field_match_score('origintime', ['time']), 0)
+        self.assertGreater(_field_match_score('eventdate', ['date']), 0)
+        self.assertEqual(_field_match_score('runtime', ['time']), 0)
+
     def test_short_magnitude_types_are_not_abbreviations(self):
         """Test "mw" still matches "mag_mw" alongside "mww"-like types."""
         mag_guesses = ['mag', 'magnitude'] + list(KNOWN_MAG_TYPES)
@@ -429,6 +435,17 @@ class TestGuessFieldNames(unittest.TestCase):
         with patch('builtins.print'):
             fields = _guess_field_names(input_fields)
         self.assertEqual(fields['time'], 'StartTime')
+
+    def test_matches_merged_qualifier_time(self):
+        """Test a time column with a merged qualifier is recognized."""
+        input_fields = [
+            'evid', 'origintime', 'latitude', 'longitude', 'depth',
+            'magnitude'
+        ]
+        with patch('builtins.print'):
+            fields = _guess_field_names(input_fields)
+        self.assertEqual(fields['time'], 'origintime')
+        self.assertIsNone(fields['date'])
 
     def test_identifies_ldg_catalogue_fields(self):
         """Test field identification for a LDG semicolon catalogue header."""
