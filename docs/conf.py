@@ -55,7 +55,6 @@ autodoc_mock_imports = [
     'numpy',
     'obspy',
     'cartopy',
-    'six',
     'argcomplete',
     'folium',
     'branca',

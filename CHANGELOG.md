@@ -77,6 +77,14 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
 - CSV header detection now recognizes field names where the qualifier is
   merged with the field name, without any separator (e.g. `origintime`,
   `eventdate`), so that these columns can be used as origin-time columns
+- Updated the vendored `configobj` package to the current upstream
+  development version, which no longer depends on the third-party `six`
+  module and drops the Python 2 compatibility code. `six` was never a
+  declared dependency of SeisCat: it was only installed as a transitive
+  dependency of `python-dateutil`, which no longer requires it, so SeisCat
+  failed to start with `ModuleNotFoundError: No module named 'six'`
+- CI: run the Python 3.9 test job on `ubuntu-24.04`, since Python 3.9 is not
+  available on the `ubuntu-latest` (Ubuntu 26.04) runner image
 
 ## [0.9.4] - 2026-04-23
 
