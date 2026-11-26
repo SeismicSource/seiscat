@@ -80,9 +80,10 @@ def get_fetchdata_layout(config):
     Get the fetchdata output layout.
 
     Supported values:
+
     - ``event_dirs``: legacy layout with per-event waveform/station folders
-        - ``event_files``: bundled per-event files
-            (event_<evid>.mseed/stations_<evid>.xml)
+    - ``event_files``: bundled per-event files
+      (``event_<evid>.mseed``/``stations_<evid>.xml``)
 
     :param config: config object
     :type config: dict
