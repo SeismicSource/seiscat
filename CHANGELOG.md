@@ -7,7 +7,7 @@ Copyright (c) 2022-2026 Claudio Satriano <satriano@ipgp.fr>
        /\_/\
     ~~( ⊙.⊙ )~~ SeisCat
 
-## [unreleased]
+## [0.9.5] - 2026-11-26
 
 ### Added
 
@@ -373,7 +373,7 @@ More ways of feeding the catalog will be added in the future.
 
 The local catalog is stored in a SQLite database (single file database).
 
-[unreleased]: https://github.com/SeismicSource/seiscat/compare/v0.9.4...HEAD
+[0.9.5]: https://github.com/SeismicSource/seiscat/compare/v0.9.4...v0.9.5
 [0.9.4]: https://github.com/SeismicSource/seiscat/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/SeismicSource/seiscat/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/SeismicSource/seiscat/compare/v0.9.1...v0.9.2
